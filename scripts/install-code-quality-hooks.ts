@@ -13,5 +13,5 @@ if (repository.exitCode === 0) {
   }
   await chmod(`${root}/.githooks/pre-commit`, 0o755);
   runCodeQualityCommand(root, ['git', 'config', '--local', 'core.hooksPath', '.githooks']);
-  console.log('已安装提交前代码检查。Codex hooks 请在 /hooks 中审阅并信任。');
+  console.log('已安装提交前代码检查。');
 }

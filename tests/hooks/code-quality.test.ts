@@ -1,14 +1,13 @@
 import { afterEach, beforeEach, expect, test } from 'bun:test';
-import { chmod, cp, mkdir, mkdtemp, readdir, rm, symlink } from 'node:fs/promises';
+import { chmod, cp, mkdir, mkdtemp, rm, symlink } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 
 const projectRoot = resolve(import.meta.dir, '../..');
 let repositoryRoot: string;
 
-function execute(command: string[], stdin?: string) {
+function execute(command: string[]) {
   return Bun.spawnSync(command, {
     cwd: repositoryRoot,
-    stdin: stdin === undefined ? undefined : Buffer.from(stdin),
     stdout: 'pipe',
     stderr: 'pipe',
   });
@@ -18,20 +17,6 @@ function git(...argumentsList: string[]) {
   const result = execute(['git', ...argumentsList]);
   if (result.exitCode) throw new Error(result.stderr.toString());
   return result.stdout.toString();
-}
-
-function aiHook(hookEventName: string, turnId = 'format-turn') {
-  const result = execute(
-    [process.execPath, join(projectRoot, 'scripts/ai-code-quality.ts')],
-    JSON.stringify({
-      cwd: repositoryRoot,
-      session_id: 'format-session',
-      turn_id: turnId,
-      hook_event_name: hookEventName,
-    }),
-  );
-  expect(result.exitCode).toBe(0);
-  return JSON.parse(result.stdout.toString());
 }
 
 function stagedCheck() {
@@ -59,74 +44,6 @@ beforeEach(async () => {
 
 afterEach(async () => {
   await rm(repositoryRoot, { recursive: true, force: true });
-});
-
-test('AI completion formats new and previously dirty files changed in this turn only', async () => {
-  const ongoingSource = 'export const ongoing={value:1}\n';
-  await Bun.write(join(repositoryRoot, 'src/ongoing.ts'), ongoingSource);
-  await Bun.write(join(repositoryRoot, 'src/edited.ts'), 'export const edited={value:1}\n');
-  git('add', 'src');
-  await Bun.write(join(repositoryRoot, 'src/edited.ts'), 'export const edited={value:2}\n');
-  expect(aiHook('UserPromptSubmit')).toEqual({});
-  await Bun.write(join(repositoryRoot, 'src/edited.ts'), 'export const edited={value:3}\n');
-  await Bun.write(join(repositoryRoot, 'src/new file.ts'), 'export const created={value:4}\n');
-  await Bun.write(join(repositoryRoot, 'src/generated/contracts.ts'), 'unformatted generated\n');
-  expect(aiHook('Stop')).toEqual({});
-  expect(await Bun.file(join(repositoryRoot, 'src/ongoing.ts')).text()).toBe(ongoingSource);
-  expect(await Bun.file(join(repositoryRoot, 'src/edited.ts')).text()).toBe(
-    'export const edited = { value: 3 };\n',
-  );
-  expect(await Bun.file(join(repositoryRoot, 'src/new file.ts')).text()).toBe(
-    'export const created = { value: 4 };\n',
-  );
-  expect(await Bun.file(join(repositoryRoot, 'src/generated/contracts.ts')).text()).toBe(
-    'unformatted generated\n',
-  );
-  expect(git('show', ':src/edited.ts')).toBe('export const edited={value:1}\n');
-});
-
-test('AI completion blocks lint failures and preserves the baseline on retries', async () => {
-  aiHook('UserPromptSubmit');
-  await Bun.write(
-    join(repositoryRoot, 'src/broken.ts'),
-    'const unusedValue = 1;\nexport const broken = 1;\n',
-  );
-  expect(aiHook('Stop').decision).toBe('block');
-  aiHook('UserPromptSubmit');
-  expect(aiHook('Stop').decision).toBe('block');
-  await Bun.write(join(repositoryRoot, 'src/broken.ts'), 'export const repaired=1\n');
-  expect(aiHook('Stop')).toEqual({});
-  expect(await Bun.file(join(repositoryRoot, 'src/broken.ts')).text()).toBe(
-    'export const repaired = 1;\n',
-  );
-});
-
-test('missing snapshots warn without formatting the existing workspace', async () => {
-  const ongoingSource = 'export const ongoing={value:1}\n';
-  await Bun.write(join(repositoryRoot, 'src/ongoing.ts'), ongoingSource);
-  expect(aiHook('Stop').systemMessage).toContain('未找到本轮代码快照');
-  expect(await Bun.file(join(repositoryRoot, 'src/ongoing.ts')).text()).toBe(ongoingSource);
-});
-
-test('AI completion formats changed CSS and Tailwind directives while preserving earlier CSS work', async () => {
-  const ongoingStyles = '.ongoing{color:red}\n';
-  await Bun.write(join(repositoryRoot, 'src/ongoing.css'), ongoingStyles);
-  await Bun.write(join(repositoryRoot, 'src/champion.module.css'), '.champion{color:red}\n');
-  git('add', 'src');
-  expect(aiHook('UserPromptSubmit')).toEqual({});
-  await Bun.write(join(repositoryRoot, 'src/champion.module.css'), '.champion{color:blue}\n');
-  await Bun.write(
-    join(repositoryRoot, 'src/theme.css'),
-    '@theme inline{--color-background:var(--background);}\n',
-  );
-  expect(aiHook('Stop')).toEqual({});
-  expect(await Bun.file(join(repositoryRoot, 'src/champion.module.css')).text()).toBe(
-    '.champion {\n  color: blue;\n}\n',
-  );
-  expect(await Bun.file(join(repositoryRoot, 'src/theme.css')).text()).toBe(
-    '@theme inline {\n  --color-background: var(--background);\n}\n',
-  );
-  expect(await Bun.file(join(repositoryRoot, 'src/ongoing.css')).text()).toBe(ongoingStyles);
 });
 
 test('CSS-only staged checks reject unformatted styles and preserve unstaged CSS', async () => {
@@ -263,66 +180,6 @@ test('staged Rust format checks reject an unformatted crate without touching wor
   expect(await Bun.file(join(repositoryRoot, 'src/lib.rs')).text()).toBe(formattedSource);
 });
 
-test('AI completion formats changed and new Rust files without rewriting untouched modules', async () => {
-  const ongoingRust = 'pub fn champion_name()->u32{1}\n';
-  await Bun.write(join(repositoryRoot, 'src/champion.rs'), ongoingRust);
-  await Bun.write(join(repositoryRoot, 'src/lib.rs'), 'mod champion;\n');
-  git('add', 'src');
-  expect(aiHook('UserPromptSubmit')).toEqual({});
-  await Bun.write(
-    join(repositoryRoot, 'src/lib.rs'),
-    'mod champion;\npub async fn champion_id()->u32{1}\n',
-  );
-  await Bun.write(join(repositoryRoot, 'src/champion_build.rs'), 'pub fn item_id()->u32{2}\n');
-  expect(aiHook('Stop')).toEqual({});
-  expect(await Bun.file(join(repositoryRoot, 'src/lib.rs')).text()).toContain(
-    'pub async fn champion_id() -> u32 {\n    1\n}',
-  );
-  expect(await Bun.file(join(repositoryRoot, 'src/champion_build.rs')).text()).toBe(
-    'pub fn item_id() -> u32 {\n    2\n}\n',
-  );
-  expect(await Bun.file(join(repositoryRoot, 'src/champion.rs')).text()).toBe(ongoingRust);
-  expect(git('show', ':src/lib.rs')).toBe('mod champion;\n');
-});
-
-test('AI completion formats Rust, CSS and TypeScript together', async () => {
-  expect(aiHook('UserPromptSubmit')).toEqual({});
-  await Bun.write(join(repositoryRoot, 'src/champion.rs'), 'pub fn champion_id()->u32{1}\n');
-  await Bun.write(join(repositoryRoot, 'src/champion.ts'), 'export const championId=1\n');
-  await Bun.write(join(repositoryRoot, 'src/champion.css'), '.champion{color:red}\n');
-  expect(aiHook('Stop')).toEqual({});
-  expect(await Bun.file(join(repositoryRoot, 'src/champion.rs')).text()).toBe(
-    'pub fn champion_id() -> u32 {\n    1\n}\n',
-  );
-  expect(await Bun.file(join(repositoryRoot, 'src/champion.ts')).text()).toBe(
-    'export const championId = 1;\n',
-  );
-  expect(await Bun.file(join(repositoryRoot, 'src/champion.css')).text()).toBe(
-    '.champion {\n  color: red;\n}\n',
-  );
-});
-
-test('AI completion blocks when Rust syntax cannot be formatted', async () => {
-  expect(aiHook('UserPromptSubmit')).toEqual({});
-  const invalidRust = 'pub fn champion_id(\n';
-  await Bun.write(join(repositoryRoot, 'src/champion.rs'), invalidRust);
-  const result = aiHook('Stop');
-  expect(result.decision).toBe('block');
-  expect(result.reason).toContain('rustfmt');
-  expect(await Bun.file(join(repositoryRoot, 'src/champion.rs')).text()).toBe(invalidRust);
-});
-
-test('older snapshots without Rust fingerprints never trigger workspace-wide Rust formatting', async () => {
-  const ongoingRust = 'pub fn champion_id()->u32{1}\n';
-  await Bun.write(join(repositoryRoot, 'src/champion.rs'), ongoingRust);
-  expect(aiHook('UserPromptSubmit')).toEqual({});
-  const snapshotDirectory = join(repositoryRoot, '.tmp/ai-code-quality');
-  const [snapshotName] = await readdir(snapshotDirectory);
-  await Bun.write(join(snapshotDirectory, snapshotName), '{}');
-  expect(aiHook('Stop').systemMessage).toContain('旧版 Hook');
-  expect(await Bun.file(join(repositoryRoot, 'src/champion.rs')).text()).toBe(ongoingRust);
-});
-
 test('staged fixture checks reject stale hashes and accept a refreshed manifest', async () => {
   await cp(join(projectRoot, 'tests/fixtures'), join(repositoryRoot, 'tests/fixtures'), {
     recursive: true,
@@ -360,36 +217,4 @@ test('staged fixture checks reject stale hashes and accept a refreshed manifest'
   git('add', 'tests/fixtures/manifest.json');
   const result = stagedCheck();
   expect(result.exitCode).toBe(0);
-});
-
-test('the configured AI command works when invoked from a repository subdirectory', async () => {
-  for (const path of ['scripts/ai-code-quality.ts', 'scripts/code-quality.ts']) {
-    await Bun.write(join(repositoryRoot, path), Bun.file(join(projectRoot, path)));
-  }
-  const configuration = await Bun.file(join(projectRoot, '.codex/hooks.json')).json();
-  const command = configuration.hooks.UserPromptSubmit[0].hooks[0].command;
-  expect(configuration.hooks.Stop[0].hooks[0].command).toBe(command);
-  const event = {
-    cwd: join(repositoryRoot, 'src'),
-    session_id: 'configured-command',
-    turn_id: 'configured-turn',
-    hook_event_name: 'UserPromptSubmit',
-  };
-  function configuredHook() {
-    const result = Bun.spawnSync(['sh', '-c', command], {
-      cwd: event.cwd,
-      stdin: Buffer.from(JSON.stringify(event)),
-      stdout: 'pipe',
-      stderr: 'pipe',
-    });
-    expect(result.exitCode).toBe(0);
-    return JSON.parse(result.stdout.toString());
-  }
-  expect(configuredHook()).toEqual({});
-  await Bun.write(join(repositoryRoot, 'src/configured.ts'), 'export const configured=1\n');
-  event.hook_event_name = 'Stop';
-  expect(configuredHook()).toEqual({});
-  expect(await Bun.file(join(repositoryRoot, 'src/configured.ts')).text()).toBe(
-    'export const configured = 1;\n',
-  );
 });

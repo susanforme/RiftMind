@@ -11,7 +11,7 @@
 | 仅检查代码格式 | `bun run format:check` |
 | 安装提交前检查 | `bun run hooks:install`（`bun install` 后自动执行） |
 | 检查暂存区代码 | `bun run check:staged` |
-| 验证代码质量 Hooks | `bun run test:hooks` |
+| 验证 Git 提交前检查 | `bun run test:hooks` |
 | 检查 ESLint | `bunx --no-install eslint src scripts tests` |
 | 自动修复可修复的 ESLint 问题 | `bunx --no-install eslint src scripts tests --fix` |
 | 格式化 Rust 代码 | `cargo fmt --all` |
@@ -24,9 +24,6 @@
 
 ### 自动执行
 
-- Codex 项目配置见 `.codex/hooks.json`。首次使用或配置变化后，在 Codex CLI 的 `/hooks` 中审阅并信任 Hook，并在新一轮对话验证已加载；禁止绕过 Hook 信任机制。
-- `UserPromptSubmit` 将本轮开始时的源码哈希记录到 `.tmp/ai-code-quality/`；`Stop` 只处理相对此快照变化的 JS/TS、CSS 和 Rust 文件，包含未跟踪的新文件。先对 JS/TS 执行 ESLint 自动修复，再对 JS/TS 和 CSS 执行 Biome 格式化和格式检查；Rust 使用 `rustfmt --edition 2024 --config skip_children=true <本轮修改文件>` 格式化，并追加 `--check` 验证，避免递归格式化未修改的模块。失败则要求 AI 继续修复。缺少本轮快照或快照版本不兼容时不自动修改文件，须手动验证；下一轮自动记录新版快照。
-- 快照按会话与轮次隔离；同一轮有其他人或 AI 同时修改同一工作区时，无法区分修改归属，应使用独立 worktree。
 - Git `pre-commit` 在 `.tmp/staged-code-quality/` 导出暂存区快照，检查其中的 JS/TS 和 CSS 格式，并对 JS/TS 执行 ESLint；涉及 Rust 时检查 Rust 格式，涉及 fixture 时检查清单。检查不写入业务文件、不重新暂存、不执行 stash；失败即阻止提交。
 - `pre-commit` 是增量检查，不能替代提交前的 `bun run check`。不要使用 `--no-verify`、关闭规则或修改检查脚本来掩盖错误。
 

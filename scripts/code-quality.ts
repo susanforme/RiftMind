@@ -1,5 +1,3 @@
-import { createHash } from 'node:crypto';
-import { lstatSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 export function runCodeQualityCommand(root: string, command: string[]) {
@@ -33,18 +31,4 @@ export function localTool(root: string, tool: 'eslint' | 'biome') {
       tool === 'eslint' ? 'eslint/bin/eslint.js' : '@biomejs/biome/bin/biome',
     ),
   ];
-}
-
-export async function sourceFingerprints(root: string) {
-  const fingerprints: Record<string, string> = {};
-  const paths = gitFiles(root, ['ls-files', '--cached', '--others', '--exclude-standard']);
-  for (const path of new Set(paths.filter(isFormattedSource))) {
-    const absolutePath = resolve(root, path);
-    // Never follow a tracked symlink into another checkout or outside the repository.
-    if (!lstatSync(absolutePath, { throwIfNoEntry: false })?.isFile()) continue;
-    fingerprints[path] = createHash('sha256')
-      .update(Buffer.from(await Bun.file(absolutePath).arrayBuffer()))
-      .digest('hex');
-  }
-  return fingerprints;
 }
