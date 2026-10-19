@@ -1,7 +1,10 @@
+pub mod build_sync;
 pub mod builds;
 pub mod insights;
 pub mod live;
+pub mod match_scoreboard;
 pub mod notebooks;
+pub mod player_overview;
 pub mod players;
 pub mod preparation;
 pub mod recovery;
@@ -46,6 +49,7 @@ pub struct Service {
     submit_lock: Mutex<()>,
     review_lock: Mutex<()>,
     build_lock: Mutex<()>,
+    build_sync_lock: Mutex<Option<String>>,
     preparation_lock: Mutex<()>,
     detail_lock: tokio::sync::Semaphore,
 }
@@ -116,6 +120,7 @@ impl Service {
             submit_lock: Mutex::new(()),
             review_lock: Mutex::new(()),
             build_lock: Mutex::new(()),
+            build_sync_lock: Mutex::new(None),
             preparation_lock: Mutex::new(()),
             detail_lock: tokio::sync::Semaphore::new(1),
         });
@@ -164,7 +169,10 @@ impl Service {
             c.retry_at = old.retry_at.clone();
         }
         if let Some(p) = &c.player {
-            c.player = Some(storage::save_player(&self.pool, p).await?);
+            let player = storage::save_player(&self.pool, p).await?;
+            sqlx::query("INSERT INTO local_accounts VALUES(?,?) ON CONFLICT(player_key) DO UPDATE SET last_connected_at=excluded.last_connected_at")
+                .bind(&player.player_key).bind(storage::now()).execute(&self.pool).await?;
+            c.player = Some(player);
         }
         *self.remote.write().await = remote;
         *self.connection.write().await = c.clone();
@@ -225,6 +233,12 @@ impl Service {
         }
         let c = self.connection.read().await.clone();
         let p = self.same_region_player(&req.player_key, &c).await?;
+        if c.player
+            .as_ref()
+            .is_none_or(|player| player.player_key != req.player_key)
+        {
+            return Err(AppError::new(ErrorCode::Forbidden));
+        }
         let ident = c
             .identification
             .as_ref()
@@ -491,6 +505,7 @@ impl Service {
    for table in storage::TABLES{sqlx::query(&format!("INSERT INTO {table} SELECT * FROM restore_source.{table}")).execute(&mut *tx).await?;}
    sqlx::query("UPDATE jobs SET state='interrupted',cancel_requested=1 WHERE state IN ('running','queued')").execute(&mut *tx).await?;
    sqlx::query("UPDATE build_applications SET state='unverified'").execute(&mut *tx).await?;
+   sqlx::query("UPDATE champion_build_rules SET enabled=0,revision=revision+1,payload=json_set(payload,'$.enabled',json('false'),'$.revision',revision+1,'$.state','disabled')").execute(&mut *tx).await?;
    sqlx::query("UPDATE preparation_batches SET state='interrupted',payload=json_set(payload,'$.state','interrupted') WHERE state IN ('running','queued')").execute(&mut *tx).await?;
    sqlx::query("INSERT OR REPLACE INTO jobs SELECT * FROM temp.restore_active_jobs").execute(&mut *tx).await?;
    let old=self.settings.lock().await.clone();self.store.save(&settings).await?;
@@ -568,6 +583,8 @@ impl Service {
             }
             Command::export_item_build(r) => out!(self.export_build(r).await?),
             Command::apply_item_build(r) => out!(self.apply_build(r).await?),
+            Command::list_build_sync_rules(r) => out!(self.build_sync_rules(r).await?),
+            Command::save_build_sync_rule(r) => out!(self.save_build_sync_rule(r).await?),
             Command::get_review_event_context(r) => out!(self.event_context(r).await?),
             Command::get_personal_baseline(r) => out!(self.personal_baseline(r).await?),
             Command::preview_match_preparation(r) => out!(self.preview_preparation(r).await?),
@@ -577,12 +594,14 @@ impl Service {
             Command::get_live_snapshot(_) => out!(self.live_snapshot().await?),
             Command::search_player(r) => out!(self.search_player(r).await?),
             Command::get_player_profile(r) => out!(self.player_profile(r).await?),
+            Command::get_player_overview(r) => out!(self.player_overview(r).await?),
             Command::list_favorites(_) => out!(self.favorites().await?),
             Command::set_favorite(r) => out!(self.set_favorite(r).await?),
             Command::get_champion_pool(r) => out!(self.champion_pool(r).await?),
             Command::compare_matches(r) => out!(self.compare_matches(r).await?),
             Command::get_issue_summary(r) => out!(self.issue_summary(r).await?),
             Command::get_match_review_data(r) => out!(self.review_data(r).await?),
+            Command::get_match_scoreboard(r) => out!(self.match_scoreboard(r).await?),
             Command::fetch_match_details(r) => out!(self.start_details(r).await?),
             Command::generate_review(r) => out!(self.start_review(r).await?),
             Command::get_review(r) => out!(storage::review::report(&self.pool, &r.id).await?),

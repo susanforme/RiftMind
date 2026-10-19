@@ -45,7 +45,7 @@ it('keeps globals limited to theme mappings, element defaults and accessibility 
 
 it('keeps CSS files in the global and theme styles directory', () => {
   const stylesheets = readdirSync('src', { recursive: true })
-    .map(String)
+    .map((path) => String(path).replaceAll('\\', '/'))
     .filter((path) => path.endsWith('.css'));
   expect(stylesheets.length).toBeGreaterThan(0);
   for (const stylesheet of stylesheets) {

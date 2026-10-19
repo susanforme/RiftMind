@@ -10,6 +10,7 @@ const chart = vi.hoisted(() => ({
   setOption: vi.fn(),
   resize: vi.fn(),
   dispose: vi.fn(),
+  on: vi.fn(),
 }));
 const initializeChart = vi.hoisted(() => vi.fn(() => chart));
 vi.mock('echarts/core', () => ({ init: initializeChart, use: vi.fn() }));
@@ -90,7 +91,7 @@ it.each(['pool', 'distribution'])(
     );
     const view = render(
       kind === 'pool' ? (
-        <ChampionGamesChart rows={[]} />
+        <ChampionGamesChart rows={[]} onChampion={vi.fn()} />
       ) : (
         <PersonalDistributionChart
           metric={{
@@ -116,8 +117,13 @@ it.each(['pool', 'distribution'])(
     await waitFor(() => expect(chart.setOption).toHaveBeenCalledTimes(3));
     const options = chart.setOption.mock.lastCall?.[0];
     expect(options.tooltip.backgroundColor).toBe('alternate:light:--popover');
-    expect(options.xAxis.axisLine.lineStyle.color).toBe('alternate:light:--chart-axis');
-    expect(options.yAxis.splitLine.lineStyle.color).toBe('alternate:light:--chart-grid');
+    if (kind === 'pool') {
+      expect(options.xAxis.axisLabel.color).toBe('alternate:light:--muted-foreground');
+      expect(options.xAxis.splitLine.lineStyle.color).toBe('alternate:light:--chart-grid');
+    } else {
+      expect(options.xAxis.axisLine.lineStyle.color).toBe('alternate:light:--chart-axis');
+      expect(options.yAxis.splitLine.lineStyle.color).toBe('alternate:light:--chart-grid');
+    }
     expect(kind === 'pool' ? options.color[0] : options.series[1].itemStyle.color).toBe(
       'alternate:light:--chart-self',
     );

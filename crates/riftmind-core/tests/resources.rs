@@ -67,6 +67,12 @@ async fn server() -> (String, Arc<Upstream>, tokio::task::JoinHandle<()>) {
         if uri.path().ends_with("items.json") {
             return axum::Json(serde_json::json!([{"id":3089,"name":"Hat","iconPath":"/lol-game-data/assets/ASSETS/Items/Hat.png"}])).into_response();
         }
+        if uri.path().ends_with("perkstyles.json") {
+            return axum::Json(serde_json::json!({"styles":[{"id":8200,"name":"Sorcery","iconPath":"/lol-game-data/assets/v1/perk-images/styles/7202_sorcery.png"}]})).into_response();
+        }
+        if uri.path().ends_with("perks.json") {
+            return axum::Json(serde_json::json!([{"id":8112,"name":"Electrocute","iconPath":"/lol-game-data/assets/v1/perk-images/styles/domination/electrocute/electrocute.png"}])).into_response();
+        }
         if uri.path().ends_with("profile-icons.json") {
             return axum::Json(serde_json::json!([
                 {"id":0,"iconPath":"/lol-game-data/assets/v1/profile-icons/0.jpg"},
@@ -88,6 +94,47 @@ async fn server() -> (String, Arc<Upstream>, tokio::task::JoinHandle<()>) {
         state,
         tokio::spawn(async move { axum::serve(listener, app).await.unwrap() }),
     )
+}
+
+#[tokio::test]
+async fn keystones_and_secondary_rune_styles_resolve_from_their_respective_catalogues() {
+    let (base, _, upstream) = server().await;
+    let root =
+        tempfile::tempdir_in(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../.tmp")).unwrap();
+    let pool = storage::open(&root.path().join("riftmind.db"))
+        .await
+        .unwrap();
+    let client = ResourceClient::fixture(base).unwrap();
+    let assets = client
+        .resolve(
+            &pool,
+            root.path(),
+            AssetRequest {
+                version: "16.20.1".into(),
+                locale: "zh-CN".into(),
+                champion_ids: vec![],
+                resource_ids: Some(vec![
+                    ResourceId {
+                        kind: ResourceKind::Rune,
+                        id: 8112,
+                    },
+                    ResourceId {
+                        kind: ResourceKind::Rune,
+                        id: 8200,
+                    },
+                ]),
+            },
+        )
+        .await
+        .unwrap();
+    assert_eq!(assets[0].name.as_deref(), Some("Electrocute"));
+    assert_eq!(assets[1].name.as_deref(), Some("Sorcery"));
+    for asset in assets {
+        let path = asset.reference.unwrap();
+        let path = path.strip_prefix(resources::PROTOCOL_ORIGIN).unwrap();
+        assert_eq!(client.respond(root.path(), "GET", path).await.status, 200);
+    }
+    upstream.abort();
 }
 
 #[tokio::test]

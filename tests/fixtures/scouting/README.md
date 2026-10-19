@@ -13,3 +13,9 @@ RiftMind independently implements the Rust state machine and shadcn React UI;
 no Akari source code is transplanted. Public LCU identities only; no anonymous
 identity recovery and no Live Client Data API. These are synthetic shapes and
 remain unverified against real Riot/Tencent clients.
+
+`lobby.json` is a synthetic `/lol-lobby/v2/lobby` payload with the signed-in
+player and one party member. Field names follow `Lobby`, `LocalMember`, and
+`GameConfig` in Akari's `src/shared/types/league-client/lobby.ts` at the commit
+above. Tests derive solo rooms, joins/leaves, matchmaking, ready checks, bots,
+spectators, missing member lists, and a return from champion select from it.

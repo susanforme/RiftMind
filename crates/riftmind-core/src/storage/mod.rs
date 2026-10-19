@@ -18,7 +18,11 @@ pub const MIGRATION_NOTEBOOKS: &str =
     include_str!("../../../../src-tauri/migrations/0004_champion_notebooks.sql");
 pub const MIGRATION_REVIEW_INSIGHTS: &str =
     include_str!("../../../../src-tauri/migrations/0005_review_training_insights.sql");
-pub const DATABASE_VERSION: u32 = 6;
+pub const DATABASE_VERSION: u32 = 8;
+pub const MIGRATION_PLAYER_OVERVIEW: &str =
+    include_str!("../../../../src-tauri/migrations/0008_player_overview.sql");
+pub const MIGRATION_CHAMPION_BUILD_SYNC: &str =
+    include_str!("../../../../src-tauri/migrations/0007_champion_build_sync.sql");
 pub const MIGRATION_PLAYER_IDENTITY: &str =
     include_str!("../../../../src-tauri/migrations/0006_player_identity.sql");
 pub const SCHEMA_MIGRATIONS: &[(i64, &str, &str)] = &[
@@ -28,6 +32,8 @@ pub const SCHEMA_MIGRATIONS: &[(i64, &str, &str)] = &[
     (4, "champion_notebooks", MIGRATION_NOTEBOOKS),
     (5, "review_training_insights", MIGRATION_REVIEW_INSIGHTS),
     (6, "player_identity", MIGRATION_PLAYER_IDENTITY),
+    (7, "champion_build_sync", MIGRATION_CHAMPION_BUILD_SYNC),
+    (8, "player_overview", MIGRATION_PLAYER_OVERVIEW),
 ];
 #[derive(Debug)]
 struct WorkspaceMigrations;
@@ -80,6 +86,9 @@ pub const TABLES: &[&str] = &[
     "build_applications",
     "personal_baselines",
     "preparation_batches",
+    "champion_build_rules",
+    "local_accounts",
+    "rank_snapshots",
 ];
 pub fn now() -> String {
     chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true)

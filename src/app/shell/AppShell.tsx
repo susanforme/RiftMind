@@ -1,14 +1,15 @@
 import { useNotebookDrafts } from '../../features/champion-notes/notebook-drafts';
 import { matchName, playerName } from '../../lib/display-names';
 import { serverName } from '../../lib/server-name';
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
-import { Outlet, useNavigate, useRouterState } from '@tanstack/react-router';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate, useRouterState } from '@tanstack/react-router';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import {
   Swords,
   BookOpen,
   UsersRound,
+  UserRound,
   History,
   ChartNoAxesCombined,
   Settings2,
@@ -20,22 +21,28 @@ import {
   Wifi,
   WifiOff,
   X,
-  Ellipsis,
   ChevronLeft,
   ChevronRight,
+  RotateCw,
 } from 'lucide-react';
 import { transport } from '../runtime';
 import { queryClient } from '../query-client';
 import { useWorkspace, defaultTab } from '../../stores/workspace-tabs';
 import type { ColorMode, WorkspaceTab } from '../../generated/contracts';
-import { validateSearch, restoreTabOnBoot, type Search } from '../router';
+import { type Search } from '../router';
 import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-} from '../../components/ui/dropdown-menu';
+  readWorkspaceSearch as safeSearch,
+  workspaceTabForLocation,
+} from '../workspace-navigation';
+import { WorkspacePages } from './WorkspacePages';
+import { invalidateWorkspaceTabQueries } from '../workspace-refresh';
+import {
+  ContextMenu,
+  ContextMenuTrigger,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+} from '../../components/ui/context-menu';
 import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { Button } from '../../components/ui/button';
 import {
@@ -65,13 +72,6 @@ const colorModeCycle: Record<ColorMode, { icon: typeof Sun; next: ColorMode }> =
 };
 const sidebarNavigationClassName =
   'relative justify-start w-full h-12 my-1 py-3 px-3 gap-3 text-sm data-[selected=true]:bg-accent data-[selected=true]:text-primary before:absolute before:inset-y-3 before:left-0 before:w-[3px] before:rounded-full data-[selected=true]:before:bg-primary [[data-collapsed=true]_&]:p-2 [[data-collapsed=true]_&]:justify-center forced-colors:data-[selected=true]:border forced-colors:data-[selected=true]:border-[ButtonText]';
-const safeSearch = (tab: WorkspaceTab): Search => {
-  try {
-    return validateSearch(JSON.parse(tab.search));
-  } catch {
-    return {};
-  }
-};
 export function AppShell() {
   const notebookDrafts = useNotebookDrafts((state) => state.drafts);
   useEffect(() => {
@@ -87,27 +87,19 @@ export function AppShell() {
   const navigate = useNavigate();
   const location = useRouterState({ select: (s) => s.location });
   const { tabs, setTabs, open, reorder, dirty, setDraft } = useWorkspace();
-  const matchKey = location.pathname.match(/^\/matches\/([^/]+)\/review$/)?.[1];
-  const reviewMatch = matchKey ? decodeURIComponent(matchKey) : undefined;
-  const routePlayer = (location.search as Search).player;
-  const activeId = reviewMatch
-    ? `review:${routePlayer || 'unknown'}:${reviewMatch}`
-    : location.pathname === '/notebooks'
-      ? `notebooks:${(location.search as Search).champion || 64}`
-      : location.pathname === '/live'
-        ? 'live'
-        : location.pathname === '/champions'
-          ? `champions:${routePlayer || 'current'}`
-          : location.pathname === '/compare'
-            ? (location.search as Search).tab || 'compare'
-            : location.pathname === '/progress'
-              ? `progress:${routePlayer || 'current'}`
-              : location.pathname === '/settings'
-                ? 'settings'
-                : (location.search as Search).tab ||
-                  ((location.search as Search).player
-                    ? `matches:${(location.search as Search).player}`
-                    : 'matches');
+  const [refreshRevisions, setRefreshRevisions] = useState<Record<string, number>>({});
+  function refreshTab(tab: WorkspaceTab) {
+    void invalidateWorkspaceTabQueries(tab);
+    setRefreshRevisions((revisions) => ({
+      ...revisions,
+      [tab.id]: (revisions[tab.id] || 0) + 1,
+    }));
+  }
+  const activeTab = useMemo(
+    () => workspaceTabForLocation(location.pathname, location.search as Search),
+    [location.pathname, location.search],
+  );
+  const activeId = activeTab.id;
   const app = useQuery({
     queryKey: ['app'],
     queryFn: () => transport.call('get_app_state', {}),
@@ -177,9 +169,21 @@ export function AppShell() {
       void navigate({ to: '/notebooks', search });
       return;
     }
-    if (tab.kind === 'live' || tab.kind === 'champions' || tab.kind === 'compare') {
+    if (
+      tab.kind === 'live' ||
+      tab.kind === 'champions' ||
+      tab.kind === 'compare' ||
+      tab.kind === 'players'
+    ) {
       void navigate({
-        to: tab.kind === 'live' ? '/live' : tab.kind === 'champions' ? '/champions' : '/compare',
+        to:
+          tab.kind === 'players'
+            ? '/players'
+            : tab.kind === 'live'
+              ? '/live'
+              : tab.kind === 'champions'
+                ? '/champions'
+                : '/compare',
         search: { ...search, tab: tab.id, player: tab.playerKey || undefined },
       });
       return;
@@ -206,24 +210,9 @@ export function AppShell() {
     );
   }
   useEffect(() => {
-    if (!settings.data || initialized.current || !players.data) return;
-    initialized.current = true;
-    const valid = settings.data.workspaceTabs.filter(
-      (tab) =>
-        tab.kind === 'settings' ||
-        !tab.playerKey ||
-        players.data.some((p) => p.playerKey === tab.playerKey),
-    );
-    if (valid.length) setTabs(valid);
-    if (restoreTabOnBoot) {
-      const saved = valid.find((tab) => tab.id === settings.data?.activeTab);
-      if (saved) activate(saved);
-    }
-  });
-  useEffect(() => {
-    if (!workspaceReady || !initialized.current) return;
-    const search = location.search as Search;
+    if (!workspaceReady) return;
     if (
+      initialized.current &&
       tabs.length > 1 &&
       activeId.startsWith('matches:') &&
       tabs.some((tab) => tab.id === 'matches' && !tab.playerKey)
@@ -232,6 +221,7 @@ export function AppShell() {
       return;
     }
     if (
+      initialized.current &&
       activeId.startsWith('champions:') &&
       activeId !== 'champions:current' &&
       tabs.some((tab) => tab.id === 'champions:current' && !tab.playerKey)
@@ -239,37 +229,11 @@ export function AppShell() {
       setTabs(tabs.filter((tab) => tab.id !== 'champions:current'));
       return;
     }
-    const routeKind = location.pathname.slice(1);
-    const tab: WorkspaceTab = ['live', 'champions', 'compare', 'notebooks'].includes(routeKind)
-      ? {
-          id: activeId,
-          kind: routeKind,
-          playerKey: search.player || null,
-          search: JSON.stringify(search),
-        }
-      : reviewMatch
-        ? {
-            id: activeId,
-            kind: 'review',
-            playerKey: search.player || null,
-            search: JSON.stringify({ ...search, match: reviewMatch }),
-          }
-        : location.pathname === '/progress'
-          ? {
-              id: activeId,
-              kind: 'progress',
-              playerKey: search.player || null,
-              search: JSON.stringify(search),
-            }
-          : location.pathname === '/settings'
-            ? { id: 'settings', kind: 'settings', playerKey: null, search: '{}' }
-            : {
-                id: activeId,
-                kind: 'matches',
-                playerKey: search.player || null,
-                search: JSON.stringify(search),
-              };
-    if (!tabs.some((item) => item.id === tab.id)) open(tab);
+    const tab = activeTab;
+    if (!initialized.current) {
+      initialized.current = true;
+      setTabs([tab]);
+    } else if (!tabs.some((item) => item.id === tab.id)) open(tab);
     else if (tabs.find((item) => item.id === tab.id)?.search !== tab.search)
       setTabs(tabs.map((item) => (item.id === tab.id ? tab : item)));
   }, [
@@ -281,6 +245,7 @@ export function AppShell() {
     location.pathname,
     location.search,
     workspaceReady,
+    activeTab,
   ]);
   useEffect(() => {
     const p = connection.data?.player;
@@ -298,7 +263,6 @@ export function AppShell() {
       (!(location.search as Search).player || (before && before !== p.playerKey))
     )
       activate(tab);
-    else open(tab);
   });
   useEffect(() => {
     if (!initialized.current || dirty) return;
@@ -439,9 +403,14 @@ export function AppShell() {
         {t('common.skipToContent')}
       </a>
       <RuntimeEffects />
-      <div
+      <Tabs
+        value={activeId}
+        onValueChange={(id) => {
+          const tab = tabs.find((existing) => existing.id === id);
+          if (tab) activate(tab);
+        }}
         data-collapsed={collapsed}
-        className="grid grid-cols-[208px_minmax(0,_1fr)] grid-rows-[48px_minmax(0,_1fr)] h-full data-[collapsed=true]:grid-cols-[64px_minmax(0,_1fr)] max-[900.01px]:grid-cols-[64px_minmax(0,_1fr)]"
+        className="grid grid-cols-[208px_minmax(0,_1fr)] grid-rows-[48px_minmax(0,_1fr)] h-full transition-[grid-template-columns] duration-200 ease-in-out data-[collapsed=true]:grid-cols-[64px_minmax(0,_1fr)] max-[900.01px]:grid-cols-[64px_minmax(0,_1fr)]"
       >
         <TitleBar
           sidebarToggle={
@@ -467,22 +436,17 @@ export function AppShell() {
             </Button>
           }
         >
-          <Tabs
-            value={activeId}
-            onValueChange={(id) => {
-              const tab = tabs.find((item) => item.id === id);
-              if (tab) activate(tab);
-            }}
+          <TabsList
+            className="flex justify-start gap-[3px] h-10 p-0 bg-transparent rounded-none overflow-x-auto min-w-0 items-stretch [scrollbar-width:none]"
+            aria-label={t('common.workspace')}
           >
-            <TabsList
-              className="flex justify-start gap-[3px] h-full p-0 bg-transparent rounded-none overflow-x-auto min-w-0 items-stretch [scrollbar-width:none]"
-              aria-label={t('common.workspace')}
-            >
-              {tabs.map((tab, index) => {
-                const player = players.data?.find((p) => p.playerKey === tab.playerKey);
-                const title =
-                  tab.kind === 'notebooks'
-                    ? t('notebooks.titlePage')
+            {tabs.map((tab, index) => {
+              const player = players.data?.find((p) => p.playerKey === tab.playerKey);
+              const title =
+                tab.kind === 'notebooks'
+                  ? t('notebooks.titlePage')
+                  : tab.kind === 'players'
+                    ? `${t('players.title')}${player ? ` · ${playerName(t, player)}` : ''}`
                     : ['live', 'champions', 'compare'].includes(tab.kind)
                       ? t(`scouting.${tab.kind}`)
                       : tab.kind === 'settings'
@@ -494,142 +458,101 @@ export function AppShell() {
                             : player
                               ? `${playerName(t, player)} · ${serverName(t, player.serverId)}`
                               : t('common.defaultTab');
-                return (
-                  <div
-                    key={tab.id}
-                    data-active={activeId === tab.id}
-                    className="flex items-center shrink-0 min-w-[160px] max-w-[285px] text-muted-foreground rounded-[6px_6px_0_0] border border-transparent border-b-0 hover:bg-muted data-[active=true]:text-foreground data-[active=true]:bg-background data-[active=true]:border-border data-[active=true]:border-t-primary/60 [&_>_button[role=tab]]:min-w-0 [&_>_button[role=tab]]:flex [&_>_button[role=tab]]:flex-1 [&_>_button[role=tab]]:gap-[7px] [&_>_button[role=tab]]:border-0 [&_>_button[role=tab]]:bg-transparent [&_>_button[role=tab]]:shadow-none [&_>_button[role=tab]]:text-[13px] [&_>_button[role=tab]]:pt-2 [&_>_button[role=tab]]:pr-1.5 [&_>_button[role=tab]]:pb-2 [&_>_button[role=tab]]:pl-3 [&_>_button[role=tab]_>_span:first-of-type]:overflow-hidden [&_>_button[role=tab]_>_span:first-of-type]:text-ellipsis [&_>_button[role=tab]_>_span:first-of-type]:whitespace-nowrap [&_svg]:shrink-0 forced-colors:data-[active=true]:border forced-colors:data-[active=true]:border-[ButtonText]"
-                    draggable
-                    onDragStart={() => {
-                      drag.current = tab.id;
-                    }}
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={() => {
-                      if (drag.current) reorder(drag.current, tab.id);
-                      drag.current = null;
-                    }}
-                  >
-                    <TabsTrigger
-                      id={`workspace-${tab.id}`}
-                      aria-controls="main-content"
-                      value={tab.id}
-                      title={title}
+              return (
+                <ContextMenu key={tab.id}>
+                  <ContextMenuTrigger asChild>
+                    <div
+                      data-active={activeId === tab.id}
+                      className="flex w-max items-center shrink-0 min-w-0 max-w-[min(32rem,70vw)] text-muted-foreground rounded-[6px_6px_0_0] border border-transparent border-b-0 hover:bg-muted data-[active=true]:text-foreground data-[active=true]:bg-background [&_>_button[role=tab]]:min-w-0 [&_>_button[role=tab]]:flex [&_>_button[role=tab]]:flex-1 [&_>_button[role=tab]]:gap-[7px] [&_>_button[role=tab]]:border-0 [&_>_button[role=tab]]:bg-transparent [&_>_button[role=tab]]:shadow-none [&_>_button[role=tab]]:text-[13px] [&_>_button[role=tab]]:pt-2 [&_>_button[role=tab]]:pr-1.5 [&_>_button[role=tab]]:pb-2 [&_>_button[role=tab]]:pl-3 [&_>_button[role=tab]_>_span:first-of-type]:overflow-hidden [&_>_button[role=tab]_>_span:first-of-type]:text-ellipsis [&_>_button[role=tab]_>_span:first-of-type]:whitespace-nowrap [&_svg]:shrink-0 forced-colors:data-[active=true]:border forced-colors:data-[active=true]:border-[ButtonText]"
+                      draggable
+                      onDragStart={() => {
+                        drag.current = tab.id;
+                      }}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={() => {
+                        if (drag.current) reorder(drag.current, tab.id);
+                        drag.current = null;
+                      }}
                     >
-                      {tab.kind === 'settings' ? (
-                        <Settings2 aria-hidden="true" size={16} />
-                      ) : tab.kind === 'notebooks' ? (
-                        <BookOpen aria-hidden="true" size={16} />
-                      ) : tab.kind === 'matches' ? (
-                        <History aria-hidden="true" size={16} />
-                      ) : (
-                        <Swords aria-hidden="true" size={16} />
-                      )}
-                      <span>{title}</span>
-                      {tab.kind === 'settings' && dirty && (
-                        <span className="text-(--warning)" title={t('common.unsaved')}>
-                          •
-                        </span>
-                      )}
-                    </TabsTrigger>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          className="w-[26px] h-7 shrink-0 text-muted-foreground mr-[3px]"
-                          size="icon"
-                          aria-label={t('common.tabActions')}
-                        >
-                          <Ellipsis size={14} aria-hidden="true" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start">
-                        <DropdownMenuItem
-                          onSelect={() =>
-                            closeSet(
-                              tabs.filter((item) => item.id !== tab.id).map((item) => item.id),
-                            )
-                          }
-                        >
-                          {t('common.closeOthers')}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onSelect={() => closeSet(tabs.slice(index + 1).map((item) => item.id))}
-                        >
-                          {t('common.closeRight')}
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          disabled={index === 0}
-                          onSelect={() => reorder(tab.id, tabs[index - 1].id)}
-                        >
-                          <ChevronLeft aria-hidden="true" size={14} />
-                          {t('common.moveLeft')}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          disabled={index === tabs.length - 1}
-                          onSelect={() => reorder(tab.id, tabs[index + 1].id)}
-                        >
-                          <ChevronRight aria-hidden="true" size={14} />
-                          {t('common.moveRight')}
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="w-[26px] h-7 shrink-0 text-muted-foreground mr-[3px]"
-                      title={t('common.close')}
-                      aria-label={`${t('common.close')} ${title}`}
-                      onClick={() => closeSet([tab.id])}
+                      <TabsTrigger
+                        id={`workspace-${tab.id}`}
+                        className="rounded-none focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-solid focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-muted-foreground"
+                        aria-controls={`workspace-panel-${tab.id}`}
+                        value={tab.id}
+                        title={title}
+                      >
+                        {tab.kind === 'settings' ? (
+                          <Settings2 aria-hidden="true" size={16} />
+                        ) : tab.kind === 'notebooks' ? (
+                          <BookOpen aria-hidden="true" size={16} />
+                        ) : tab.kind === 'matches' ? (
+                          <History aria-hidden="true" size={16} />
+                        ) : (
+                          <Swords aria-hidden="true" size={16} />
+                        )}
+                        <span>{title}</span>
+                        {tab.kind === 'settings' && dirty && (
+                          <span className="text-(--warning)" title={t('common.unsaved')}>
+                            •
+                          </span>
+                        )}
+                      </TabsTrigger>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="w-[26px] h-7 shrink-0 text-muted-foreground mr-[3px]"
+                        title={t('common.close')}
+                        aria-label={`${t('common.close')} ${title}`}
+                        onClick={() => closeSet([tab.id])}
+                      >
+                        <X aria-hidden="true" size={13} />
+                      </Button>
+                    </div>
+                  </ContextMenuTrigger>
+                  <ContextMenuContent aria-label={t('common.tabActions')}>
+                    <ContextMenuItem onSelect={() => refreshTab(tab)}>
+                      <RotateCw aria-hidden="true" size={14} />
+                      {t('common.refresh')}
+                    </ContextMenuItem>
+                    <ContextMenuSeparator />
+                    <ContextMenuItem
+                      onSelect={() =>
+                        closeSet(tabs.filter((item) => item.id !== tab.id).map((item) => item.id))
+                      }
                     >
-                      <X aria-hidden="true" size={13} />
-                    </Button>
-                  </div>
-                );
-              })}
-            </TabsList>
-          </Tabs>
+                      {t('common.closeOthers')}
+                    </ContextMenuItem>
+                    <ContextMenuItem
+                      onSelect={() => closeSet(tabs.slice(index + 1).map((item) => item.id))}
+                    >
+                      {t('common.closeRight')}
+                    </ContextMenuItem>
+                    <ContextMenuSeparator />
+                    <ContextMenuItem
+                      disabled={index === 0}
+                      onSelect={() => reorder(tab.id, tabs[index - 1].id)}
+                    >
+                      <ChevronLeft aria-hidden="true" size={14} />
+                      {t('common.moveLeft')}
+                    </ContextMenuItem>
+                    <ContextMenuItem
+                      disabled={index === tabs.length - 1}
+                      onSelect={() => reorder(tab.id, tabs[index + 1].id)}
+                    >
+                      <ChevronRight aria-hidden="true" size={14} />
+                      {t('common.moveRight')}
+                    </ContextMenuItem>
+                  </ContextMenuContent>
+                </ContextMenu>
+              );
+            })}
+          </TabsList>
         </TitleBar>
         <aside
           className="row-start-2 bg-(--sidebar) border-r border-r-border flex flex-col py-5 px-3 min-w-0 [&_nav]:flex-1 max-[900.01px]:[&_[data-ui~=nav-item]]:p-2 max-[900.01px]:[&_[data-ui~=nav-item]]:justify-center [&_[data-ui~=sidebar-label]]:min-w-0 [&_[data-ui~=sidebar-label]]:overflow-hidden [&_[data-ui~=sidebar-label]]:text-ellipsis [&_[data-ui~=sidebar-label]]:whitespace-nowrap"
           id="app-sidebar"
         >
           <nav aria-label={t('common.matches')}>
-            {(['live', 'champions'] as const).map((kind) => (
-              <Button
-                key={kind}
-                variant="ghost"
-                data-ui="nav-item"
-                data-selected={location.pathname === `/${kind}`}
-                className={sidebarNavigationClassName}
-                aria-label={t(`scouting.${kind}`)}
-                aria-current={location.pathname === `/${kind}` ? 'page' : undefined}
-                title={t(`scouting.${kind}`)}
-                onClick={() =>
-                  activate({
-                    id:
-                      kind === 'live'
-                        ? 'live'
-                        : `champions:${connection.data?.player?.playerKey || 'current'}`,
-                    kind,
-                    playerKey: connection.data?.player?.playerKey || null,
-                    search: '{}',
-                  })
-                }
-              >
-                {kind === 'live' ? (
-                  <Swords aria-hidden="true" size={19} />
-                ) : (
-                  <UsersRound aria-hidden="true" size={19} />
-                )}
-                <span
-                  data-ui="sidebar-label"
-                  className="[[data-collapsed=true]_&]:hidden max-[900.01px]:hidden"
-                >
-                  {t(`scouting.${kind}`)}
-                </span>
-              </Button>
-            ))}
             <Button
               variant="ghost"
               data-ui="nav-item"
@@ -658,6 +581,43 @@ export function AppShell() {
                 {t('common.matches')}
               </span>
             </Button>
+            {(['players', 'live', 'champions'] as const).map((kind) => (
+              <Button
+                key={kind}
+                variant="ghost"
+                data-ui="nav-item"
+                data-selected={location.pathname === `/${kind}`}
+                className={sidebarNavigationClassName}
+                aria-label={t(kind === 'players' ? 'players.title' : `scouting.${kind}`)}
+                aria-current={location.pathname === `/${kind}` ? 'page' : undefined}
+                title={t(kind === 'players' ? 'players.title' : `scouting.${kind}`)}
+                onClick={() =>
+                  activate({
+                    id:
+                      kind === 'live'
+                        ? 'live'
+                        : `${kind}:${connection.data?.player?.playerKey || 'current'}`,
+                    kind,
+                    playerKey: connection.data?.player?.playerKey || null,
+                    search: '{}',
+                  })
+                }
+              >
+                {kind === 'players' ? (
+                  <UserRound aria-hidden="true" size={19} />
+                ) : kind === 'live' ? (
+                  <Swords aria-hidden="true" size={19} />
+                ) : (
+                  <UsersRound aria-hidden="true" size={19} />
+                )}
+                <span
+                  data-ui="sidebar-label"
+                  className="[[data-collapsed=true]_&]:hidden max-[900.01px]:hidden"
+                >
+                  {t(kind === 'players' ? 'players.title' : `scouting.${kind}`)}
+                </span>
+              </Button>
+            ))}
             <Button
               variant="ghost"
               data-ui="nav-item"
@@ -788,22 +748,20 @@ export function AppShell() {
           </div>
           <main
             data-ui="main-content"
-            className="overflow-auto flex-1 min-h-0 scroll-pt-6"
+            className="flex-1 min-h-0 overflow-hidden"
             id="main-content"
             aria-labelledby={`workspace-${activeId}`}
             tabIndex={-1}
-            key={activeId}
-            onScroll={(e) =>
-              useWorkspace.getState().rememberScroll(activeId, e.currentTarget.scrollTop)
-            }
-            ref={(el) => {
-              if (el) el.scrollTop = useWorkspace.getState().scroll[activeId] || 0;
-            }}
           >
-            <Outlet />
+            <WorkspacePages
+              tabs={initialized.current ? tabs : [activeTab]}
+              activeTab={activeTab}
+              workspaceEpoch={app.data?.workspaceEpoch}
+              refreshRevisions={refreshRevisions}
+            />
           </main>
         </div>
-      </div>
+      </Tabs>
       <ConfirmDialog
         open={!!pending}
         title={t('common.discard')}

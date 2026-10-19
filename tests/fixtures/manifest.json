@@ -4,15 +4,15 @@
   "entries": [
     {
       "path": "crates/riftmind-core/src/clients/mod.rs",
-      "sha256": "a0d170db421195f8dff6c43788d3aa2fc2a9caf78b5ab00638ad8f33db45dc4c"
+      "sha256": "c28b9aece1ae826a1ec393bd22d86d8b827323d242cb5c574bdace98e2b32933"
     },
     {
       "path": "crates/riftmind-core/src/domain/servers.json",
-      "sha256": "a579b32175b39a36a7ac263c301ec24e920f5ec6eceb5336cd80f12d86250720"
+      "sha256": "91f0d513f15742a8693cde7101bf24bd0a065d3b96cbb0c4c9e1bb7861e9cb97"
     },
     {
       "path": "src/lib/transport/fixture.ts",
-      "sha256": "36488a893d7ae410e379c1c444d9d7e82aa9729c4d6eeb64cb9e6d886dc9ebeb"
+      "sha256": "af287b869fcd35ebcd6c6b622bda95ce19e661ccd04872788017b5b4f2f3444e"
     },
     {
       "path": "tests/fixtures/icon.png",
@@ -193,6 +193,10 @@
     {
       "path": "tests/fixtures/scouting/live.json",
       "sha256": "1b6d5094e2811d617246eda28393a496f627ed228aeb0d9863424843773cac84"
+    },
+    {
+      "path": "tests/fixtures/scouting/lobby.json",
+      "sha256": "5d40c4d010ed83a7c049e96665442af66bea2cf4bfcc2babdf9021e4a211fc55"
     },
     {
       "path": "tests/fixtures/notebooks/client-item-set.json",

@@ -6,5 +6,7 @@
   "offline": "Offline",
   "waiting": "Waiting for sign-in",
   "conflict": "Server conflict",
-  "unknown": "Unknown server"
+  "unknown": "Unknown server",
+  "lobby": "Solo lobby",
+  "party": "Party lobby"
 }

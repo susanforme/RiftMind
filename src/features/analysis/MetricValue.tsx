@@ -1,7 +1,15 @@
 import { useTranslation } from 'react-i18next';
 import type { SampleMetric } from '../../generated/contracts';
 import { numberText } from '../review/format';
-export function MetricValue({ metric, ratio = false }: { metric: SampleMetric; ratio?: boolean }) {
+export function MetricValue({
+  metric,
+  ratio = false,
+  showSamples = true,
+}: {
+  metric: SampleMetric;
+  ratio?: boolean;
+  showSamples?: boolean;
+}) {
   const { t } = useTranslation();
   return (
     <span
@@ -14,9 +22,11 @@ export function MetricValue({ metric, ratio = false }: { metric: SampleMetric; r
         .join(', ')}
     >
       {numberText(metric.value, ratio ? 'ratio' : undefined)}{' '}
-      <small className="text-muted-foreground text-xs font-normal">
-        {t('scouting.n', { count: metric.samples })}
-      </small>
+      {showSamples && (
+        <small className="text-muted-foreground text-xs font-normal">
+          {t('scouting.n', { count: metric.samples })}
+        </small>
+      )}
     </span>
   );
 }

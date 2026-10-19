@@ -1,5 +1,6 @@
 // Development preview only; core/harness is authoritative for calculations and persistence.
 import raw from '../../../tests/fixtures/scouting/live.json';
+import lobby from '../../../tests/fixtures/scouting/lobby.json';
 import type { CommandName } from './index';
 import type {
   CommandMap,
@@ -11,9 +12,14 @@ import type {
 import { reviewFixture } from './review-fixture';
 let favorites: Player[] = [];
 let players: Player[] = [];
+let partySize: number | null = null;
+export function setScoutingPartySize(size: number | null) {
+  partySize = size;
+}
 export function resetScoutingFixture() {
   favorites = [];
   players = [];
+  partySize = null;
 }
 const mean = (values: (number | null)[]): SampleMetric => {
   const valid = values.filter((v): v is number => v != null);
@@ -39,6 +45,39 @@ export function scoutingFixture(
   const key = (args as { playerKey?: string }).playerKey;
   switch (command) {
     case 'get_live_snapshot':
+      if (logged && partySize !== null) {
+        return {
+          sessionEpoch: c.connection.sessionEpoch,
+          generation: 'fixture-party',
+          revision: 1,
+          phase: 'Lobby',
+          gameId: null,
+          queueId: lobby.gameConfig.queueId,
+          mode: lobby.gameConfig.gameMode,
+          bans: [],
+          seats: lobby.members.slice(0, partySize).map((member, index) => ({
+            seat: index,
+            teamId: 0,
+            player: {
+              playerKey: `${logged.serverId}:${member.puuid}`,
+              serverId: logged.serverId,
+              puuid: member.puuid,
+              displayName: member.summonerName,
+              profileIconId: member.summonerIconId,
+              summonerLevel: member.summonerLevel,
+              updatedAt: c.now.toISOString(),
+            },
+            championId: null,
+            spellIds: [],
+            position: member.firstPositionPreference,
+            current: member.puuid === logged.puuid,
+          })),
+          stale: false,
+          updatedAt: c.now.toISOString(),
+          matchKey: null,
+          error: null,
+        };
+      }
       return {
         sessionEpoch: c.connection.sessionEpoch,
         generation: 'fixture-live',
@@ -109,72 +148,114 @@ export function scoutingFixture(
       c.emit('favorites-changed');
       return favorites;
     }
-    case 'get_player_profile': {
+    case 'get_player_profile':
+    case 'get_player_overview': {
       if (!logged) return c.fail('client_not_found');
       const p = players.find((p) => p.playerKey === key) || {
         ...logged,
         playerKey: key!,
         displayName: key === logged.playerKey ? logged.displayName : key!,
       };
-      return {
+      const queueId = (args as CommandMap['get_player_profile']['input']).queueId;
+      const matches = c.matches.filter(
+        (match) => match.playerKey === key && (!queueId || match.queueId === queueId),
+      );
+      const profile = {
         player: p,
         source: 'sgp',
         collectedAt: c.now.toISOString(),
         ranks: [],
         rankError: null,
-        queueId: (args as CommandMap['get_player_profile']['input']).queueId,
-        games: 0,
-        winRate: mean([]),
+        queueId,
+        games: matches.length,
+        winRate: mean(
+          matches
+            .filter((match) => match.outcome === 'win' || match.outcome === 'loss')
+            .map((match) => (match.outcome === 'win' ? 1 : 0)),
+        ),
         kda: mean([]),
         champions: [],
         championGames: 0,
         championWinRate: mean([]),
         championKda: mean([]),
       };
+      return command === 'get_player_overview'
+        ? {
+            profile,
+            matches: key === logged.playerKey ? matches : matches.slice(0, 50),
+            rankHistory: [],
+            isSelf: key === logged.playerKey,
+            historyError: null,
+          }
+        : profile;
     }
     case 'get_champion_pool': {
       const q = args as CommandMap['get_champion_pool']['input'];
+      const queues = q.queueIds ?? [q.filter.queueId ?? 420];
       const matches = c.matches.filter(
         (m) =>
           m.playerKey === q.filter.playerKey &&
-          (!q.filter.queueId || m.queueId === q.filter.queueId) &&
+          m.outcome !== 'remake' &&
+          (!queues.length || (m.queueId != null && queues.includes(m.queueId))) &&
           (!q.filter.championId || m.championId === q.filter.championId) &&
           (!q.filter.position || m.position === q.filter.position) &&
           (!q.filter.patch || m.version.startsWith(`${q.filter.patch}.`)) &&
           (!q.filter.from || m.startedAt >= q.filter.from) &&
           (!q.filter.to || m.startedAt <= q.filter.to),
       );
+      const champions = [...new Set(matches.map((m) => m.championId))].map((championId) => {
+        const rows = matches.filter((m) => m.championId === championId);
+        return {
+          championId,
+          games: rows.length,
+          winRate: mean(
+            rows.map((m) => (m.outcome === 'win' ? 1 : m.outcome === 'loss' ? 0 : null)),
+          ),
+          kills: mean(rows.map((m) => m.kills)),
+          deaths: mean(rows.map((m) => m.deaths)),
+          assists: mean(rows.map((m) => m.assists)),
+          kda: mean(
+            rows.map((m) =>
+              m.deaths && m.kills != null && m.assists != null
+                ? (m.kills + m.assists) / m.deaths
+                : null,
+            ),
+          ),
+          csPerMin: mean([]),
+          damageShare: mean([]),
+          trend: rows.slice(0, 20).map((m) => ({
+            matchKey: m.matchKey,
+            startedAt: m.startedAt,
+            outcome: m.outcome,
+            group: `${m.queueId}:${m.position}:${m.version.split('.').slice(0, 2).join('.')}`,
+          })),
+        };
+      });
+      const sortValue = (champion: (typeof champions)[number]) => {
+        switch (q.sort) {
+          case 'win_rate':
+            return champion.winRate.value;
+          case 'kda':
+            return champion.kda.value;
+          case 'cs_per_min':
+            return champion.csPerMin.value;
+          case 'damage_share':
+            return champion.damageShare.value;
+          default:
+            return champion.games;
+        }
+      };
+      champions.sort(
+        (left, right) =>
+          (sortValue(right) ?? -Infinity) - (sortValue(left) ?? -Infinity) ||
+          (left.championId ?? 0) - (right.championId ?? 0),
+      );
+      const cursor = q.cursor ?? 0;
+      const limit = q.limit ?? 50;
       return {
-        items: [...new Set(matches.map((m) => m.championId))].map((championId) => {
-          const rows = matches.filter((m) => m.championId === championId);
-          return {
-            championId,
-            games: rows.length,
-            winRate: mean(
-              rows.map((m) => (m.outcome === 'win' ? 1 : m.outcome === 'loss' ? 0 : null)),
-            ),
-            kills: mean(rows.map((m) => m.kills)),
-            deaths: mean(rows.map((m) => m.deaths)),
-            assists: mean(rows.map((m) => m.assists)),
-            kda: mean(
-              rows.map((m) =>
-                m.deaths && m.kills != null && m.assists != null
-                  ? (m.kills + m.assists) / m.deaths
-                  : null,
-              ),
-            ),
-            csPerMin: mean([]),
-            damageShare: mean([]),
-            trend: rows.slice(0, 20).map((m) => ({
-              matchKey: m.matchKey,
-              startedAt: m.startedAt,
-              outcome: m.outcome,
-              group: `${m.queueId}:${m.position}:${m.version.split('.').slice(0, 2).join('.')}`,
-            })),
-          };
-        }),
-        nextCursor: null,
-        cachedMatches: matches.length,
+        items: champions.slice(cursor, cursor + limit),
+        nextCursor: cursor + limit < champions.length ? cursor + limit : null,
+        cachedMatches: c.matches.filter((match) => match.playerKey === q.filter.playerKey).length,
         filteredMatches: matches.length,
         from: matches[matches.length - 1]?.startedAt || null,
         to: matches[0]?.startedAt || null,

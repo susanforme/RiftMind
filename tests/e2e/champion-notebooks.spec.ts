@@ -42,9 +42,7 @@ test('create a champion combo without matches, keep drafts, practice, history, t
 }) => {
   await harness.scenario({ scenario: 'no-client' });
   await page.goto('/#/notebooks?champion=64');
-  await expect(
-    page.getByRole('heading', { name: 'Champion notebooks', exact: true }),
-  ).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Champion plans', exact: true })).toBeVisible();
   await page.getByRole('tab', { name: 'Combos', exact: true }).click();
   await page.getByRole('button', { name: 'Create', exact: true }).click();
   const dialog = page.getByRole('dialog');
@@ -78,6 +76,7 @@ test('create a champion combo without matches, keep drafts, practice, history, t
       })
     )[0].notes,
   ).toBe('Slowly, then at full speed');
+  await dialog.getByRole('button', { name: 'Close', exact: true }).click();
   await page.getByRole('button', { name: 'Edit', exact: true }).click();
   await dialog.getByLabel('Content', { exact: true }).fill('Unsaved across navigation');
   await dialog.getByRole('button', { name: 'Keep draft and close', exact: true }).click();
@@ -86,7 +85,7 @@ test('create a champion combo without matches, keep drafts, practice, history, t
     'Unsaved across navigation',
   );
   await dialog.getByRole('button', { name: 'Save changes', exact: true }).click();
-  await page.getByRole('button', { name: 'Edit: Q1 ward hop Q2', exact: true }).click();
+  await page.getByRole('button', { name: 'More actions: Q1 ward hop Q2', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Revision history', exact: true }).click();
   await page
     .getByRole('dialog')
@@ -95,7 +94,7 @@ test('create a champion combo without matches, keep drafts, practice, history, t
     .click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   expect((await entries())[0].content.text).toContain('Use a ward');
-  await page.getByRole('button', { name: 'Edit: Q1 ward hop Q2', exact: true }).click();
+  await page.getByRole('button', { name: 'More actions: Q1 ward hop Q2', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Delete', exact: true }).click();
   await page.getByRole('button', { name: 'Trash', exact: true }).click();
   await page.getByRole('button', { name: 'Recover', exact: true }).click();
@@ -145,7 +144,7 @@ test('create a champion combo without matches, keep drafts, practice, history, t
       activeTab: null,
     },
   });
-  await expect(page.getByRole('heading', { name: '英雄笔记', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '英雄方案', exact: true })).toBeVisible();
   await page.getByRole('tab', { name: '笔记', exact: true }).click();
   await page.getByRole('button', { name: '新建', exact: true }).click();
   await page.getByRole('dialog').getByLabel('标题', { exact: true }).fill('河道视野');
@@ -244,7 +243,8 @@ test('two builds export safe JSON and simulated client merges; quick reference a
     (await harness.request.get('/bridge/stats').then((response) => response.json())).itemSetWrites,
   ).toBe(1);
   await page.goto('/#/notebooks?champion=64');
-  await page.getByRole('tab', { name: 'Builds', exact: true }).click();
+  await page.getByRole('tab', { name: 'Plans', exact: true }).click();
+  await page.getByRole('button', { name: 'Damage', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Damage', exact: true })).toBeVisible();
   await page.setViewportSize({ width: 800, height: 600 });
   await page.screenshot({ path: '.tmp/browser/notebooks-builds-800.png' });

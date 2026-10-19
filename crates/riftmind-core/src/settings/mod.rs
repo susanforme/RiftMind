@@ -55,6 +55,7 @@ pub fn validate(s: &Settings) -> Result<()> {
                 "progress",
                 "live",
                 "champions",
+                "players",
                 "compare",
                 "notebooks",
             ]

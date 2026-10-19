@@ -634,6 +634,9 @@ impl ResourceClient {
             let file = match resource.kind {
                 ResourceKind::Champion => format!("champions/{}", resource.id),
                 ResourceKind::Item => "items".into(),
+                ResourceKind::Rune if matches!(resource.id, 8000 | 8100 | 8200 | 8300 | 8400) => {
+                    "perkstyles".into()
+                }
                 ResourceKind::Rune => "perks".into(),
                 ResourceKind::Spell => "summoner-spells".into(),
                 ResourceKind::Skill => format!("champions/{}", resource.id / 10),
@@ -664,7 +667,10 @@ impl ResourceClient {
                                 })
                             })
                             .cloned()
-                    } else if let Some(array) = meta.as_array() {
+                    } else if let Some(array) = meta
+                        .as_array()
+                        .or_else(|| meta.get("styles").and_then(Value::as_array))
+                    {
                         array
                             .iter()
                             .find(|v| v["id"].as_u64() == Some(resource.id as u64))
@@ -719,6 +725,28 @@ impl ResourceClient {
             result.push(Asset {
                 resource_id,
                 requested_version: req.version.clone(),
+                description: object.as_ref().and_then(|metadata| {
+                    ["longDesc", "description", "shortDesc", "tooltip"]
+                        .iter()
+                        .find_map(|field| {
+                            metadata[*field]
+                                .as_str()
+                                .filter(|text| !text.trim().is_empty())
+                        })
+                        .map(str::to_owned)
+                }),
+                price: object.as_ref().and_then(|metadata| {
+                    (resource.kind == ResourceKind::Item)
+                        .then(|| metadata["priceTotal"].as_u64())
+                        .flatten()
+                        .and_then(|price| u32::try_from(price).ok())
+                }),
+                cooldown: object.as_ref().and_then(|metadata| {
+                    (resource.kind == ResourceKind::Spell)
+                        .then(|| metadata["cooldown"].as_u64())
+                        .flatten()
+                        .and_then(|seconds| u32::try_from(seconds).ok())
+                }),
                 actual_version: object.map(|_| requested_patch.clone()),
                 locale: req.locale.clone(),
                 name,

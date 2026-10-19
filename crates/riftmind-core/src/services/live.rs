@@ -15,6 +15,113 @@ fn active(phase: &str) -> bool {
 fn number(v: &Value, k: &str) -> Option<u32> {
     v.get(k)?.as_u64()?.try_into().ok().filter(|n| *n > 0)
 }
+fn party_phase(phase: &str) -> bool {
+    ["Lobby", "Matchmaking", "ReadyCheck"].contains(&phase)
+}
+
+fn normalize_party(
+    raw: &Value,
+    connection: &ConnectionState,
+    old: &LiveSnapshot,
+    mut next: LiveSnapshot,
+) -> Result<LiveSnapshot> {
+    let lobby = &raw["lobby"];
+    next.queue_id = number(&lobby["gameConfig"], "queueId");
+    next.mode = lobby["gameConfig"]["gameMode"].as_str().map(str::to_string);
+    if old.session_epoch == connection.session_epoch && party_phase(&old.phase) {
+        next.generation = old.generation.clone();
+    }
+    let members = lobby["members"].as_array();
+    if members.is_some_and(|members| members.len() > 32) {
+        return Err(AppError::new(ErrorCode::InvalidInput));
+    }
+    let server = connection
+        .identification
+        .as_ref()
+        .and_then(|identity| identity.server_id.as_deref());
+    if let Some(members) = members {
+        for (index, member) in members.iter().enumerate() {
+            if member["isBot"] == true || member["isSpectator"] == true {
+                continue;
+            }
+            let puuid = member["puuid"].as_str().filter(|puuid| {
+                !puuid.is_empty()
+                    && *puuid != "0"
+                    && !puuid
+                        .chars()
+                        .all(|character| character == '0' || character == '-')
+            });
+            let is_local_member = member["summonerId"]
+                .as_u64()
+                .filter(|id| *id > 0)
+                .zip(lobby["localMember"]["summonerId"].as_u64())
+                .is_some_and(|(member_id, local_id)| member_id == local_id);
+            let mut player = match server.zip(puuid) {
+                Some((server, _)) => Some(clients::player_from_summoner(member, server, "")?),
+                None if is_local_member => connection.player.clone(),
+                None => None,
+            };
+            let current = player
+                .as_ref()
+                .zip(connection.player.as_ref())
+                .is_some_and(|(member, logged)| member.player_key == logged.player_key);
+            if let Some((member, logged)) = player
+                .as_mut()
+                .zip(connection.player.as_ref())
+                .filter(|_| current)
+            {
+                member.profile_icon_id = member.profile_icon_id.or(logged.profile_icon_id);
+                member.summoner_level = member.summoner_level.or(logged.summoner_level);
+                if member.display_name.is_empty() {
+                    member.display_name = logged.display_name.clone();
+                }
+            }
+            if player.as_ref().is_some_and(|player| {
+                next.seats.iter().any(|seat| {
+                    seat.player
+                        .as_ref()
+                        .is_some_and(|existing| existing.player_key == player.player_key)
+                })
+            }) {
+                continue;
+            }
+            next.seats.push(LiveSeat {
+                seat: index as u32,
+                team_id: if lobby["gameConfig"]["isCustom"] == true {
+                    number(member, "teamId").unwrap_or(0)
+                } else {
+                    0
+                },
+                player,
+                champion_id: None,
+                spell_ids: vec![],
+                position: member["firstPositionPreference"]
+                    .as_str()
+                    .filter(|position| !position.is_empty() && *position != "UNSELECTED")
+                    .map(str::to_string),
+                current,
+            });
+        }
+    }
+    if !next.seats.iter().any(|seat| seat.current)
+        && let Some(player) = &connection.player
+    {
+        next.seats.push(LiveSeat {
+            seat: members.map_or(0, |members| members.len() as u32),
+            team_id: if lobby["gameConfig"]["isCustom"] == true {
+                number(&lobby["localMember"], "teamId").unwrap_or(0)
+            } else {
+                0
+            },
+            player: Some(player.clone()),
+            champion_id: None,
+            spell_ids: vec![],
+            position: None,
+            current: true,
+        });
+    }
+    Ok(next)
+}
 pub fn normalize_live(
     raw: &Value,
     c: &ConnectionState,
@@ -34,6 +141,9 @@ pub fn normalize_live(
         stale: false,
         ..LiveSnapshot::default()
     };
+    if party_phase(phase) {
+        return normalize_party(raw, c, old, next);
+    }
     if !active(phase) {
         return Ok(next);
     }
@@ -157,7 +267,9 @@ impl Service {
         let _single = self.live_lock.lock().await;
         let c = self.connection.read().await.clone();
         let epoch = self.state.read().await.workspace_epoch.clone();
-        if c.phase != ConnectionPhase::Connected {
+        if c.phase != ConnectionPhase::Connected
+            && !(c.lcu_ready && c.phase == ConnectionPhase::WaitingAuth)
+        {
             return Ok(self.live.read().await.clone());
         }
         let remote = self
@@ -217,6 +329,11 @@ impl Service {
         drop(_workspace);
         self.emit("live-changed", Some(next.generation.clone()), next.revision)
             .await;
+        let service = self.clone();
+        let snapshot = next.clone();
+        tokio::spawn(async move {
+            let _ = service.sync_champion_build(&snapshot, &raw).await;
+        });
         if ended
             && self.settings.lock().await.auto_sync
             && let Some(p) = c.player

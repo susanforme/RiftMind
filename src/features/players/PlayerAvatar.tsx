@@ -5,8 +5,15 @@ import { portraitCatalogueVersion } from '../../components/GameEntityIcon';
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar';
 import { Badge } from '../../components/ui/badge';
 import type { Player } from '../../generated/contracts';
+import { cn } from '../../lib/utils';
 
-export function PlayerAvatar({ player }: { player: Player | undefined }) {
+export function PlayerAvatar({
+  player,
+  className,
+}: {
+  player: Player | undefined;
+  className?: string;
+}) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language === 'zh-CN' ? 'zh-CN' : 'en-US';
   const iconId = player?.profileIconId;
@@ -26,7 +33,7 @@ export function PlayerAvatar({ player }: { player: Player | undefined }) {
   const label = t('matches.playerIcon', { name: player?.displayName || t('common.defaultTab') });
   return (
     <div className="relative shrink-0 pb-2">
-      <Avatar className="size-20 border-2 border-primary/70 bg-muted">
+      <Avatar className={cn('size-20 border-2 border-primary/70 bg-muted', className)}>
         <AvatarImage src={icon.data?.[0]?.reference || undefined} alt={label} />
         <AvatarFallback aria-label={label}>
           {player?.displayName.slice(0, 2).toUpperCase() || '—'}

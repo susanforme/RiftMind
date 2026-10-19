@@ -38,6 +38,7 @@ export function RuntimeEffects() {
           void queryClient.cancelQueries();
           for (const key of [
             'matches',
+            'match-scoreboard',
             'review-data',
             'review-chart',
             'timeline',
@@ -48,6 +49,7 @@ export function RuntimeEffects() {
             'player-progress',
             'live',
             'player-profile',
+            'player-overview',
             'favorites',
             'champion-pool',
             'comparison',
@@ -97,11 +99,19 @@ export function RuntimeEffects() {
           'favorites-changed': ['favorites'],
           'app-state-changed': ['app'],
           'settings-changed': ['settings'],
-          'connection-changed': ['connection', 'players', 'live'],
+          'connection-changed': ['connection', 'players', 'live', 'player-overview'],
           'task-progress': ['task'],
-          'match-updated': ['matches', 'players', 'usage', 'champion-pool', 'live'],
+          'match-updated': [
+            'matches',
+            'match-scoreboard',
+            'players',
+            'usage',
+            'champion-pool',
+            'live',
+            'player-overview',
+          ],
           'update-changed': ['app'],
-          'review-data-changed': ['review-data', 'matches'],
+          'review-data-changed': ['review-data', 'match-scoreboard', 'matches'],
           'review-changed': [
             'review-data',
             'matches',
@@ -146,23 +156,31 @@ export function RuntimeEffects() {
       window.removeEventListener('focus', reconcile);
     };
   }, []);
+  const languagePreference = settings?.languagePreference;
   useEffect(() => {
-    if (!settings) return;
-    void i18n.changeLanguage(resolveLanguage(settings.languagePreference, navigator.language));
+    if (languagePreference === undefined) return;
+    const language = resolveLanguage(languagePreference, navigator.language);
+    if (i18n.language !== language) void i18n.changeLanguage(language);
+  }, [languagePreference]);
+
+  const themeId = settings?.themeId;
+  const colorModePreference = settings?.colorModePreference;
+  useEffect(() => {
+    if (themeId === undefined || colorModePreference === undefined) return;
     const media = matchMedia('(prefers-color-scheme: dark)');
     const apply = () => {
-      const mode = resolveMode(settings.colorModePreference, media.matches);
-      applyTheme(settings.themeId, mode);
+      const mode = resolveMode(colorModePreference, media.matches);
+      applyTheme(themeId, mode);
       if (transport.mode === 'desktop')
         void getCurrentWindow()
           .setTheme(mode)
           .catch(() => {});
     };
     apply();
-    if (settings.colorModePreference === 'system') {
+    if (colorModePreference === 'system') {
       media.addEventListener('change', apply);
       return () => media.removeEventListener('change', apply);
     }
-  }, [settings]);
+  }, [themeId, colorModePreference]);
   return null;
 }

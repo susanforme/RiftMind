@@ -2,7 +2,7 @@
   {
     "id": "TENCENT_HN1",
     "matchHistory": "https://hn1-k8s-sgp.lol.qq.com:21019",
-    "regionPath": "TENCENT_HN1",
+    "regionPath": "HN1",
     "tencent": true,
     "environment": "live",
     "verification": "reference_only"
@@ -10,7 +10,7 @@
   {
     "id": "TENCENT_HN10",
     "matchHistory": "https://hn10-k8s-sgp.lol.qq.com:21019",
-    "regionPath": "TENCENT_HN10",
+    "regionPath": "HN10",
     "tencent": true,
     "environment": "live",
     "verification": "reference_only"
@@ -18,7 +18,7 @@
   {
     "id": "TENCENT_TJ100",
     "matchHistory": "https://tj100-sgp.lol.qq.com:21019",
-    "regionPath": "TENCENT_TJ100",
+    "regionPath": "TJ100",
     "tencent": true,
     "environment": "live",
     "verification": "reference_only"
@@ -26,7 +26,7 @@
   {
     "id": "TENCENT_TJ101",
     "matchHistory": "https://tj101-sgp.lol.qq.com:21019",
-    "regionPath": "TENCENT_TJ101",
+    "regionPath": "TJ101",
     "tencent": true,
     "environment": "live",
     "verification": "reference_only"
@@ -34,7 +34,7 @@
   {
     "id": "TENCENT_NJ100",
     "matchHistory": "https://nj100-sgp.lol.qq.com:21019",
-    "regionPath": "TENCENT_NJ100",
+    "regionPath": "NJ100",
     "tencent": true,
     "environment": "live",
     "verification": "reference_only"
@@ -42,7 +42,7 @@
   {
     "id": "TENCENT_GZ100",
     "matchHistory": "https://gz100-sgp.lol.qq.com:21019",
-    "regionPath": "TENCENT_GZ100",
+    "regionPath": "GZ100",
     "tencent": true,
     "environment": "live",
     "verification": "reference_only"
@@ -50,7 +50,7 @@
   {
     "id": "TENCENT_CQ100",
     "matchHistory": "https://cq100-sgp.lol.qq.com:21019",
-    "regionPath": "TENCENT_CQ100",
+    "regionPath": "CQ100",
     "tencent": true,
     "environment": "live",
     "verification": "reference_only"
@@ -58,7 +58,7 @@
   {
     "id": "TENCENT_BGP2",
     "matchHistory": "https://bgp2-k8s-sgp.lol.qq.com:21019",
-    "regionPath": "TENCENT_BGP2",
+    "regionPath": "BGP2",
     "tencent": true,
     "environment": "live",
     "verification": "reference_only"
@@ -66,7 +66,7 @@
   {
     "id": "TENCENT_PBE",
     "matchHistory": "https://pbe-sgp.lol.qq.com:21019",
-    "regionPath": "TENCENT_PBE",
+    "regionPath": "PBE",
     "tencent": true,
     "environment": "pbe",
     "verification": "reference_only"
@@ -74,7 +74,7 @@
   {
     "id": "TENCENT_PREPBE",
     "matchHistory": "https://prepbe-sgp.lol.qq.com:21019",
-    "regionPath": "TENCENT_PREPBE",
+    "regionPath": "PREPBE",
     "tencent": true,
     "environment": "pbe",
     "verification": "reference_only"

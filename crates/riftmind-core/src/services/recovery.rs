@@ -61,6 +61,10 @@ pub async fn validate_bundle(bytes: &[u8], candidate: &Path) -> Result<Settings>
             18
         } else if version == 4 {
             22
+        } else if version < 7 {
+            storage::TABLES.len() - 3
+        } else if version == 7 {
+            storage::TABLES.len() - 2
         } else {
             storage::TABLES.len()
         }]

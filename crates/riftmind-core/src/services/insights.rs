@@ -74,7 +74,14 @@ impl Service {
     pub async fn champion_pool(&self, q: ChampionQuery) -> Result<ChampionPool> {
         let _workspace = self.maintenance.read().await;
         self.ready().await?;
-        let f = validate_filter(q.filter)?;
+        let mut f = validate_filter(q.filter)?;
+        let queue_ids = q
+            .queue_ids
+            .unwrap_or_else(|| vec![f.queue_id.unwrap_or(420)]);
+        if queue_ids.len() > 32 || queue_ids.iter().any(|id| *id == 0 || *id >= 1_000_000) {
+            return Err(AppError::new(ErrorCode::InvalidInput));
+        }
+        f.queue_id = None;
         let (cursor, limit) = window(q.cursor, q.limit)?;
         if !["games", "win_rate", "kda", "cs_per_min", "damage_share"].contains(&q.sort.as_str()) {
             return Err(AppError::new(ErrorCode::InvalidInput));
@@ -90,7 +97,10 @@ impl Service {
         let mut starts = Vec::new();
         for row in rows {
             let m: MatchSummary = serde_json::from_str(row.get("projection"))?;
-            if !matches_filter(&f, &m) {
+            if m.outcome == Outcome::Remake
+                || (!queue_ids.is_empty() && !m.queue_id.is_some_and(|id| queue_ids.contains(&id)))
+                || !matches_filter(&f, &m)
+            {
                 continue;
             }
             starts.push(m.started_at.clone());
@@ -107,10 +117,7 @@ impl Service {
         let mut items = Vec::new();
         for (id, rows) in by_champion {
             let all: Vec<_> = rows.iter().map(|(m, _)| m.clone()).collect();
-            let valid: Vec<_> = rows
-                .iter()
-                .filter(|(m, _)| m.outcome != Outcome::Remake)
-                .collect();
+            let valid: Vec<_> = rows.iter().collect();
             let field = |name: &str| {
                 sample(valid.iter().map(|(_, i)| {
                     i.as_ref().and_then(|i| {
@@ -132,7 +139,7 @@ impl Service {
                 *missing = missing.saturating_sub(zeros);
                 k.excluded.insert("zero_denominator".into(), zeros);
             }
-            let mut stats = ChampionStats {
+            let stats = ChampionStats {
                 champion_id: id,
                 games: rows.len() as u32,
                 win_rate: win_rate(&all),
@@ -163,19 +170,6 @@ impl Service {
                     })
                     .collect(),
             };
-            let remakes = rows.len() - valid.len();
-            if remakes > 0 {
-                for metric in [
-                    &mut stats.kills,
-                    &mut stats.deaths,
-                    &mut stats.assists,
-                    &mut stats.kda,
-                    &mut stats.cs_per_min,
-                    &mut stats.damage_share,
-                ] {
-                    metric.excluded.insert("remake".into(), remakes as u32);
-                }
-            }
             items.push(stats);
         }
         let sort = |s: &ChampionStats| match q.sort.as_str() {

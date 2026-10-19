@@ -16,7 +16,7 @@ use std::{
     },
     time::Instant,
 };
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, Notify};
 fn live() -> Value {
     serde_json::from_str(include_str!("../../../tests/fixtures/scouting/live.json")).unwrap()
 }
@@ -34,10 +34,26 @@ fn connection(server: &str) -> ConnectionState {
     }
 }
 struct Remote {
+    ranks: Mutex<Value>,
     raw: Mutex<Value>,
     calls: AtomicU32,
     delay: AtomicU32,
     status: AtomicU32,
+    response_gate: Mutex<Option<Arc<ResponseGate>>>,
+}
+#[derive(Default)]
+struct ResponseGate {
+    started: Notify,
+    release: Notify,
+}
+impl Remote {
+    async fn wait_for_response_release(&self) {
+        let gate = self.response_gate.lock().await.clone();
+        if let Some(gate) = gate {
+            gate.started.notify_one();
+            gate.release.notified().await;
+        }
+    }
 }
 #[async_trait]
 impl MatchRemote for Remote {
@@ -59,6 +75,7 @@ impl MatchRemote for Remote {
     }
     async fn current_match(&self) -> Result<Value> {
         let v = self.raw.lock().await.clone();
+        self.wait_for_response_release().await;
         tokio::time::sleep(std::time::Duration::from_millis(
             self.delay.load(Ordering::SeqCst) as u64,
         ))
@@ -66,6 +83,7 @@ impl MatchRemote for Remote {
         Ok(v)
     }
     async fn search(&self, q: &str) -> Result<Value> {
+        self.wait_for_response_release().await;
         tokio::time::sleep(std::time::Duration::from_millis(
             self.delay.load(Ordering::SeqCst) as u64,
         ))
@@ -76,7 +94,7 @@ impl MatchRemote for Remote {
         Ok(json!({"puuid":"searched-player","gameName":q}))
     }
     async fn ranks(&self, _: &Player) -> Result<Value> {
-        Ok(json!({"queues":[]}))
+        Ok(self.ranks.lock().await.clone())
     }
 }
 async fn setup(root: &Path) -> (Arc<Service>, Arc<Remote>) {
@@ -89,10 +107,12 @@ async fn setup(root: &Path) -> (Arc<Service>, Arc<Remote>) {
     .unwrap();
     s.settings.lock().await.auto_sync = false;
     let r = Arc::new(Remote {
+        ranks: Mutex::new(json!({"queues":[]})),
         raw: Mutex::new(live()),
         calls: AtomicU32::new(0),
         delay: AtomicU32::new(0),
         status: AtomicU32::new(200),
+        response_gate: Mutex::new(None),
     });
     s.set_connection(connection("TENCENT_HN1"), Some(r.clone()))
         .await
@@ -219,7 +239,11 @@ fn live_generations_handoff_cancel_anonymous_and_nonstandard_teams() {
     assert_eq!(end.game_id, g.game_id);
     raw["phase"] = "Matchmaking".into();
     let cancel = normalize_live(&raw, &c, &end).unwrap();
-    assert!(cancel.seats.is_empty());
+    assert_eq!(cancel.seats.len(), 1);
+    assert!(cancel.seats[0].current);
+    assert!(cancel.seats[0].champion_id.is_none());
+    assert!(cancel.game_id.is_none());
+    assert!(cancel.bans.is_empty());
     raw["phase"] = "ChampSelect".into();
     raw["champSelect"]["myTeam"]
         .as_array_mut()
@@ -229,17 +253,154 @@ fn live_generations_handoff_cancel_anonymous_and_nonstandard_teams() {
     assert_ne!(next.generation, g.generation);
     assert_eq!(next.seats.len(), 7);
 }
+#[test]
+fn lobby_members_persist_through_queue_phases_and_reconcile_joins_and_leaves() {
+    let connection = connection("TENCENT_HN1");
+    let lobby: Value =
+        serde_json::from_str(include_str!("../../../tests/fixtures/scouting/lobby.json")).unwrap();
+    let mut raw = json!({"phase":"Lobby", "lobby":lobby});
+    let selected = normalize_live(&live(), &connection, &LiveSnapshot::default()).unwrap();
+    let party = normalize_live(&raw, &connection, &selected).unwrap();
+    assert_eq!(party.seats.len(), 2);
+    assert_eq!(party.queue_id, Some(420));
+    assert_eq!(party.mode.as_deref(), Some("CLASSIC"));
+    assert_eq!(party.seats[0].team_id, 0);
+    assert!(party.seats[0].current);
+    assert_eq!(
+        party.seats[0].player.as_ref().unwrap().profile_icon_id,
+        Some(0)
+    );
+    assert_eq!(
+        party.seats[1].player.as_ref().unwrap().summoner_level,
+        Some(225)
+    );
+    assert_eq!(party.seats[1].position.as_deref(), Some("JUNGLE"));
+    assert!(
+        party
+            .seats
+            .iter()
+            .all(|seat| seat.champion_id.is_none() && seat.spell_ids.is_empty())
+    );
+    assert!(party.game_id.is_none());
+    assert!(party.bans.is_empty());
+    assert_ne!(party.generation, selected.generation);
+    for phase in ["Matchmaking", "ReadyCheck", "Lobby"] {
+        raw["phase"] = phase.into();
+        let queued = normalize_live(&raw, &connection, &party).unwrap();
+        assert_eq!(queued.seats.len(), 2);
+        assert_eq!(queued.generation, party.generation);
+    }
+    raw["lobby"]["members"].as_array_mut().unwrap().truncate(1);
+    let solo = normalize_live(&raw, &connection, &party).unwrap();
+    assert_eq!(solo.seats.len(), 1);
+    assert!(solo.seats[0].current);
+    raw["lobby"]["members"]
+        .as_array_mut()
+        .unwrap()
+        .push(lobby["members"][1].clone());
+    let joined = normalize_live(&raw, &connection, &solo).unwrap();
+    assert_eq!(joined.seats.len(), 2);
+    assert_eq!(joined.generation, solo.generation);
+    let champion_select = normalize_live(&live(), &connection, &joined).unwrap();
+    assert_eq!(champion_select.seats.len(), 10);
+    assert_ne!(champion_select.generation, joined.generation);
+    let left = normalize_live(&json!({"phase":"None"}), &connection, &joined).unwrap();
+    assert!(left.seats.is_empty());
+}
+
+#[test]
+fn lobby_falls_back_to_local_identity_without_reusing_an_old_roster() {
+    let connection = connection("TENCENT_HN1");
+    let old = normalize_live(&live(), &connection, &LiveSnapshot::default()).unwrap();
+    let missing = normalize_live(&json!({"phase":"Lobby"}), &connection, &old).unwrap();
+    assert_eq!(missing.seats.len(), 1);
+    assert!(missing.seats[0].current);
+    assert_eq!(
+        missing.seats[0].player.as_ref().unwrap().player_key,
+        connection.player.as_ref().unwrap().player_key
+    );
+    assert!(missing.seats[0].champion_id.is_none());
+    let lobby: Value =
+        serde_json::from_str(include_str!("../../../tests/fixtures/scouting/lobby.json")).unwrap();
+    let mut raw = json!({"phase":"Lobby", "lobby":lobby});
+    raw["lobby"]["members"][1]["isBot"] = true.into();
+    let no_bot = normalize_live(&raw, &connection, &old).unwrap();
+    assert_eq!(no_bot.seats.len(), 1);
+    raw["lobby"]["members"][1]["isBot"] = false.into();
+    raw["lobby"]["members"][1]["isSpectator"] = true.into();
+    assert_eq!(
+        normalize_live(&raw, &connection, &old).unwrap().seats.len(),
+        1
+    );
+    raw["lobby"]["members"][0]["puuid"] = Value::Null;
+    let local = normalize_live(&raw, &connection, &old).unwrap();
+    assert_eq!(local.seats.len(), 1);
+    assert!(local.seats[0].current);
+    let mut switched = connection.clone();
+    switched.session_epoch = "another-session".into();
+    assert_ne!(
+        normalize_live(&raw, &switched, &local).unwrap().generation,
+        local.generation
+    );
+    raw["lobby"]["members"] = json!(vec![lobby["members"][0].clone(); 33]);
+    assert_eq!(
+        normalize_live(&raw, &connection, &old).unwrap_err().code,
+        ErrorCode::InvalidInput
+    );
+}
+#[tokio::test]
+async fn lobby_profiles_cache_only_self_and_refresh_party_while_queueing() {
+    let root = tempfile::tempdir().unwrap();
+    let (service, remote) = setup(root.path()).await;
+    let lobby: Value =
+        serde_json::from_str(include_str!("../../../tests/fixtures/scouting/lobby.json")).unwrap();
+    *remote.raw.lock().await = json!({"phase":"Lobby", "lobby":lobby});
+    let party = service.refresh_live().await.unwrap();
+    for seat in &party.seats {
+        let profile = service
+            .player_profile(PlayerProfileQuery {
+                player_key: seat.player.as_ref().unwrap().player_key.clone(),
+                queue_id: party.queue_id,
+                champion_id: None,
+            })
+            .await
+            .unwrap();
+        assert!(profile.games > 0);
+        assert_eq!(profile.player.profile_icon_id, Some(0));
+        assert!(profile.player.summoner_level.is_some());
+    }
+    assert_eq!(remote.calls.load(Ordering::SeqCst), 2);
+    remote.raw.lock().await["phase"] = "ReadyCheck".into();
+    let ready = service.refresh_live().await.unwrap();
+    assert_eq!(ready.generation, party.generation);
+    for seat in &ready.seats {
+        service
+            .player_profile(PlayerProfileQuery {
+                player_key: seat.player.as_ref().unwrap().player_key.clone(),
+                queue_id: ready.queue_id,
+                champion_id: None,
+            })
+            .await
+            .unwrap();
+    }
+    assert_eq!(remote.calls.load(Ordering::SeqCst), 3);
+}
+
 #[tokio::test]
 async fn late_live_and_search_responses_are_rejected_after_account_switch() {
     let root = tempfile::tempdir().unwrap();
     let (s, r) = setup(root.path()).await;
-    r.delay.store(80, Ordering::SeqCst);
+    let gate = Arc::new(ResponseGate::default());
+    *r.response_gate.lock().await = Some(gate.clone());
     let s2 = s.clone();
     let pending = tokio::spawn(async move { s2.refresh_live().await });
-    tokio::time::sleep(std::time::Duration::from_millis(15)).await;
+    tokio::time::timeout(std::time::Duration::from_secs(5), gate.started.notified())
+        .await
+        .unwrap();
     s.set_connection(connection("NA1"), Some(r.clone()))
         .await
         .unwrap();
+    gate.release.notify_one();
     assert_eq!(
         pending.await.unwrap().unwrap_err().code,
         ErrorCode::SessionChanged
@@ -252,10 +413,13 @@ async fn late_live_and_search_responses_are_rejected_after_account_switch() {
         })
         .await
     });
-    tokio::time::sleep(std::time::Duration::from_millis(15)).await;
+    tokio::time::timeout(std::time::Duration::from_secs(5), gate.started.notified())
+        .await
+        .unwrap();
     s.set_connection(connection("TENCENT_HN1"), Some(r))
         .await
         .unwrap();
+    gate.release.notify_one();
     assert_eq!(
         pending.await.unwrap().unwrap_err().code,
         ErrorCode::SessionChanged
@@ -304,7 +468,7 @@ async fn profiles_dedupe_champion_changes_and_enforce_regions_errors() {
             ..q.clone()
         })
     );
-    assert!(a.unwrap().games <= 20);
+    assert!(a.unwrap().games <= 50);
     assert!(b.is_ok());
     assert_eq!(r.calls.load(Ordering::SeqCst), 1);
     let foreign = clients::synthetic_player("NA1");
@@ -368,6 +532,20 @@ async fn favorites_rename_remove_restart_and_backup_preserve_cache() {
     })
     .await
     .unwrap();
+    assert_eq!(
+        sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM player_profiles")
+            .fetch_one(&s.pool)
+            .await
+            .unwrap(),
+        0
+    );
+    s.player_profile(PlayerProfileQuery {
+        player_key: filter().player_key,
+        queue_id: None,
+        champion_id: None,
+    })
+    .await
+    .unwrap();
     let backup = s.backup().await.unwrap();
     sqlx::query(
         "UPDATE player_profiles SET payload=json_set(payload,'$.player.playerKey','NA1:other')",
@@ -426,6 +604,7 @@ async fn champion_pool_denominators_filters_missing_details_and_zero_deaths() {
     let pool = s
         .champion_pool(ChampionQuery {
             filter: filter(),
+            queue_ids: None,
             sort: "games".into(),
             cursor: None,
             limit: None,
@@ -433,18 +612,27 @@ async fn champion_pool_denominators_filters_missing_details_and_zero_deaths() {
         .await
         .unwrap();
     let c = &pool.items[0];
-    assert_eq!(c.games, 4);
+    assert_eq!(c.games, 3);
+    assert_eq!(pool.filtered_matches, 3);
+    assert_eq!(c.trend.len(), 3);
+    assert!(
+        c.trend
+            .iter()
+            .all(|match_result| match_result.outcome != Outcome::Remake)
+    );
     assert_eq!(c.win_rate.value, Some(0.5));
     assert_eq!(c.win_rate.samples, 2);
     assert_eq!(c.kda.samples, 1);
     assert_eq!(c.kda.excluded["zero_denominator"], 1);
-    assert_eq!(c.win_rate.excluded["remake"], 1);
+    assert!(!c.win_rate.excluded.contains_key("remake"));
+    assert!(!c.kda.excluded.contains_key("remake"));
     assert_eq!(c.damage_share.samples, 3);
     let mut f = filter();
     f.position = Some("UNKNOWN".into());
     assert!(
         s.champion_pool(ChampionQuery {
             filter: f,
+            queue_ids: None,
             sort: "games".into(),
             cursor: None,
             limit: None
@@ -456,6 +644,83 @@ async fn champion_pool_denominators_filters_missing_details_and_zero_deaths() {
     );
     assert_eq!(sample([None, None]).value, None);
 }
+#[tokio::test]
+async fn champion_pool_defaults_to_solo_queue_and_unions_selected_modes_without_remakes() {
+    let root = tempfile::tempdir().unwrap();
+    let (service, _) = setup(root.path()).await;
+    for (match_id, queue_id, outcome, champion_id) in [
+        ("solo", 420, Outcome::Win, 103),
+        ("flex", 440, Outcome::Loss, 103),
+        ("normal", 430, Outcome::Win, 103),
+        ("aram", 450, Outcome::Loss, 103),
+        ("mayhem", 2400, Outcome::Win, 103),
+        ("remake", 420, Outcome::Remake, 103),
+        ("remake-only-champion", 2400, Outcome::Remake, 157),
+    ] {
+        let (mut summary, _, _) = seed(&service, match_id, outcome, Some(2), false).await;
+        summary.queue_id = Some(queue_id);
+        summary.champion_id = Some(champion_id);
+        sqlx::query(
+            "UPDATE match_participants SET projection=? WHERE match_key=? AND player_key=?",
+        )
+        .bind(serde_json::to_string(&summary).unwrap())
+        .bind(&summary.match_key)
+        .bind(&summary.player_key)
+        .execute(&service.pool)
+        .await
+        .unwrap();
+    }
+    let query = |queue_ids| ChampionQuery {
+        filter: filter(),
+        queue_ids,
+        sort: "games".into(),
+        cursor: None,
+        limit: None,
+    };
+    let solo = service.champion_pool(query(None)).await.unwrap();
+    assert_eq!(solo.filtered_matches, 1);
+    assert_eq!(solo.items[0].games, 1);
+    assert_eq!(solo.items[0].win_rate.value, Some(1.0));
+    assert_eq!(solo.items[0].win_rate.samples, 1);
+    assert_eq!(solo.items[0].kda.samples, 1);
+    let aram = service
+        .champion_pool(query(Some(vec![450, 2400, 450])))
+        .await
+        .unwrap();
+    assert_eq!(aram.filtered_matches, 2);
+    assert_eq!(aram.items.len(), 1);
+    assert_eq!(aram.items[0].games, 2);
+    assert_eq!(aram.items[0].win_rate.value, Some(0.5));
+    assert_eq!(aram.items[0].win_rate.samples, 2);
+    assert_eq!(aram.items[0].trend.len(), 2);
+    assert!(
+        aram.items[0]
+            .trend
+            .iter()
+            .all(|entry| entry.outcome != Outcome::Remake)
+    );
+    let all = service.champion_pool(query(Some(vec![]))).await.unwrap();
+    assert_eq!(all.filtered_matches, 5);
+    assert_eq!(all.items.len(), 1);
+    assert_eq!(all.items[0].games, 5);
+    let mut legacy = query(None);
+    legacy.filter.queue_id = Some(440);
+    assert_eq!(
+        service.champion_pool(legacy).await.unwrap().items[0].games,
+        1
+    );
+    for invalid in [vec![0], vec![1_000_000], vec![420; 33]] {
+        assert_eq!(
+            service
+                .champion_pool(query(Some(invalid)))
+                .await
+                .unwrap_err()
+                .code,
+            ErrorCode::InvalidInput
+        );
+    }
+}
+
 #[test]
 fn new_rules_use_strict_time_window_and_no_causation() {
     let f: Value =
@@ -711,6 +976,7 @@ async fn local_aggregates_performance_records_scale() {
         let start = Instant::now();
         s.champion_pool(ChampionQuery {
             filter: filter(),
+            queue_ids: None,
             sort: "games".into(),
             cursor: None,
             limit: None,
@@ -769,6 +1035,7 @@ async fn independent_lcu_http_and_websocket_initial_snapshot_event_reconciliatio
             "/lol-gameflow/v1/gameflow-phase" => r["phase"].clone(),
             "/lol-gameflow/v1/session" => r["game"].clone(),
             "/lol-champ-select/v1/session" => r["champSelect"].clone(),
+            "/lol-lobby/v2/lobby" => r["lobby"].clone(),
             _ => json!({}),
         })
     }
@@ -809,18 +1076,32 @@ async fn independent_lcu_http_and_websocket_initial_snapshot_event_reconciliatio
     assert_eq!(next.generation, first.generation);
     assert_eq!(next.seats[0].champion_id, Some(64));
     assert!(next.revision > first.revision);
-    let paths = data.paths.lock().await;
-    assert!(
-        paths
-            .iter()
-            .all(|p| p.starts_with("/lol-gameflow/") || p == "/lol-champ-select/v1/session")
+    {
+        let mut raw = data.raw.lock().await;
+        raw["phase"] = "Lobby".into();
+        raw["lobby"] =
+            serde_json::from_str(include_str!("../../../tests/fixtures/scouting/lobby.json"))
+                .unwrap();
+    }
+    let party = s.refresh_live().await.unwrap();
+    assert_eq!(party.phase, "Lobby");
+    assert_eq!(party.seats.len(), 2);
+    assert!(party.seats[0].current);
+    assert_eq!(
+        party.seats[1].player.as_ref().unwrap().display_name,
+        "Party Friend#TEST"
     );
+    assert!(party.seats.iter().all(|seat| seat.champion_id.is_none()));
+    let paths = data.paths.lock().await;
+    assert!(paths.iter().all(|p| p.starts_with("/lol-gameflow/")
+        || p == "/lol-champ-select/v1/session"
+        || p == "/lol-lobby/v2/lobby"));
     assert_eq!(
         paths
             .iter()
             .filter(|p| p.as_str() == "/lol-gameflow/v1/gameflow-phase")
             .count(),
-        4
+        6
     );
     drop(paths);
     server.abort();
@@ -940,5 +1221,135 @@ async fn queued_profile_requests_keep_the_workspace_epoch_from_submission() {
             .await
             .unwrap(),
         0
+    );
+}
+
+#[tokio::test]
+async fn visitor_overviews_fetch_only_fifty_without_persisting_or_reusing_profiles() {
+    let root = tempfile::tempdir().unwrap();
+    let (service, remote) = setup(root.path()).await;
+    let visitor = service
+        .search_player(PlayerSearch {
+            query: "Visitor#TEST".into(),
+        })
+        .await
+        .unwrap();
+    let query = PlayerOverviewQuery {
+        player_key: visitor.player_key.clone(),
+        queue_id: None,
+        days: Some(30),
+    };
+    for _ in 0..2 {
+        let overview = service.player_overview(query.clone()).await.unwrap();
+        assert!(!overview.is_self);
+        assert_eq!(overview.matches.len(), 50);
+        assert_eq!(overview.profile.games, 50);
+        assert!(overview.rank_history.is_empty());
+    }
+    assert_eq!(remote.calls.load(Ordering::SeqCst), 2);
+    for table in [
+        "player_profiles",
+        "rank_snapshots",
+        "match_participants",
+        "source_snapshots",
+    ] {
+        assert_eq!(
+            sqlx::query_scalar::<_, i64>(&format!("SELECT COUNT(*) FROM {table}"))
+                .fetch_one(&service.pool)
+                .await
+                .unwrap(),
+            0
+        );
+    }
+    assert_eq!(
+        service
+            .start_sync(SyncRequest {
+                player_key: visitor.player_key.clone(),
+                pages: 1
+            })
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::Forbidden
+    );
+    let mut offline = service.connection.read().await.clone();
+    offline.phase = ConnectionPhase::Disconnected;
+    service.set_connection(offline, None).await.unwrap();
+    assert_eq!(
+        service.player_overview(query).await.unwrap_err().code,
+        ErrorCode::ClientNotFound
+    );
+}
+
+#[tokio::test]
+async fn personal_overviews_merge_saved_history_and_preserve_rank_observations_offline() {
+    let root = tempfile::tempdir().unwrap();
+    let (service, remote) = setup(root.path()).await;
+    let player = clients::synthetic_player("TENCENT_HN1");
+    let task = Task {
+        id: "personal-history".into(),
+        player_key: Some(player.player_key.clone()),
+        kind: JobKind::Sync,
+        state: JobState::Completed,
+        checkpoint: 1,
+        budget: 3,
+        session_epoch: "seed".into(),
+        updated_at: storage::now(),
+        error: None,
+        result: None,
+        stage: None,
+        retry_at: None,
+    };
+    for offset in [0, 50, 100] {
+        let raw = clients::synthetic_page(&player, offset);
+        let summaries = clients::normalize(&raw, &player, Source::Sgp, None).unwrap();
+        storage::commit_page(&service.pool, &task, &summaries, &raw, false)
+            .await
+            .unwrap();
+    }
+    *remote.ranks.lock().await = json!({"queues":[{"queueType":"RANKED_SOLO_5x5","tier":"GOLD","division":"II","leaguePoints":42}]});
+    let query = PlayerOverviewQuery {
+        player_key: player.player_key.clone(),
+        queue_id: None,
+        days: None,
+    };
+    let first = service.player_overview(query.clone()).await.unwrap();
+    assert!(first.is_self);
+    assert_eq!(first.matches.len(), 125);
+    assert_eq!(first.profile.games, 125);
+    assert_eq!(first.rank_history.len(), 1);
+    assert_eq!(
+        service
+            .player_overview(query.clone())
+            .await
+            .unwrap()
+            .rank_history
+            .len(),
+        1
+    );
+    remote.ranks.lock().await["queues"][0]["leaguePoints"] = 65.into();
+    let changed = service.player_overview(query.clone()).await.unwrap();
+    assert_eq!(changed.rank_history.len(), 2);
+    let mut offline = service.connection.read().await.clone();
+    offline.phase = ConnectionPhase::Disconnected;
+    offline.player = None;
+    service.set_connection(offline, None).await.unwrap();
+    let saved = service.player_overview(query).await.unwrap();
+    assert!(saved.is_self);
+    assert_eq!(saved.matches.len(), 125);
+    assert_eq!(saved.rank_history.len(), 2);
+    assert_eq!(saved.profile.ranks[0].points, Some(65));
+    assert_eq!(
+        service
+            .player_overview(PlayerOverviewQuery {
+                player_key: player.player_key,
+                queue_id: Some(420),
+                days: None
+            })
+            .await
+            .unwrap()
+            .matches
+            .len(),
+        83
     );
 }

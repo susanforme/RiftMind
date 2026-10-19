@@ -130,13 +130,18 @@ fn chrono_time_ms() -> i64 {
         .as_millis() as i64
 }
 fn preview_entity_image(path: &str) -> Option<&'static [u8]> {
-    let name = path.rsplit('/').next()?.strip_suffix(".png")?;
+    let filename = path.rsplit('/').next()?;
+    let name = filename
+        .strip_suffix(".png")
+        .or_else(|| filename.strip_suffix(".jpg"))?;
     let (kind, id) = if path.contains("/champion-icons/") {
         ("champion", name)
     } else if path.contains("/items/") {
         ("item", name)
     } else if path.contains("/abilities/") {
         ("skill", name)
+    } else if path.contains("/profile-icons/") {
+        ("profile_icon", name)
     } else if name == "flash" {
         ("spell", "4")
     } else if name == "ignite" {
@@ -145,6 +150,9 @@ fn preview_entity_image(path: &str) -> Option<&'static [u8]> {
         return None;
     };
     match (kind, id) {
+        ("profile_icon", "0") => {
+            Some(include_bytes!("../../../tests/fixtures/ui-art/profile_icon-0.jpg").as_slice())
+        }
         ("champion", "103") => {
             Some(include_bytes!("../../../tests/fixtures/ui-art/champion-103.png").as_slice())
         }
@@ -240,6 +248,10 @@ async fn mock_resource(
         }
     }
     let zh = uri.path().contains("/zh_cn/");
+    if uri.path().ends_with("profile-icons.json") {
+        return Json(json!([{"id":0,"iconPath":"/lol-game-data/assets/v1/profile-icons/0.jpg"}]))
+            .into_response();
+    }
     if uri.path().ends_with("summoner-spells.json") {
         return Json(json!([{"id":4,"name":"Flash","iconPath":"/lol-game-data/assets/assets/spells/flash.png"},{"id":14,"name":"Ignite","iconPath":"/lol-game-data/assets/assets/spells/ignite.png"}])).into_response();
     }
@@ -267,7 +279,14 @@ async fn mock_resource(
         return Json(json!({"id":id,"name":if zh {if id==103 {"九尾妖狐"}else{"盲僧"}}else if id==103 {"Ahri"}else{"Lee Sin"},"spells":[{"name":"Q","abilityIconPath":format!("/lol-game-data/assets/assets/abilities/{}1.png",id)},{"name":"W","abilityIconPath":format!("/lol-game-data/assets/assets/abilities/{}2.png",id)},{"name":"E","abilityIconPath":format!("/lol-game-data/assets/assets/abilities/{}3.png",id)},{"name":"R","abilityIconPath":format!("/lol-game-data/assets/assets/abilities/{}4.png",id)}]})).into_response();
     }
     (
-        [("content-type", "image/png")],
+        [(
+            "content-type",
+            if uri.path().ends_with(".jpg") {
+                "image/jpeg"
+            } else {
+                "image/png"
+            },
+        )],
         preview_entity_image(uri.path())
             .unwrap_or(include_bytes!("../../../tests/fixtures/icon.png").as_slice()),
     )
@@ -384,6 +403,21 @@ async fn mock_single(
         }
         value["json"]["platformId"] = p.server_id.trim_start_matches("TENCENT_").into();
         value["json"]["participants"][2]["puuid"] = p.puuid.clone().into();
+        let lobby_members = b
+            .scenario
+            .lock()
+            .await
+            .live
+            .as_ref()
+            .and_then(|live| live.pointer("/lobby/members"))
+            .and_then(Value::as_array)
+            .cloned()
+            .unwrap_or_default();
+        for (index, member) in lobby_members.iter().take(2).enumerate() {
+            let participant = &mut value["json"]["participants"][if index == 0 { 2 } else { 1 }];
+            participant["puuid"] = member["puuid"].clone();
+            participant["summonerName"] = member["summonerName"].clone();
+        }
     }
     (StatusCode::OK, Json(value))
 }
@@ -452,18 +486,34 @@ async fn scenario(
     }
     {
         let mut state = b.scenario.lock().await;
-        if v.get("livePhase").is_some() {
+        if v.get("livePhase").is_some() || ["lobby", "party"].contains(&mode) {
             let mut raw: Value = state.live.clone().unwrap_or_else(|| {
                 serde_json::from_str(include_str!("../../../tests/fixtures/scouting/live.json"))
                     .unwrap()
             });
-            raw["phase"] = v["livePhase"].clone();
+            raw["phase"] = v
+                .get("livePhase")
+                .cloned()
+                .unwrap_or_else(|| "Lobby".into());
             if let Some(id) = v.get("gameId") {
                 raw["game"]["gameData"]["gameId"] = id.clone();
             }
             if let Some(id) = v.get("championId") {
                 raw["champSelect"]["myTeam"][0]["championId"] = id.clone();
                 raw["game"]["gameData"]["teamOne"][0]["championId"] = id.clone();
+            }
+            if ["Lobby", "Matchmaking", "ReadyCheck"].contains(&raw["phase"].as_str().unwrap_or(""))
+            {
+                let mut lobby: Value = serde_json::from_str(include_str!(
+                    "../../../tests/fixtures/scouting/lobby.json"
+                ))
+                .unwrap();
+                let count = v["partySize"]
+                    .as_u64()
+                    .unwrap_or(if mode == "lobby" { 1 } else { 2 })
+                    .min(2) as usize;
+                lobby["members"].as_array_mut().unwrap().truncate(count);
+                raw["lobby"] = lobby;
             }
             if v["anonymous"] == true {
                 raw["champSelect"]["theirTeam"][0]["puuid"] = Value::Null;

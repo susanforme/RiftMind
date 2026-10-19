@@ -29,6 +29,12 @@ fn discover() -> Vec<Candidate> {
                 .map(|s| s.to_string_lossy())
                 .collect::<Vec<_>>()
                 .join(" ");
+            #[cfg(target_os = "windows")]
+            let cmd = if cmd.is_empty() {
+                super::client_process_arguments::read_command_line(pid.as_u32())?
+            } else {
+                cmd
+            };
             let port = domain::command_line_value(&cmd, "app-port")?
                 .parse::<u16>()
                 .ok()?;

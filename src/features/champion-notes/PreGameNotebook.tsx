@@ -17,7 +17,7 @@ import { SearchSelect } from '../../components/SearchSelect';
 import { GameEntityIcon } from '../../components/GameEntityIcon';
 import { ErrorNotice } from '../../components/ErrorNotice';
 import { championName } from '../../lib/display-names';
-import { NotebookEntryView } from './ChampionNotebookPage';
+import { NotebookEntryView } from '../champion-plans/ChampionPlansPage';
 export function PreGameNotebook({ snapshot, epoch }: { snapshot?: LiveSnapshot; epoch?: string }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -110,7 +110,10 @@ export function PreGameNotebook({ snapshot, epoch }: { snapshot?: LiveSnapshot; 
           <ErrorNotice error={entries.error} />
           {!visible.length && <p>{t('notebooks.empty')}</p>}
           {visible.map((entry) => (
-            <Collapsible key={entry.id} defaultOpen={entry.content.pinned}>
+            <Collapsible
+              key={entry.id}
+              defaultOpen={entry.content.pinned || entry.content.kind === 'build'}
+            >
               <CollapsibleTrigger asChild>
                 <Button
                   variant="ghost"

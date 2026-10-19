@@ -6,7 +6,7 @@ use tokio::sync::Mutex;
 
 #[async_trait]
 pub trait MatchRemote: Send + Sync {
-    fn item_sets_verified(&self) -> bool {
+    fn supports_item_sets(&self) -> bool {
         false
     }
     async fn item_set_identity(&self) -> Result<Value> {
@@ -77,6 +77,7 @@ impl LcuClient {
             "/lol-gameflow/v1/gameflow-phase",
             "/lol-gameflow/v1/session",
             "/lol-champ-select/v1/session",
+            "/lol-lobby/v2/lobby",
         ]
         .contains(&path)
             && !path.starts_with("/lol-item-sets/v1/item-sets/")
@@ -230,9 +231,9 @@ impl HttpRemote {
 }
 #[async_trait]
 impl MatchRemote for HttpRemote {
-    // Only the explicitly constructed loopback test adapter has verified synthetic shapes.
-    fn item_sets_verified(&self) -> bool {
-        self.simulated_item_sets
+    // Identity, collection shape and readback are validated for each application.
+    fn supports_item_sets(&self) -> bool {
+        self.simulated_item_sets || self.lcu.is_some()
     }
     async fn item_set_identity(&self) -> Result<Value> {
         if self.simulated_item_sets {
@@ -288,20 +289,34 @@ impl MatchRemote for HttpRemote {
     async fn current_match(&self) -> Result<Value> {
         if let Some(lcu) = &self.lcu {
             let phase = lcu.get("/lol-gameflow/v1/gameflow-phase").await?;
-            let game = match lcu.get("/lol-gameflow/v1/session").await {
-                Ok(v) => v,
-                Err(e) if e.code == ErrorCode::EndpointUnsupported => Value::Null,
-                Err(e) => return Err(e),
+            let in_party = matches!(phase.as_str(), Some("Lobby" | "Matchmaking" | "ReadyCheck"));
+            let game = if in_party {
+                Value::Null
+            } else {
+                match lcu.get("/lol-gameflow/v1/session").await {
+                    Ok(v) => v,
+                    Err(e) if e.code == ErrorCode::EndpointUnsupported => Value::Null,
+                    Err(e) => return Err(e),
+                }
             };
             let champ = if phase == "ChampSelect" {
                 lcu.get("/lol-champ-select/v1/session").await?
             } else {
                 Value::Null
             };
+            let lobby = if in_party {
+                match lcu.get("/lol-lobby/v2/lobby").await {
+                    Ok(lobby) => lobby,
+                    Err(error) if error.code == ErrorCode::EndpointUnsupported => Value::Null,
+                    Err(error) => return Err(error),
+                }
+            } else {
+                Value::Null
+            };
             if lcu.get("/lol-gameflow/v1/gameflow-phase").await? != phase {
                 return Err(AppError::new(ErrorCode::SessionChanged));
             }
-            Ok(json!({"phase":phase,"game":game,"champSelect":champ}))
+            Ok(json!({"phase":phase,"game":game,"champSelect":champ,"lobby":lobby}))
         } else if self.sgp_base.is_some() {
             self.sgp_request("/test/live", &[]).await
         } else {
@@ -368,7 +383,7 @@ impl MatchRemote for HttpRemote {
                         "/match-history-query/v1/products/lol/player/{}/SUMMARY",
                         p.puuid
                     ),
-                    &[("startIndex", "0".into()), ("count", "20".into())],
+                    &[("startIndex", "0".into()), ("count", "50".into())],
                 )
                 .await
             }
@@ -377,7 +392,7 @@ impl MatchRemote for HttpRemote {
                     .as_ref()
                     .ok_or(AppError::new(ErrorCode::EndpointUnsupported))?
                     .get(&format!(
-                        "/lol-match-history/v1/products/lol/{}/matches?begIndex=0&endIndex=19",
+                        "/lol-match-history/v1/products/lol/{}/matches?begIndex=0&endIndex=49",
                         p.puuid
                     ))
                     .await
@@ -661,6 +676,7 @@ pub fn player_from_summoner(raw: &Value, server: &str, fallback_name: &str) -> R
         display_name,
         profile_icon_id: raw["profileIconId"]
             .as_u64()
+            .or_else(|| raw["summonerIconId"].as_u64())
             .and_then(|value| value.try_into().ok()),
         summoner_level: raw["summonerLevel"]
             .as_u64()

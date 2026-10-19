@@ -1,0 +1,30 @@
+{
+  "gameConfig": { "queueId": 420, "gameMode": "CLASSIC", "isCustom": false },
+  "localMember": { "puuid": "synthetic-player", "summonerId": 100 },
+  "members": [
+    {
+      "puuid": "synthetic-player",
+      "summonerId": 100,
+      "summonerName": "Rift Walker#TEST",
+      "summonerIconId": 0,
+      "summonerLevel": 182,
+      "firstPositionPreference": "MIDDLE",
+      "teamId": 100,
+      "isLeader": true,
+      "isBot": false,
+      "isSpectator": false
+    },
+    {
+      "puuid": "public-player-1",
+      "summonerId": 101,
+      "summonerName": "Party Friend#TEST",
+      "summonerIconId": 0,
+      "summonerLevel": 225,
+      "firstPositionPreference": "JUNGLE",
+      "teamId": 100,
+      "isLeader": false,
+      "isBot": false,
+      "isSpectator": false
+    }
+  ]
+}

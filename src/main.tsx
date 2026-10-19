@@ -8,6 +8,7 @@ import { setTransport } from './app/runtime';
 import { createTransport } from './lib/transport';
 import './i18n';
 import './styles/globals.css';
+document.addEventListener('contextmenu', (event) => event.preventDefault());
 async function start() {
   setTransport(await createTransport());
   ReactDOM.createRoot(document.getElementById('root')!).render(

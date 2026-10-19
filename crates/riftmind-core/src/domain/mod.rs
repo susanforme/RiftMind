@@ -1,4 +1,5 @@
 pub mod analysis;
+pub mod match_scoreboard;
 use crate::contracts::*;
 use serde::{Deserialize, Serialize};
 

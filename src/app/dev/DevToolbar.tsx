@@ -15,6 +15,8 @@ const scenarios = [
   'no-client',
   'tencent',
   'riot',
+  'lobby',
+  'party',
   'offline',
   'waiting',
   'conflict',

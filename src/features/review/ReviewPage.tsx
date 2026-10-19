@@ -25,9 +25,13 @@ import {
 } from '../../lib/display-names';
 import { serverName } from '../../lib/server-name';
 import { Label } from '../../components/ui/label';
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { useNavigate } from '@tanstack/react-router';
+import {
+  useWorkspaceNavigate,
+  useWorkspaceSearch,
+  useWorkspaceMatchKey,
+} from '../../app/workspace-page-context';
 import { useTranslation } from 'react-i18next';
 import { ChevronRight, ArrowLeft, RefreshCw, FileText } from 'lucide-react';
 import { reviewRoute } from '../../app/router';
@@ -80,9 +84,10 @@ const Chart = lazy(() => import('./ReviewChart'));
 const autoAttempts = new Set<string>();
 export function ReviewPage() {
   const { t, i18n } = useTranslation();
-  const search = reviewRoute.useSearch();
-  const { matchKey } = reviewRoute.useParams();
-  const navigate = useNavigate();
+  const fieldId = useId();
+  const search = useWorkspaceSearch(reviewRoute.useSearch({ shouldThrow: false }));
+  const matchKey = useWorkspaceMatchKey(reviewRoute.useParams({ shouldThrow: false })?.matchKey);
+  const navigate = useWorkspaceNavigate();
   const playerKey = search.player || '';
   const key = { matchKey, playerKey };
   const [taskId, setTaskId] = useState<string | null>(null);
@@ -1011,7 +1016,7 @@ export function ReviewPage() {
                           </div>
                         </CollapsibleContent>
                       </Collapsible>
-                      <Label htmlFor="event-filter">{t('review.eventFilter')}</Label>
+                      <Label htmlFor={`event-filter-${fieldId}`}>{t('review.eventFilter')}</Label>
                       <Select
                         value={eventKind}
                         onValueChange={(v) => {
@@ -1019,7 +1024,10 @@ export function ReviewPage() {
                           setCursor(null);
                         }}
                       >
-                        <SelectTrigger id="event-filter" aria-label={t('review.eventFilter')}>
+                        <SelectTrigger
+                          id={`event-filter-${fieldId}`}
+                          aria-label={t('review.eventFilter')}
+                        >
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -1182,10 +1190,10 @@ export function ReviewPage() {
                       {t('review.refreshNoteRevision')}
                     </Button>
                   )}
-                  <Label htmlFor="review-note-text">{t('review.noteText')}</Label>
+                  <Label htmlFor={`review-note-text-${fieldId}`}>{t('review.noteText')}</Label>
                   <Textarea
                     aria-label={t('review.noteText')}
-                    id="review-note-text"
+                    id={`review-note-text-${fieldId}`}
                     maxLength={10000}
                     className="min-h-40"
                     value={text}
@@ -1314,7 +1322,7 @@ export function ReviewPage() {
             <DialogTitle>{t('review.adoptGoal')}</DialogTitle>
             <DialogDescription>{t('review.goalHelp')}</DialogDescription>
           </DialogHeader>
-          <Label htmlFor="goal-metric">{t('review.goalMetric')}</Label>
+          <Label htmlFor={`goal-metric-${fieldId}`}>{t('review.goalMetric')}</Label>
           <Select
             value={goalMetric}
             onValueChange={(v) => {
@@ -1322,7 +1330,7 @@ export function ReviewPage() {
               setTarget(v === 'cs_10' ? '70' : '1');
             }}
           >
-            <SelectTrigger id="goal-metric" aria-label={t('review.goalMetric')}>
+            <SelectTrigger id={`goal-metric-${fieldId}`} aria-label={t('review.goalMetric')}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

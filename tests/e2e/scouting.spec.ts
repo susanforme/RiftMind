@@ -1,13 +1,48 @@
 import { test, expect } from '@playwright/test';
-import { mkdtemp, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
+import { join, resolve } from 'node:path';
 import { Harness } from './harness';
 let harness: Harness;
 const playerKey = 'TENCENT_HN1:synthetic-player';
 test.beforeEach(async ({ request }) => {
-  harness = new Harness(await mkdtemp(join(tmpdir(), 'riftmind-scouting-')), request);
+  const workspaces = resolve('.tmp/scouting-e2e');
+  await mkdir(workspaces, { recursive: true });
+  harness = new Harness(await mkdtemp(join(workspaces, 'workspace-')), request);
   await harness.start();
+});
+
+test('lobby shows self and party members through joins, queueing, and champion selection', async ({
+  page,
+}) => {
+  await harness.scenario({ scenario: 'tencent', livePhase: 'Lobby', partySize: 1 });
+  await page.goto('/#/live');
+  await expect(page.locator('[data-ui~=live-seat]')).toHaveCount(1);
+  await expect(page.getByRole('heading', { name: 'Lobby members' })).toBeVisible();
+  await expect(page.getByLabel('Level 182')).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'Current champion' })).toHaveCount(0);
+  await expect(page.locator('[data-ui~=profile-stats]')).toHaveCount(1);
+  await harness.scenario({ scenario: 'tencent', livePhase: 'Lobby', partySize: 2 });
+  await expect(page.locator('[data-ui~=live-seat]')).toHaveCount(2);
+  await expect(page.getByRole('button', { name: 'Party Friend#TEST', exact: true })).toBeVisible();
+  await expect(page.getByLabel('Level 225')).toBeVisible();
+  await expect(page.locator('[data-ui~=profile-stats]')).toHaveCount(2);
+  for (const phase of ['Matchmaking', 'ReadyCheck', 'Lobby']) {
+    await harness.scenario({ scenario: 'tencent', livePhase: phase, partySize: 2 });
+    await expect(page.locator('[data-ui~=live-seat]')).toHaveCount(2);
+  }
+  await harness.scenario({ scenario: 'tencent', livePhase: 'ChampSelect' });
+  await expect(page.locator('[data-ui~=live-seat]')).toHaveCount(10);
+  await expect(
+    page.locator('[data-current=true]').getByRole('img', { name: 'Ahri', exact: true }),
+  ).toBeVisible();
+  await harness.scenario({ scenario: 'tencent', livePhase: 'Lobby', partySize: 1 });
+  await expect(page.locator('[data-ui~=live-seat]')).toHaveCount(1);
+  await expect(page.getByRole('button', { name: 'Party Friend#TEST', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('img', { name: 'Ahri', exact: true })).toHaveCount(0);
+  await expect(page.getByLabel('Level 182')).toBeVisible();
+  await harness.scenario({ scenario: 'offline' });
+  await expect(page.getByText('Snapshot is stale', { exact: true })).toBeVisible();
+  await expect(page.locator('[data-ui~=live-seat]')).toHaveCount(1);
 });
 test.afterEach(async ({ page }, info) => {
   await page.close();
@@ -15,6 +50,31 @@ test.afterEach(async ({ page }, info) => {
   if (info.status !== info.expectedStatus)
     await info.attach('core-log', { path: join(harness.root, 'core.log') });
 });
+test('personal overview shows history, accessible charts and stored ranks offline', async ({
+  page,
+}, info) => {
+  await harness.wait(await harness.call('sync_player_matches', { playerKey, pages: 3 }));
+  await page.goto(`/#/players?player=${encodeURIComponent(playerKey)}`);
+  await expect(page.getByRole('heading', { name: 'Player overview', exact: true })).toBeVisible();
+  await expect(page.getByRole('img', { name: 'Recent positions', exact: true })).toBeVisible();
+  await expect(page.getByRole('img', { name: 'Rank history', exact: true })).toBeVisible();
+  await page.getByRole('combobox', { name: 'Period', exact: true }).click();
+  await page.getByRole('option', { name: 'All saved matches', exact: true }).click();
+  await expect(
+    page.getByText('125 games · 125 counted for win rate', { exact: true }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'View rank records (1)', exact: true }).click();
+  await expect(page.getByRole('table', { name: 'Rank history', exact: true })).toContainText(
+    '44 LP',
+  );
+  await page.screenshot({ path: info.outputPath('player-overview-en-light.png'), fullPage: true });
+  await page.setViewportSize({ width: 800, height: 600 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await harness.scenario({ scenario: 'offline' });
+  await page.reload();
+  await expect(page.getByRole('img', { name: 'Rank history', exact: true })).toBeVisible();
+});
+
 test('live phase, champion changes, anonymous players, cancellation and reconnect', async ({
   page,
 }, info) => {
@@ -51,7 +111,7 @@ test('live phase, champion changes, anonymous players, cancellation and reconnec
       scenario: 'tencent',
       livePhase: n % 2 ? 'ChampSelect' : 'ReadyCheck',
     });
-    await expect(page.locator('[data-ui~=live-seat]')).toHaveCount(n % 2 ? 10 : 0);
+    await expect(page.locator('[data-ui~=live-seat]')).toHaveCount(n % 2 ? 10 : 2);
     latencies.push(Date.now() - start);
   }
   latencies.sort((a, b) => a - b);
@@ -67,7 +127,7 @@ test('live phase, champion changes, anonymous players, cancellation and reconnec
     );
   await page.screenshot({ path: info.outputPath('live-en-light.png') });
   await harness.scenario({ scenario: 'tencent', livePhase: 'Matchmaking' });
-  await expect(page.locator('[data-ui~=live-seat]')).toHaveCount(0);
+  await expect(page.locator('[data-ui~=live-seat]')).toHaveCount(2);
   await harness.scenario({
     scenario: 'tencent',
     livePhase: 'InProgress',
@@ -127,9 +187,28 @@ test('search, favorites, champion filters, fixed comparison, issue draft, backup
     .getByRole('button', { name: /Alice#TEST/ })
     .first()
     .click();
-  await expect(page.locator('[data-ui~=player-identity]')).toContainText('Alice#TEST');
-  await page.getByRole('button', { name: 'Sync matches', exact: true }).click();
-  await expect(page.locator('[data-ui~=match-row]')).toHaveCount(50);
+  await expect(page).toHaveURL(/\/players/);
+  await expect(page.locator('[data-ui~=player-overview] h2').first()).toHaveText('Alice#TEST');
+  await expect(page.getByText('Latest 50 matches', { exact: true })).toBeVisible();
+  await expect(
+    page.getByText('Only the current rank is shown for other players. Rank history is not saved.', {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(page.getByLabel('Period', { exact: true })).toHaveCount(0);
+  expect(
+    (
+      await harness.call('list_matches', {
+        playerKey: 'TENCENT_HN1:searched-player',
+        queueId: null,
+        championId: null,
+        from: null,
+        to: null,
+        cursor: null,
+        pageSize: 50,
+      })
+    ).total,
+  ).toBe(0);
   expect((await harness.call('get_connection_state', {})).player?.playerKey).toBe(playerKey);
   await page.goto(`/#/champions?player=${encodeURIComponent(playerKey)}`);
   await expect(page.getByRole('img', { name: 'Games by champion' })).toBeVisible();

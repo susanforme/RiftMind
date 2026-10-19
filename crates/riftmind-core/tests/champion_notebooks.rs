@@ -32,6 +32,7 @@ fn content(kind: NotebookKind, title: &str) -> NotebookContent {
         confirmed_patch: None,
         links: vec![],
         sources: vec![],
+        skill_order: None,
     }
 }
 fn query(trash: bool) -> NotebookQuery {
@@ -385,7 +386,7 @@ struct BuildRemote {
 }
 #[async_trait::async_trait]
 impl MatchRemote for BuildRemote {
-    fn item_sets_verified(&self) -> bool {
+    fn supports_item_sets(&self) -> bool {
         true
     }
     async fn page(&self, _: &Player, _: u32, _: Source) -> Result<Value> {

@@ -12,13 +12,17 @@ import { ProgressPage } from '../features/progress/ProgressPage';
 import { LivePage } from '../features/live/LivePage';
 import { ChampionsPage } from '../features/champions/ChampionsPage';
 import { ComparisonPage } from '../features/comparison/ComparisonPage';
-import { ChampionNotebookPage } from '../features/champion-notes/ChampionNotebookPage';
+import { ChampionPlansPage } from '../features/champion-plans/ChampionPlansPage';
 import { SettingsPage } from '../features/settings/SettingsPage';
+import { PlayerOverviewPage } from '../features/players/PlayerOverviewPage';
 export interface Search {
   tab?: string;
   entry?: string;
   player?: string;
   queue?: number;
+  queues?: number[];
+  championSort?: string;
+  championCursor?: number;
   champion?: number;
   from?: string;
   to?: string;
@@ -60,6 +64,22 @@ export function validateSearch(value: Record<string, unknown>): Search {
     const n = Number(value[field]);
     if (Number.isInteger(n) && n > 0 && n < 1_000_000) result[field] = n;
   }
+  if (Array.isArray(value.queues) && value.queues.length <= 32) {
+    const queues = value.queues.map(Number);
+    if (queues.every((queue) => Number.isInteger(queue) && queue > 0 && queue < 1_000_000))
+      result.queues = [...new Set(queues)].sort((left, right) => left - right);
+  }
+  if (
+    typeof value.championSort === 'string' &&
+    ['games', 'win_rate', 'kda', 'cs_per_min', 'damage_share'].includes(value.championSort)
+  )
+    result.championSort = value.championSort;
+  if (
+    Number.isInteger(value.championCursor) &&
+    Number(value.championCursor) >= 0 &&
+    Number(value.championCursor) <= 10000
+  )
+    result.championCursor = Number(value.championCursor);
   for (const field of ['from', 'to'] as const)
     if (
       typeof value[field] === 'string' &&
@@ -86,7 +106,6 @@ export function validateSearch(value: Record<string, unknown>): Search {
     result.at = Number(value.at);
   return result;
 }
-export const restoreTabOnBoot = !window.location.hash || window.location.hash === '#/';
 const root = createRootRoute({ component: AppShell });
 const index = createRoute({
   getParentRoute: () => root,
@@ -100,6 +119,12 @@ export const matchesRoute = createRoute({
   path: '/matches',
   validateSearch,
   component: MatchesPage,
+});
+export const playerRoute = createRoute({
+  getParentRoute: () => root,
+  path: '/players',
+  validateSearch,
+  component: PlayerOverviewPage,
 });
 export const reviewRoute = createRoute({
   getParentRoute: () => root,
@@ -135,7 +160,7 @@ export const notebookRoute = createRoute({
   getParentRoute: () => root,
   path: '/notebooks',
   validateSearch,
-  component: ChampionNotebookPage,
+  component: ChampionPlansPage,
 });
 const settings = createRoute({
   getParentRoute: () => root,
@@ -146,6 +171,7 @@ export const router = createRouter({
   routeTree: root.addChildren([
     index,
     matchesRoute,
+    playerRoute,
     settings,
     reviewRoute,
     progressRoute,

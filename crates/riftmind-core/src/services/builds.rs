@@ -34,7 +34,7 @@ fn matches_build(remote: &Value, desired: &Value) -> bool {
     .all(|key| remote[*key] == desired[*key])
 }
 impl Service {
-    async fn checked_build(
+    pub(super) async fn checked_build(
         &self,
         query: &BuildExportQuery,
     ) -> Result<(NotebookEntry, Vec<String>)> {
@@ -56,6 +56,14 @@ impl Service {
             )
             .await?;
         let mut issues = Vec::new();
+        if entry
+            .content
+            .groups
+            .iter()
+            .all(|group| group.items.is_empty())
+        {
+            issues.push("empty_build".into());
+        }
         if entry.content.map_id != Some(query.map_id) {
             issues.push("map_mismatch".into());
         }
@@ -91,6 +99,13 @@ impl Service {
         })
     }
     pub async fn apply_build(&self, query: BuildApplyQuery) -> Result<BuildApplication> {
+        self.apply_build_guarded(query, None).await
+    }
+    pub(super) async fn apply_build_guarded(
+        &self,
+        query: BuildApplyQuery,
+        selection: Option<build_sync::BuildSelection>,
+    ) -> Result<BuildApplication> {
         let _workspace = self.maintenance.read().await;
         self.check_workspace(&query.workspace_epoch).await?;
         let _single = self.build_lock.lock().await;
@@ -114,7 +129,9 @@ impl Service {
             .player
             .as_ref()
             .ok_or(AppError::new(ErrorCode::ClientNotFound))?;
-        if connection.phase != ConnectionPhase::Connected {
+        if connection.phase != ConnectionPhase::Connected
+            && !(connection.lcu_ready && connection.phase == ConnectionPhase::WaitingAuth)
+        {
             return Err(AppError::new(ErrorCode::ClientNotFound));
         }
         let remote = self
@@ -130,11 +147,15 @@ impl Service {
             state: "unavailable".into(),
             reason: None,
         };
-        if !remote.item_sets_verified() {
-            result.reason = Some("client_adapter_unverified".into());
+        if !remote.supports_item_sets() {
+            result.reason = Some("client_adapter_unsupported".into());
             return Ok(result);
         }
         let live = remote.current_match().await?;
+        if let Some(selection) = &selection {
+            self.validate_build_selection(selection, &entry.id, &live)
+                .await?;
+        }
         if !["Lobby", "ChampSelect"].contains(&live["phase"].as_str().unwrap_or("")) {
             return Err(AppError::new(ErrorCode::Forbidden));
         }
@@ -180,10 +201,15 @@ impl Service {
         }
         let current_identity = remote.item_set_identity().await?;
         let phase = remote.current_match().await?;
+        if let Some(selection) = &selection {
+            self.validate_build_selection(selection, &entry.id, &phase)
+                .await?;
+        }
         let current = self.connection.read().await;
         self.check_workspace(&query.workspace_epoch).await?;
         if current.session_epoch != connection.session_epoch
-            || current.phase != ConnectionPhase::Connected
+            || (current.phase != ConnectionPhase::Connected
+                && !(current.lcu_ready && current.phase == ConnectionPhase::WaitingAuth))
             || current_identity != identity
             || !["Lobby", "ChampSelect"].contains(&phase["phase"].as_str().unwrap_or(""))
         {

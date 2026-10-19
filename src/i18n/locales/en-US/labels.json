@@ -289,5 +289,7 @@
   "spell_12": "Teleport",
   "spell_712": "Teleport",
   "team_1": "Your team",
-  "team_2": "Opposing team"
+  "team_2": "Opposing team",
+  "queue_2400": "ARAM: Mayhem",
+  "queue_1710": "Arena"
 }

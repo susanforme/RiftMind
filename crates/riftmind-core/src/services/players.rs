@@ -208,6 +208,15 @@ impl Service {
         self.favorites().await
     }
     pub async fn player_profile(&self, q: PlayerProfileQuery) -> Result<PlayerProfile> {
+        self.load_player_profile(q, true)
+            .await
+            .map(|(profile, _)| profile)
+    }
+    pub(super) async fn load_player_profile(
+        &self,
+        q: PlayerProfileQuery,
+        use_cache: bool,
+    ) -> Result<(PlayerProfile, Vec<MatchSummary>)> {
         domain::validate_key(&q.player_key)?;
         self.ready().await?;
         let epoch = self.state.read().await.workspace_epoch.clone();
@@ -229,13 +238,19 @@ impl Service {
         if self.connection.read().await.session_epoch != c.session_epoch {
             return Err(AppError::new(ErrorCode::SessionChanged));
         }
-        let cached: Option<String> = sqlx::query_scalar(
-            "SELECT payload FROM player_profiles WHERE player_key=? AND scope=?",
-        )
-        .bind(&q.player_key)
-        .bind(&scope)
-        .fetch_optional(&self.pool)
-        .await?;
+        let is_current = c
+            .player
+            .as_ref()
+            .is_some_and(|player| player.player_key == q.player_key);
+        let cached: Option<String> = if use_cache && is_current {
+            sqlx::query_scalar("SELECT payload FROM player_profiles WHERE player_key=? AND scope=?")
+                .bind(&q.player_key)
+                .bind(&scope)
+                .fetch_optional(&self.pool)
+                .await?
+        } else {
+            None
+        };
         if let Some(payload) = cached {
             let mut p: PlayerProfile = serde_json::from_str(&payload)?;
             let fresh = chrono::DateTime::parse_from_rfc3339(&p.collected_at)
@@ -248,7 +263,7 @@ impl Service {
                 {
                     p.player = player;
                 }
-                return Ok(profile_champion(p, q.champion_id));
+                return Ok((profile_champion(p, q.champion_id), vec![]));
             }
         }
         Self::online(&c)?;
@@ -290,7 +305,7 @@ impl Service {
         };
         let all: Vec<_> = clients::normalize(&raw, &p, source.clone(), None)?
             .into_iter()
-            .take(20)
+            .take(50)
             .collect();
         let items: Vec<_> = all
             .iter()
@@ -374,9 +389,12 @@ impl Service {
         if current.session_epoch != c.session_epoch {
             return Err(AppError::new(ErrorCode::SessionChanged));
         }
-        sqlx::query("INSERT INTO player_profiles VALUES(?,?,?,?) ON CONFLICT(player_key,scope) DO UPDATE SET collected_at=excluded.collected_at,payload=excluded.payload").bind(&q.player_key).bind(scope).bind(&profile.collected_at).bind(serde_json::to_string(&profile)?).execute(&self.pool).await?;
+        if is_current {
+            self.save_rank_snapshots(&profile).await?;
+            sqlx::query("INSERT INTO player_profiles VALUES(?,?,?,?) ON CONFLICT(player_key,scope) DO UPDATE SET collected_at=excluded.collected_at,payload=excluded.payload").bind(&q.player_key).bind(scope).bind(&profile.collected_at).bind(serde_json::to_string(&profile)?).execute(&self.pool).await?;
+        }
         drop(current);
-        Ok(profile_champion(profile, q.champion_id))
+        Ok((profile_champion(profile, q.champion_id), all))
     }
 }
 fn profile_champion(mut p: PlayerProfile, id: Option<u32>) -> PlayerProfile {

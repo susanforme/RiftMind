@@ -12,7 +12,12 @@ import type {
   CommandMap,
   AssetRequest,
 } from '../../generated/contracts';
-import { scoutingFixture, resetScoutingFixture, scoutingPlayers } from './scouting-fixture';
+import {
+  scoutingFixture,
+  resetScoutingFixture,
+  scoutingPlayers,
+  setScoutingPartySize,
+} from './scouting-fixture';
 import { reviewFixture, resetReviewFixture } from './review-fixture';
 import type { CommandName, Transport } from './index';
 const previewArt = import.meta.glob<string>('../../../tests/fixtures/ui-art/*.{png,jpg}', {
@@ -121,6 +126,7 @@ function fail(code: string): never {
   };
 }
 export function setScenario(name: string) {
+  if (name !== 'offline') setScoutingPartySize(name === 'lobby' ? 1 : name === 'party' ? 2 : null);
   if (name === 'no-client' || name === 'offline') {
     connection = { ...connection, phase: 'disconnected', player: null };
     emit('connection-changed');
@@ -299,6 +305,8 @@ async function execute(command: CommandName, args: unknown): Promise<unknown> {
         skins: previewSkins[String(query.championId) as keyof typeof previewSkins] || [],
       };
     }
+    case 'get_match_scoreboard':
+      return null;
     case 'resolve_assets': {
       const q = args as AssetRequest;
       const ids = [
@@ -320,6 +328,9 @@ async function execute(command: CommandName, args: unknown): Promise<unknown> {
             null,
           reference,
           hash: null,
+          description: null,
+          price: null,
+          cooldown: null,
           availability: reference ? 'available' : 'missing',
         };
       });

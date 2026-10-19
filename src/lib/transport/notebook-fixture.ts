@@ -1,13 +1,20 @@
 // Development notebook interactions. Persistence and statistical acceptance use the Rust harness.
-import type { CommandMap, NotebookEntry, PracticeEntry } from '../../generated/contracts';
+import type {
+  BuildSyncRule,
+  CommandMap,
+  NotebookEntry,
+  PracticeEntry,
+} from '../../generated/contracts';
 import type { CommandName } from './index';
 let entries: NotebookEntry[] = [];
 let history = new Map<string, NotebookEntry[]>();
 let practices: PracticeEntry[] = [];
+let buildRules: BuildSyncRule[] = [];
 export function resetNotebookFixture() {
   entries = [];
   history = new Map();
   practices = [];
+  buildRules = [];
 }
 export function notebookFixture(
   command: CommandName,
@@ -16,6 +23,45 @@ export function notebookFixture(
 ) {
   const { fail, emit } = context;
   switch (command) {
+    case 'list_build_sync_rules': {
+      const query = args as CommandMap['list_build_sync_rules']['input'];
+      return buildRules.filter((rule) => !query.championId || rule.championId === query.championId);
+    }
+    case 'save_build_sync_rule': {
+      const query = args as CommandMap['save_build_sync_rule']['input'];
+      if (query.workspaceEpoch !== 'fixture-epoch') return fail('session_changed');
+      const entry = entries.find(
+        (entry) => entry.id === query.entryId && !entry.deleted && entry.content.kind === 'build',
+      );
+      if (
+        !entry ||
+        !entry.content.mapId ||
+        (query.enabled && !entry.content.groups.some((group) => group.items.length))
+      )
+        return fail('invalid_input');
+      const previous = buildRules.find(
+        (rule) =>
+          rule.championId === entry.content.championId && rule.mapId === entry.content.mapId,
+      );
+      if ((previous?.revision || 0) !== query.expectedRevision) return fail('revision_conflict');
+      if (!query.enabled && previous && previous.entryId !== entry.id)
+        return fail('revision_conflict');
+      const rule: BuildSyncRule = {
+        championId: entry.content.championId,
+        mapId: entry.content.mapId,
+        entryId: entry.id,
+        enabled: query.enabled,
+        revision: query.expectedRevision + 1,
+        state: query.enabled ? 'waiting' : 'disabled',
+        error: null,
+        application: null,
+        updatedAt: new Date().toISOString(),
+      };
+      buildRules = buildRules.filter((candidate) => candidate !== previous);
+      buildRules.push(rule);
+      emit('notebooks-changed');
+      return rule;
+    }
     case 'list_notebook_entries': {
       const query = args as CommandMap['list_notebook_entries']['input'];
       return entries
@@ -46,6 +92,12 @@ export function notebookFixture(
         updatedAt: new Date().toISOString(),
       };
       if (query.confirmPatch) entry.content.confirmedPatch = query.confirmPatch;
+      if (previous && previous.content.mapId !== entry.content.mapId)
+        buildRules = buildRules.map((rule) =>
+          rule.entryId === entry.id
+            ? { ...rule, enabled: false, revision: rule.revision + 1, state: 'disabled' }
+            : rule,
+        );
       entries = entries.filter((candidate) => candidate.id !== entry.id);
       entries.push(entry);
       history.set(entry.id, [structuredClone(entry), ...(history.get(entry.id) || [])]);
@@ -81,6 +133,14 @@ export function notebookFixture(
         entry.updatedAt = new Date().toISOString();
         history.set(entry.id, [structuredClone(entry), ...(history.get(entry.id) || [])]);
       }
+      if (query.action === 'purge')
+        buildRules = buildRules.filter((rule) => rule.entryId !== entry.id);
+      else if (query.action === 'trash')
+        buildRules = buildRules.map((rule) =>
+          rule.entryId === entry.id
+            ? { ...rule, enabled: false, revision: rule.revision + 1, state: 'disabled' }
+            : rule,
+        );
       emit('notebooks-changed');
       return {};
     }

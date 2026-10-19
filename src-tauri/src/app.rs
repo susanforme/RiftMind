@@ -253,7 +253,25 @@ fn quit(app: &tauri::AppHandle) {
     });
 }
 pub fn run() {
-    tauri::Builder::default()
+    let mut context = tauri::generate_context!();
+    let mut builder = tauri::Builder::default();
+    if let (Some(_), Some(public_key)) = (
+        option_env!("RIFTMIND_UPDATE_URL"),
+        option_env!("RIFTMIND_UPDATE_PUBLIC_KEY"),
+    ) {
+        context
+            .config_mut()
+            .plugins
+            .0
+            .entry("updater".into())
+            .or_insert_with(|| serde_json::json!({ "pubkey": public_key }));
+        builder = builder.plugin(
+            tauri_plugin_updater::Builder::new()
+                .pubkey(public_key)
+                .build(),
+        );
+    }
+    builder
         .register_asynchronous_uri_scheme_protocol("cdragon", |context, request, responder| {
             let app = context.app_handle().clone();
             let main_window = context.webview_label() == "main";
@@ -270,7 +288,6 @@ pub fn run() {
         }))
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(
             tauri_plugin_log::Builder::new()
                 .level(log::LevelFilter::Info)
@@ -350,7 +367,7 @@ pub fn run() {
                 });
             }
         })
-        .build(tauri::generate_context!())
+        .build(context)
         .expect("Failed to initialize RiftMind host")
         .run(|app, event| {
             if let tauri::RunEvent::ExitRequested { api, .. } = event {

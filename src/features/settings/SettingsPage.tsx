@@ -42,7 +42,8 @@ import { Button } from '../../components/ui/button';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { ErrorNotice } from '../../components/ErrorNotice';
 import type { Settings, SettingsPatch } from '../../generated/contracts';
-const settingsPanelClassName = 'rounded-xl px-6 py-5 scroll-mt-6 max-[650.01px]:p-4';
+const settingsPanelClassName =
+  'rounded-xl px-6 py-5 scroll-mt-20 max-[650.01px]:p-4 max-[650.01px]:scroll-mt-16';
 const settingsHeadingClassName =
   'flex items-center gap-3 border-b pb-4 text-base [&_svg]:w-[17px] [&_svg]:text-muted-foreground';
 const settingsFieldClassName =
@@ -190,18 +191,18 @@ export function SettingsPage() {
     >
       <div
         data-ui="page-heading"
-        className="flex items-center justify-between gap-6 mb-6 max-[650.01px]:mb-5 max-[650.01px]:gap-2.5"
+        className="sticky top-0 z-10 -mx-6 -mt-6 flex items-center justify-between gap-6 bg-background px-6 py-6 max-[900.01px]:-mx-5 max-[900.01px]:-mt-5 max-[900.01px]:px-5 max-[900.01px]:pt-5 max-[650.01px]:-mx-4 max-[650.01px]:-mt-4 max-[650.01px]:gap-2.5 max-[650.01px]:px-4 max-[650.01px]:pt-4 max-[650.01px]:pb-5"
       >
         <div>
           <h1>{t('settings.title')}</h1>
         </div>
-        <span className="text-[12px] text-muted-foreground [&_span]:ml-1.5 max-[650.01px]:hidden">
+        <span className="shrink-0 whitespace-nowrap text-[12px] text-muted-foreground [&_span]:ml-1.5">
           RiftMind <span>v{app.data?.appVersion || '0.1.0'}</span>
         </span>
       </div>
       <div className="grid grid-cols-[156px_minmax(0,_1fr)] gap-7 items-start max-[1150.01px]:grid-cols-[140px_minmax(0,_1fr)] max-[1150.01px]:gap-5 max-[900.01px]:block">
         <nav
-          className="grid gap-1 sticky top-6 [&_[data-slot=button]]:h-auto [&_[data-slot=button]]:min-h-9 [&_[data-slot=button]]:whitespace-normal [&_[data-slot=button]]:text-left [&_[data-slot=button]]:justify-start [&_[data-slot=button]]:py-2 [&_[data-slot=button]]:px-2.5 [&_[data-slot=button]]:text-[13px] [&_[data-slot=button]]:gap-[9px] max-[900.01px]:static max-[900.01px]:flex max-[900.01px]:flex-wrap max-[900.01px]:border-b max-[900.01px]:border-b-border max-[900.01px]:mb-5 max-[900.01px]:pb-3 max-[900.01px]:gap-0.5 max-[900.01px]:[&_[data-slot=button]]:py-1.5 max-[900.01px]:[&_[data-slot=button]]:px-2 max-[900.01px]:[&_[data-slot=button]]:text-[12px] max-[900.01px]:[&_[data-slot=button]]:gap-1.5"
+          className="grid gap-1 sticky top-24 [&_[data-slot=button]]:h-auto [&_[data-slot=button]]:min-h-9 [&_[data-slot=button]]:whitespace-normal [&_[data-slot=button]]:text-left [&_[data-slot=button]]:justify-start [&_[data-slot=button]]:py-2 [&_[data-slot=button]]:px-2.5 [&_[data-slot=button]]:text-[13px] [&_[data-slot=button]]:gap-[9px] max-[900.01px]:static max-[900.01px]:flex max-[900.01px]:flex-wrap max-[900.01px]:border-b max-[900.01px]:border-b-border max-[900.01px]:mb-5 max-[900.01px]:pb-3 max-[900.01px]:gap-0.5 max-[900.01px]:[&_[data-slot=button]]:py-1.5 max-[900.01px]:[&_[data-slot=button]]:px-2 max-[900.01px]:[&_[data-slot=button]]:text-[12px] max-[900.01px]:[&_[data-slot=button]]:gap-1.5"
           aria-label={t('settings.sections')}
         >
           {(['general', 'client', 'sync', 'storage', 'diagnostics', 'updates'] as const).map(

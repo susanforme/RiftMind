@@ -3,7 +3,7 @@ import { GameEntityIcon, skillResourceId } from '../../components/GameEntityIcon
 import { codeName, queueName, matchName, championName, skillName } from '../../lib/display-names';
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { useNavigate } from '@tanstack/react-router';
+import { useWorkspaceNavigate, useWorkspaceSearch } from '../../app/workspace-page-context';
 import { useTranslation } from 'react-i18next';
 import { compareRoute, type Search } from '../../app/router';
 import { transport } from '../../app/runtime';
@@ -34,8 +34,8 @@ import type { ReviewData } from '../../generated/contracts';
 const ReviewChart = lazy(() => import('../review/ReviewChart'));
 export function ComparisonPage() {
   const { t } = useTranslation();
-  const search = compareRoute.useSearch();
-  const navigate = useNavigate();
+  const search = useWorkspaceSearch(compareRoute.useSearch({ shouldThrow: false }));
+  const navigate = useWorkspaceNavigate();
   const [metric, setMetric] = useState<'gold' | 'cs'>('gold');
   const app = useQuery({ queryKey: ['app'], queryFn: () => transport.call('get_app_state', {}) });
   const epoch = app.data?.workspaceEpoch;
@@ -319,7 +319,7 @@ function CompareSide({
   onReplace: (key: string) => void;
 }) {
   const { t, i18n } = useTranslation();
-  const navigate = useNavigate();
+  const navigate = useWorkspaceNavigate();
   const [showEvents, setShowEvents] = useState(false);
   const [kind, setKind] = useState('all');
   const [cursor, setCursor] = useState<number | null>(null);

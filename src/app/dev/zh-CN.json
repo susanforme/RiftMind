@@ -6,5 +6,7 @@
   "offline": "离线",
   "waiting": "等待授权",
   "conflict": "识别冲突",
-  "unknown": "未知区服"
+  "unknown": "未知区服",
+  "lobby": "单人房间",
+  "party": "开黑房间"
 }

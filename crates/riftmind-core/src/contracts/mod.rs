@@ -250,7 +250,7 @@ dto!(ResourceId {
     id: u32
 });
 dto!(AssetRequest {version:String,locale:String,champion_ids:Vec<u32>,resource_ids:Option<Vec<ResourceId>>});
-dto!(Asset {resource_id:String,requested_version:String,actual_version:Option<String>,locale:String,name:Option<String>,reference:Option<String>,hash:Option<String>,availability:String});
+dto!(Asset {resource_id:String,requested_version:String,actual_version:Option<String>,locale:String,name:Option<String>,description:Option<String>,price:Option<u32>,cooldown:Option<u32>,reference:Option<String>,hash:Option<String>,availability:String});
 dto!(ChampionSkinsQuery {
     champion_id: u32,
     version: String,
@@ -288,6 +288,7 @@ macro_rules! registry {($($name:ident : $input:ty => $output:ty),* $(,)?) => {
  pub fn command_map()->String{let mut s=String::from("export interface CommandMap {\n");$(s.push_str(&format!("  {}: {{ input: {}; output: {} }};\n",stringify!($name),<$input>::name(),<$output>::name()));)*s.push_str("}\n");s}
 };}
 include!("notebooks.rs");
+include!("match_history.rs");
 include!("review_insights.rs");
 registry! {
  list_notebook_entries:NotebookQuery=>Vec<NotebookEntry>,
@@ -303,6 +304,8 @@ registry! {
  save_item_build_file:BuildExportQuery=>Empty,
  save_champion_notebook_file:NotebookQuery=>Empty,
  apply_item_build:BuildApplyQuery=>BuildApplication,
+ list_build_sync_rules:BuildSyncQuery=>Vec<BuildSyncRule>,
+ save_build_sync_rule:SaveBuildSyncRule=>BuildSyncRule,
  get_review_event_context:EventContextQuery=>ReviewEventContext,
  get_personal_baseline:PersonalBaselineQuery=>PersonalBaseline,
  preview_match_preparation:PrepareMatchesQuery=>PreparationBatch,
@@ -312,6 +315,7 @@ registry! {
  get_live_snapshot:Empty=>LiveSnapshot,
  search_player:PlayerSearch=>Player,
  get_player_profile:PlayerProfileQuery=>PlayerProfile,
+ get_player_overview:PlayerOverviewQuery=>PlayerOverview,
  list_favorites:Empty=>Vec<Player>,
  set_favorite:FavoriteChange=>Vec<Player>,
  get_champion_pool:ChampionQuery=>ChampionPool,
@@ -339,6 +343,7 @@ registry! {
  check_for_updates:Empty=>UpdateStatus,
  install_update:Empty=>UpdateStatus,
  get_match_review_data:ReviewQuery=>ReviewData,
+ get_match_scoreboard:MatchRef=>Option<MatchScoreboard>,
  fetch_match_details:MatchRef=>Task,
  get_timeline_slice:TimelineQuery=>TimelineSlice,
  get_match_metrics:ChartQuery=>ChartData,
@@ -381,6 +386,9 @@ pub fn generate_types() -> String {
         ConnectionState,
         AppState,
         MatchSummary,
+        ScoreboardParticipant,
+        ScoreboardTeam,
+        MatchScoreboard,
         MatchQuery,
         MatchPage,
         Coverage,
@@ -450,6 +458,9 @@ pub fn generate_types() -> String {
         PlayerSearch,
         FavoriteChange,
         PlayerProfileQuery,
+        PlayerOverviewQuery,
+        PlayerOverview,
+        RankSnapshot,
         RankEntry,
         SampleMetric,
         ChampionRecent,
@@ -494,6 +505,9 @@ pub fn generate_types() -> String {
         BuildExport,
         BuildApplyQuery,
         BuildApplication,
+        BuildSyncQuery,
+        SaveBuildSyncRule,
+        BuildSyncRule,
         EventContextQuery,
         ReviewEventContext,
         PersonalBaselineQuery,

@@ -82,7 +82,7 @@ export function TitleBar({
     >
       <div
         data-ui="titlebar-brand"
-        className="[&:has([data-ui~=sidebar-toggle])]:py-0 [&:has([data-ui~=sidebar-toggle])]:px-2.5 [&:has([data-ui~=sidebar-toggle])]:gap-1.5 [&_[data-ui~=sidebar-toggle]_svg]:text-muted-foreground flex items-center gap-2.5 [flex:0_0_208px] py-0 px-[18px] font-semibold text-[14px] [&>span]:pointer-events-none [&>svg]:pointer-events-none [&_svg]:text-primary [&_svg]:shrink-0 [[data-collapsed=true]_&]:basis-[64px] [[data-collapsed=true]_&]:p-0 [[data-collapsed=true]_&]:justify-center [[data-collapsed=true]_&_span]:hidden max-[900.01px]:basis-[64px] max-[900.01px]:p-0 max-[900.01px]:justify-center max-[900.01px]:[&_span]:hidden"
+        className="[&:has([data-ui~=sidebar-toggle])]:py-0 [&:has([data-ui~=sidebar-toggle])]:px-2.5 [&:has([data-ui~=sidebar-toggle])]:gap-1.5 [&_[data-ui~=sidebar-toggle]_svg]:text-muted-foreground flex items-center gap-2.5 [flex:0_0_208px] py-0 px-[18px] font-semibold text-[14px] transition-[flex-basis,padding] duration-200 ease-in-out [&>span]:pointer-events-none [&>svg]:pointer-events-none [&_svg]:text-primary [&_svg]:shrink-0 [[data-collapsed=true]_&]:basis-[64px] [[data-collapsed=true]_&]:p-0 [[data-collapsed=true]_&]:justify-center [[data-collapsed=true]_&_span]:hidden max-[900.01px]:basis-[64px] max-[900.01px]:p-0 max-[900.01px]:justify-center max-[900.01px]:[&_span]:hidden"
         data-tauri-drag-region
       >
         <Swords

@@ -36,6 +36,7 @@ export function blankNotebook(championId: number, kind: NotebookKind): NotebookC
     confirmedPatch: null,
     links: [],
     sources: [],
+    skillOrder: null,
   };
 }
 export function downloadJson(json: string, filename: string) {

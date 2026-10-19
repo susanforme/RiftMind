@@ -23,6 +23,10 @@ pub fn validate_content(content: &NotebookContent) -> Result<()> {
         || content.groups.len() > 30
         || content.links.len() > 100
         || content.sources.len() > 100
+        || content
+            .skill_order
+            .as_ref()
+            .is_some_and(|order| order.len() > 18 || order.iter().any(|slot| *slot > 4))
         || content.opponent_id.is_some_and(|id| !known_champion(id))
         || content.position.as_ref().is_some_and(|position| {
             !["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"].contains(&position.as_str())
@@ -42,7 +46,11 @@ pub fn validate_content(content: &NotebookContent) -> Result<()> {
     if content.kind == NotebookKind::Build
         && (content.resource_version.is_none()
             || content.map_id.is_none()
-            || content.groups.is_empty())
+            || (content.groups.is_empty()
+                && !content
+                    .skill_order
+                    .as_ref()
+                    .is_some_and(|order| order.iter().any(|slot| *slot > 0))))
     {
         return Err(invalid());
     }
@@ -253,6 +261,13 @@ impl Service {
         };
         let mut tx = self.pool.begin().await?;
         write_entry(&mut tx, &saved, query.expected_revision).await?;
+        if previous
+            .as_ref()
+            .is_some_and(|previous| previous.content.map_id != saved.content.map_id)
+        {
+            sqlx::query("UPDATE champion_build_rules SET enabled=0,revision=revision+1,payload=json_set(payload,'$.enabled',json('false'),'$.revision',revision+1,'$.state','disabled') WHERE entry_id=?")
+                .bind(&saved.id).execute(&mut *tx).await?;
+        }
         tx.commit().await?;
         self.emit("notebooks-changed", Some(saved.id.clone()), saved.revision)
             .await;
@@ -335,6 +350,10 @@ impl Service {
             current.revision += 1;
             current.updated_at = storage::now();
             write_entry(&mut tx, &current, query.expected_revision).await?;
+        }
+        if query.action == "trash" {
+            sqlx::query("UPDATE champion_build_rules SET enabled=0,revision=revision+1,payload=json_set(payload,'$.enabled',json('false'),'$.revision',revision+1,'$.state','disabled') WHERE entry_id=?")
+                .bind(&query.id).execute(&mut *tx).await?;
         }
         tx.commit().await?;
         self.emit("notebooks-changed", Some(query.id), current.revision)

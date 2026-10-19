@@ -109,12 +109,14 @@ export function ItemBuildEditor({
                   value: String(equipment.id),
                   label: equipment.name,
                   icon: (
-                    <GameEntityIcon
-                      kind="item"
-                      id={equipment.id}
-                      version={version}
-                      label={equipment.name}
-                    />
+                    <span aria-hidden="true">
+                      <GameEntityIcon
+                        kind="item"
+                        id={equipment.id}
+                        version={version}
+                        label={equipment.name}
+                      />
+                    </span>
                   ),
                 }))}
               onValueChange={(id) =>

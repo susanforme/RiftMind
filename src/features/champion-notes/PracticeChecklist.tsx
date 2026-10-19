@@ -1,6 +1,6 @@
 import { GameEntityIcon } from '../../components/GameEntityIcon';
 import { championName } from '../../lib/display-names';
-import { useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { transport } from '../../app/runtime';
@@ -17,12 +17,25 @@ export function PracticeChecklist({
   championId,
   epoch,
   entries,
+  embedded = false,
+  onDirtyChange,
 }: {
   championId?: number;
   epoch: string;
   entries: NotebookEntry[];
+  embedded?: boolean;
+  onDirtyChange?: (dirty: boolean) => void;
 }) {
   const { t } = useTranslation();
+  const dirtyEntries = useRef(new Set<string>());
+  const recordDraftChange = useCallback(
+    (id: string, dirty: boolean) => {
+      if (dirty) dirtyEntries.current.add(id);
+      else dirtyEntries.current.delete(id);
+      onDirtyChange?.(dirtyEntries.current.size > 0);
+    },
+    [onDirtyChange],
+  );
   const savedEntries = useQuery({
     queryKey: ['notebooks', epoch, 'practice', championId],
     queryFn: () =>
@@ -48,11 +61,19 @@ export function PracticeChecklist({
       }),
   });
   return (
-    <Card data-ui="practice-checklist" className="min-w-0 overflow-hidden">
-      <CardHeader className="border-b border-border bg-muted/20">
-        <CardTitle>{t('notebooks.practice')}</CardTitle>
-      </CardHeader>
-      <CardContent data-ui="review-stack" className="grid min-w-0 grid-cols-1 gap-4 pt-5">
+    <Card
+      data-ui="practice-checklist"
+      className={`min-w-0 overflow-hidden ${embedded ? 'border-0 bg-transparent' : ''}`}
+    >
+      {!embedded && (
+        <CardHeader className="border-b border-border bg-muted/20">
+          <CardTitle>{t('notebooks.practice')}</CardTitle>
+        </CardHeader>
+      )}
+      <CardContent
+        data-ui="review-stack"
+        className={`grid min-w-0 grid-cols-1 gap-4 pt-5 ${embedded ? 'p-0' : ''}`}
+      >
         <ErrorNotice error={practices.error} />
         {!practices.data?.length && <p>{t('notebooks.noPractice')}</p>}
         {practices.data?.map((practice) => (
@@ -62,6 +83,7 @@ export function PracticeChecklist({
             epoch={epoch}
             source={availableEntries.find((entry) => entry.id === practice.sourceId)}
             entries={availableEntries}
+            onDraftChange={recordDraftChange}
           />
         ))}
       </CardContent>
@@ -73,11 +95,13 @@ function PracticeRow({
   epoch,
   source,
   entries,
+  onDraftChange,
 }: {
   practice: PracticeEntry;
   epoch: string;
   source?: NotebookEntry;
   entries: NotebookEntry[];
+  onDraftChange: (id: string, dirty: boolean) => void;
 }) {
   const { t } = useTranslation();
   const [notes, setNotes] = useState(practice.notes);
@@ -100,14 +124,17 @@ function PracticeRow({
         expectedRevision: practice.revision,
         delete: remove,
       }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['practices'] }),
+    onSuccess: () => {
+      onDraftChange(practice.id, false);
+      return queryClient.invalidateQueries({ queryKey: ['practices'] });
+    },
   });
   return (
     <div
       data-ui="review-stack"
       className="grid min-w-0 grid-cols-1 gap-4 border-b border-border pb-5 pt-5 last:border-b-0 last:pb-0"
     >
-      <div data-ui="actions" className="flex items-center gap-2">
+      <div data-ui="actions" className="flex flex-wrap items-center gap-2">
         <GameEntityIcon
           kind="champion"
           id={practice.championId}
@@ -131,7 +158,15 @@ function PracticeRow({
           value: state,
           label: t(`notebooks.practice_${state}`),
         }))}
-        onValueChange={(state) => setState(state as PracticeState)}
+        onValueChange={(nextState) => {
+          setState(nextState as PracticeState);
+          onDraftChange(
+            practice.id,
+            nextState !== practice.state ||
+              notes !== practice.notes ||
+              sourceId !== practice.sourceId,
+          );
+        }}
       />
       <SearchSelect
         label={t('notebooks.linkContent')}
@@ -142,7 +177,16 @@ function PracticeRow({
             .filter((entry) => !entry.deleted && entry.content.championId === practice.championId)
             .map((entry) => ({ value: entry.id, label: entry.content.title })),
         ]}
-        onValueChange={(id) => setSourceId(id === 'none' ? null : id)}
+        onValueChange={(id) => {
+          const nextSourceId = id === 'none' ? null : id;
+          setSourceId(nextSourceId);
+          onDraftChange(
+            practice.id,
+            nextSourceId !== practice.sourceId ||
+              notes !== practice.notes ||
+              state !== practice.state,
+          );
+        }}
       />
       <Label>
         {t('notebooks.practiceNotes')}
@@ -150,7 +194,15 @@ function PracticeRow({
           aria-label={t('notebooks.practiceNotes')}
           value={notes}
           className="min-h-24"
-          onChange={(event) => setNotes(event.target.value)}
+          onChange={(event) => {
+            setNotes(event.target.value);
+            onDraftChange(
+              practice.id,
+              event.target.value !== practice.notes ||
+                state !== practice.state ||
+                sourceId !== practice.sourceId,
+            );
+          }}
         />
       </Label>
       <div data-ui="actions" className="flex items-center gap-2">
