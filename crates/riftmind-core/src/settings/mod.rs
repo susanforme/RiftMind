@@ -48,7 +48,16 @@ pub fn validate(s: &Settings) -> Result<()> {
     for tab in &s.workspace_tabs {
         crate::domain::validate_key(&tab.id)?;
         if !ids.insert(&tab.id)
-            || !["matches", "settings", "review", "progress"].contains(&tab.kind.as_str())
+            || ![
+                "matches",
+                "settings",
+                "review",
+                "progress",
+                "live",
+                "champions",
+                "compare",
+            ]
+            .contains(&tab.kind.as_str())
             || tab.search.len() > 2048
             || tab.search.contains(['<', '>'])
         {

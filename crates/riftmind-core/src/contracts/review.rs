@@ -31,7 +31,13 @@ dto!(ReviewFeedback {report_id:String, finding_id:String, value:Option<String>, 
 dto!(SaveFeedback {workspace_epoch:String,report_id:String, finding_id:String, value:Option<String>, expected_revision:u32});
 dto!(AnnotationsQuery {match_key:String, player_key:String, report_id:Option<String>});
 dto!(ReviewAnnotations {notes:Vec<ReviewNote>, feedback:Vec<ReviewFeedback>});
-dto!(GoalScope {player_key:String, queue_id:u32, position:String, patch:String, metric_id:String, metric_version:String, direction:String, target:f64});
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[serde(rename_all="camelCase", deny_unknown_fields)]
+pub struct GoalScope {
+ pub player_key:String, pub queue_id:u32, pub position:String, pub patch:String,
+ pub metric_id:String, pub metric_version:String, pub direction:String, pub target:f64,
+ #[serde(default)] #[ts(optional)] pub origin:Option<GoalOrigin>,
+}
 dto!(GoalMember {match_key:String, report_id:String, input_fingerprint:String, started_at:String, value:f64});
 dto!(TrainingGoal {id:String, version:u32, revision:u32, scope:GoalScope, state:GoalState, baseline:Vec<GoalMember>, baseline_excluded:Option<BTreeMap<String,u32>>, created_at:String, window_start:String, previous_goal_id:Option<String>});
 dto!(SaveGoal {workspace_epoch:String,id:Option<String>, expected_revision:u32, scope:GoalScope, state:GoalState});

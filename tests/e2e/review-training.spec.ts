@@ -33,7 +33,7 @@ test('review evidence, draft close, feedback, goal adoption, assessment, backup 
   await page.reload(); await expect(page.locator('.goal-card')).toContainText('Current window meets the target');
   await page.screenshot({ path: info.outputPath('progress-en-light.png'), animations: 'disabled' });
   const backup = await harness.wait(await harness.call('create_backup', {})); await harness.wait(await harness.call('restore_backup', { id: backup.result!.reference }));
-  await harness.stop(); await harness.start('offline');
+  await harness.stop(); await harness.start('offline'); await page.reload();
   await page.goto(`/#/matches/${encodeURIComponent(m.matchKey)}/review?player=${encodeURIComponent(playerKey)}`);
   await expect(page.locator('.note-text')).toHaveCount(2); await expect(page.getByText('Review overview', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Fetch details', exact: true })).toBeDisabled();

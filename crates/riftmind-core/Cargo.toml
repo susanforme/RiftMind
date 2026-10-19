@@ -23,4 +23,4 @@ futures-util = "0.3"
 
 [dev-dependencies]
 tempfile = "3.23"
-axum = "0.8.9"
+axum = { version = "0.8.9", features = ["ws"] }

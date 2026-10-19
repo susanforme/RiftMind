@@ -1,12 +1,12 @@
 # RiftMind
 
-仅支持 Windows 的英雄联盟本地对局工具。提供设置、对局列表、复盘与训练进展页面，使用
+仅支持 Windows 的英雄联盟本地对局工具。提供比赛、玩家查询与收藏、英雄池、两场对比、复盘与训练进展页面，使用
 Tauri 2 / React / Rust / SQLite。macOS 用于开发和测试 core 与浏览器页面，不发行 Mac 客户端。
 
-一期历史验证见 [一期验收记录](docs/stage1-verification.md)，本次实现与验证见 [二期验收记录](docs/stage2-verification.md)。
+一期历史验证见 [一期验收记录](docs/stage1-verification.md)，二期验证见 [二期验收记录](docs/stage2-verification.md)，本次实现与验证见 [三期验收记录](docs/stage3-verification.md)。
 **尚未完成 Windows 原生验收、真实客户端联网验收和生产签名发布。**
 
-二期实施规格见 [二期计划：可解释复盘、时间线与训练闭环](todo/stage2.md)。
+三期实施规格见 [三期计划：当前比赛、玩家查询与多场分析](todo/stage3.md)。
 
 ## 环境与启动
 
@@ -18,7 +18,7 @@ bunx playwright install chromium
 bun run dev:mock
 ```
 
-打开 http://localhost:1420 。左侧导航包含对局、进展与设置；顶部标签按玩家与区服隔离。
+打开 http://localhost:1420 。左侧导航包含比赛、英雄池、战绩、进展与设置；顶部标签按玩家与区服隔离。
 模拟模式有固定标识，数据仅在内存中，可通过开发工具栏切换无客户端、国服、外服、等待授权、冲突等场景。
 `fixture.ts` 提供重置、固定时钟及一次性错误注入；它不能证明数据库或网络代码正确。
 
@@ -81,6 +81,7 @@ bun run test:unit
 cargo test -p riftmind-core --locked
 bun run test:e2e
 bun run verify:stage2
+bun run verify:stage3
 ```
 
 `verify:stage1` 依次运行类型/lint/翻译/token/fixture 哈希/生成契约检查、前端测试、core 测试、
@@ -196,3 +197,14 @@ SHA256 输出到构建日志。构建产物尚未代码签名，Windows 可能�
 复盘与进展页面继续组合 shadcn/ui；图表按需加载 ECharts，并提供数值表。旧报告和证据笔记固定原输入，重算保留旧版本；笔记冲突保留草稿。二期备份支持一期升级、证据引用校验与工作区隔离。
 
 完整范围和平台待验收项见 [二期计划](todo/stage2.md) 与 [二期验收记录](docs/stage2-verification.md)。
+
+## 三期已交付
+
+比赛页展示公开阵容、阶段及独立的近期资料，不读取本场实时击杀、经济或装备。
+同区玩家搜索与收藏复用玩家战绩标签；他人 DETAILS 仍由能力与授权门禁控制。
+英雄池和跨场问题只聚合本地缓存，指标带有效样本与排除原因；两场对比固定输入/报告修订，
+按比赛经过时间对齐曲线。问题汇总可创建带固定证据来源的训练草稿，确认后启用。
+
+SQLite v3 支持收藏、资料缓存、旧数据库迁移和备份升级；在线比赛状态不从备份恢复。
+`bun run verify:stage3` 包含前两期回归、三期 core/HTTP/WebSocket/harness E2E、生产构建与隔离，
+结果写入 `.stage3-report.json`。真实客户端接口、Windows 原生与发布验证仍按验收记录单列。

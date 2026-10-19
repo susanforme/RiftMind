@@ -6,6 +6,18 @@ use tokio::sync::Mutex;
 
 #[async_trait]
 pub trait MatchRemote: Send + Sync {
+    async fn current_match(&self) -> Result<Value> {
+        Err(AppError::new(ErrorCode::EndpointUnsupported))
+    }
+    async fn search(&self, _query: &str) -> Result<Value> {
+        Err(AppError::new(ErrorCode::EndpointUnsupported))
+    }
+    async fn ranks(&self, _p: &Player) -> Result<Value> {
+        Err(AppError::new(ErrorCode::EndpointUnsupported))
+    }
+    async fn recent(&self, p: &Player, source: Source) -> Result<Value> {
+        self.page(p, 0, source).await
+    }
     async fn page(&self, player: &Player, offset: u32, source: Source) -> Result<Value>;
     async fn single(&self, _m: &MatchSummary, _timeline: bool, _source: Source) -> Result<Value> {
         Err(AppError::new(ErrorCode::EndpointUnsupported))
@@ -37,6 +49,12 @@ impl LcuClient {
             token,
         })
     }
+    // Loopback-only synthetic endpoint used by core integration tests, never an IPC input.
+    pub fn for_test(port: u16) -> Result<Self> {
+        let mut client = Self::new(port, "synthetic-lcu".into())?;
+        client.base = format!("http://127.0.0.1:{port}");
+        Ok(client)
+    }
     pub async fn get(&self, path: &str) -> Result<Value> {
         if ![
             "/lol-summoner/v1/current-summoner",
@@ -45,8 +63,13 @@ impl LcuClient {
             "/entitlements/v1/token",
             "/lol-league-session/v1/league-session-token",
             "/lol-gameflow/v1/gameflow-phase",
+            "/lol-gameflow/v1/session",
+            "/lol-champ-select/v1/session",
         ]
         .contains(&path)
+            && !path.starts_with("/lol-summoner/v1/riot-alias/")
+            && !path.starts_with("/lol-summoner/v1/summoners?name=")
+            && !path.starts_with("/lol-ranked/v1/ranked-stats/")
             && !path.starts_with("/lol-match-history/v1/products/lol/")
             && !path.starts_with("/lol-match-history/v1/games/")
             && !path.starts_with("/lol-match-history/v1/game-timelines/")
@@ -166,6 +189,106 @@ impl HttpRemote {
 }
 #[async_trait]
 impl MatchRemote for HttpRemote {
+    async fn current_match(&self) -> Result<Value> {
+        if let Some(lcu) = &self.lcu {
+            let phase = lcu.get("/lol-gameflow/v1/gameflow-phase").await?;
+            let game = match lcu.get("/lol-gameflow/v1/session").await {
+                Ok(v) => v,
+                Err(e) if e.code == ErrorCode::EndpointUnsupported => Value::Null,
+                Err(e) => return Err(e),
+            };
+            let champ = if phase == "ChampSelect" {
+                lcu.get("/lol-champ-select/v1/session").await?
+            } else {
+                Value::Null
+            };
+            if lcu.get("/lol-gameflow/v1/gameflow-phase").await? != phase {
+                return Err(AppError::new(ErrorCode::SessionChanged));
+            }
+            Ok(json!({"phase":phase,"game":game,"champSelect":champ}))
+        } else if self.sgp_base.is_some() {
+            self.sgp_request("/test/live", &[]).await
+        } else {
+            Err(AppError::new(ErrorCode::EndpointUnsupported))
+        }
+    }
+    async fn search(&self, query: &str) -> Result<Value> {
+        if let Some(lcu) = &self.lcu {
+            let path = if let Some((name, tag)) = query.rsplit_once('#') {
+                let mut url =
+                    reqwest::Url::parse("https://localhost/lol-summoner/v1/riot-alias/").unwrap();
+                url.path_segments_mut()
+                    .unwrap()
+                    .pop_if_empty()
+                    .push(name)
+                    .push(tag);
+                url.path().to_string()
+            } else {
+                let mut url =
+                    reqwest::Url::parse("https://localhost/lol-summoner/v1/summoners").unwrap();
+                url.query_pairs_mut().append_pair("name", query);
+                format!("{}?{}", url.path(), url.query().unwrap())
+            };
+            let v = lcu.get(&path).await.map_err(|mut e| {
+                if e.params.get("httpStatus").is_some_and(|s| s == "404") {
+                    e.code = ErrorCode::NotFound;
+                }
+                e
+            })?;
+            if v["puuid"].as_str().is_none_or(|s| s.is_empty()) {
+                return Err(AppError::new(ErrorCode::NotFound));
+            }
+            Ok(v)
+        } else if self.sgp_base.is_some() {
+            self.sgp_request("/test/search", &[("query", query.into())])
+                .await
+        } else {
+            Err(AppError::new(ErrorCode::EndpointUnsupported))
+        }
+    }
+    async fn ranks(&self, p: &Player) -> Result<Value> {
+        domain::validate_key(&p.puuid)?;
+        if p.server_id != self.server.id || p.player_key != format!("{}:{}", p.server_id, p.puuid) {
+            return Err(AppError::new(ErrorCode::RegionConflict));
+        }
+        if let Some(lcu) = &self.lcu {
+            lcu.get(&format!("/lol-ranked/v1/ranked-stats/{}", p.puuid))
+                .await
+        } else if self.sgp_base.is_some() {
+            self.sgp_request("/test/ranks", &[]).await
+        } else {
+            Err(AppError::new(ErrorCode::EndpointUnsupported))
+        }
+    }
+    async fn recent(&self, p: &Player, source: Source) -> Result<Value> {
+        domain::validate_key(&p.puuid)?;
+        if p.server_id != self.server.id || p.player_key != format!("{}:{}", p.server_id, p.puuid) {
+            return Err(AppError::new(ErrorCode::RegionConflict));
+        }
+        match source {
+            Source::Sgp => {
+                self.sgp_request(
+                    &format!(
+                        "/match-history-query/v1/products/lol/player/{}/SUMMARY",
+                        p.puuid
+                    ),
+                    &[("startIndex", "0".into()), ("count", "20".into())],
+                )
+                .await
+            }
+            Source::Lcu => {
+                self.lcu
+                    .as_ref()
+                    .ok_or(AppError::new(ErrorCode::EndpointUnsupported))?
+                    .get(&format!(
+                        "/lol-match-history/v1/products/lol/{}/matches?begIndex=0&endIndex=19",
+                        p.puuid
+                    ))
+                    .await
+            }
+        }
+    }
+
     async fn single(&self, m: &MatchSummary, timeline: bool, source: Source) -> Result<Value> {
         domain::validate_key(&m.game_id)?;
         if m.server_id != self.server.id || m.match_key != format!("{}:{}", m.server_id, m.game_id)
@@ -200,6 +323,9 @@ impl MatchRemote for HttpRemote {
     }
     async fn page(&self, p: &Player, offset: u32, source: Source) -> Result<Value> {
         domain::validate_key(&p.puuid)?;
+        if p.server_id != self.server.id || p.player_key != format!("{}:{}", p.server_id, p.puuid) {
+            return Err(AppError::new(ErrorCode::RegionConflict));
+        }
         match source {
             Source::Sgp => {
                 self.sgp_request(
@@ -235,6 +361,8 @@ pub async fn bounded_json(res: reqwest::Response) -> Result<Value> {
     };
     if let Some(code) = code {
         let mut e = AppError::new(code);
+        e.params
+            .insert("httpStatus".into(), res.status().as_u16().to_string());
         if e.code == ErrorCode::RateLimited {
             e.params.insert(
                 "retryAfter".into(),
@@ -393,6 +521,7 @@ pub fn normalize(
                 position: part
                     .get("teamPosition")
                     .and_then(Value::as_str)
+                    .filter(|s| ["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"].contains(s))
                     .map(str::to_string),
                 cs: u(stats, "totalMinionsKilled")
                     .zip(u(stats, "neutralMinionsKilled"))
@@ -436,7 +565,10 @@ impl LcuClient {
             Connector,
             tungstenite::{Message, client::IntoClientRequest},
         };
-        let url = self.base.replacen("https:", "wss:", 1);
+        let url = self
+            .base
+            .replacen("https:", "wss:", 1)
+            .replacen("http:", "ws:", 1);
         let mut request = url
             .into_client_request()
             .map_err(|_| AppError::new(ErrorCode::NetworkUnavailable))?;

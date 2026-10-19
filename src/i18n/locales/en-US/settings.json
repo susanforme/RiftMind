@@ -4,6 +4,7 @@
   "language": "Display language",
   "languageHelp": "Also changes champion and item names.",
   "appearance": "Appearance",
+  "cycleColorMode": "Appearance: {{current}}. Switch to {{next}}",
   "sidebar": "Collapse sidebar",
   "closeBehavior": "When closing the window",
   "tray": "Minimize to tray",

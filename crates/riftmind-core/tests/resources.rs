@@ -50,7 +50,7 @@ async fn server() -> (String, Arc<Upstream>, tokio::task::JoinHandle<()>) {
         if uri.path().ends_with("items.json") {
             return axum::Json(serde_json::json!([{"id":3089,"name":"Hat","iconPath":"/lol-game-data/assets/ASSETS/Items/Hat.png"}])).into_response();
         }
-        if uri.path().ends_with(".json") { return axum::Json(serde_json::json!({"id":103,"name":"Ahri"})).into_response(); }
+        if uri.path().ends_with(".json") { return axum::Json(serde_json::json!({"id":103,"name":"Ahri","spells":[{"name":"Orb of Deception","abilityIconPath":"/lol-game-data/assets/ASSETS/Abilities/AhriQ.png"}]})).into_response(); }
         ([("content-type", "image/png")], PNG).into_response()
     })).with_state(state.clone());
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
@@ -322,4 +322,49 @@ async fn symlinked_cache_paths_are_rejected_without_writing_outside_the_asset_ro
             .unwrap()
             .is_none()
     );
+}
+#[tokio::test]
+async fn champion_skill_art_resolves_by_champion_and_slot_with_typed_boundaries() {
+    let (base, _, upstream) = server().await;
+    let root = tempfile::tempdir().unwrap();
+    let service = Service::new(
+        storage::open(&root.path().join("riftmind.db"))
+            .await
+            .unwrap(),
+        root.path().into(),
+        Arc::new(JsonSettingsStore(root.path().join("settings.json"))),
+    )
+    .await
+    .unwrap();
+    *service.resources.write().await = ResourceClient::fixture(base).unwrap();
+    let request = |id| AssetRequest {
+        version: "16.20.1".into(),
+        locale: "en-US".into(),
+        champion_ids: vec![],
+        resource_ids: Some(vec![ResourceId {
+            kind: ResourceKind::Skill,
+            id,
+        }]),
+    };
+    let asset = service
+        .dispatch(Command::resolve_assets(request(1031)))
+        .await
+        .unwrap();
+    assert_eq!(asset[0]["resourceId"], "skill:1031");
+    assert_eq!(asset[0]["name"], "Orb of Deception");
+    assert!(
+        asset[0]["reference"]
+            .as_str()
+            .unwrap()
+            .ends_with("/assets/abilities/ahriq.png")
+    );
+    assert_eq!(
+        service
+            .dispatch(Command::resolve_assets(request(1035)))
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::InvalidInput
+    );
+    upstream.abort();
 }

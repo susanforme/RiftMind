@@ -21,3 +21,5 @@ They do not represent captured player or match data.
 | item-3135.png | https://ddragon.leagueoflegends.com/cdn/16.20.1/img/item/3135.png | 86f541cb0cbbca43574e9f79119e8d958ab225201c64a59cb95f8e3652de2688 |
 | item-3157.png | https://ddragon.leagueoflegends.com/cdn/16.20.1/img/item/3157.png | fc0908ad8621e96ad635b5bac67e09f663ec80735efd732b10f07d8c498443aa |
 | item-4645.png | https://ddragon.leagueoflegends.com/cdn/16.20.1/img/item/4645.png | f03fb411e12c597bfb88a747a00e9f47ae39019eee398833ee933c51f47fb597 |
+
+Additional champion, item, spell and champion-skill preview images are pinned to Riot Data Dragon 16.20.1. Exact URLs are recorded in `entity-sources.json`; hashes are in `../manifest.json`. These preview files are excluded from production bundles.

@@ -1,3 +1,6 @@
+pub mod insights;
+pub mod live;
+pub mod players;
 pub mod recovery;
 pub mod resources;
 pub mod review;
@@ -16,6 +19,11 @@ use std::{path::PathBuf, sync::Arc};
 use tokio::sync::{Mutex, RwLock, broadcast};
 pub struct Service {
     pub pool: SqlitePool,
+    pub live: RwLock<LiveSnapshot>,
+    live_lock: Mutex<()>,
+    player_search_lock: Mutex<()>,
+    profile_locks: Mutex<std::collections::BTreeMap<String, std::sync::Weak<Mutex<()>>>>,
+    profile_budget: tokio::sync::Semaphore,
     pub resources: RwLock<resources::ResourceClient>,
     pub root: PathBuf,
     pub asset_root: PathBuf,
@@ -64,6 +72,11 @@ impl Service {
         let (events, _) = broadcast::channel(256);
         let service = Arc::new(Self {
             pool,
+            live: RwLock::new(LiveSnapshot::default()),
+            live_lock: Mutex::new(()),
+            player_search_lock: Mutex::new(()),
+            profile_locks: Mutex::new(std::collections::BTreeMap::new()),
+            profile_budget: tokio::sync::Semaphore::new(3),
             resources: RwLock::new(resources::ResourceClient::production()),
             root,
             asset_root,
@@ -72,7 +85,7 @@ impl Service {
                 runtime_id: uuid::Uuid::new_v4().to_string(),
                 workspace_epoch: uuid::Uuid::new_v4().to_string(),
                 app_version: env!("CARGO_PKG_VERSION").into(),
-                database_version: 2,
+                database_version: 3,
                 settings_version: 1,
                 update_status: UpdateStatus {
                     state: "unavailable".into(),
@@ -146,6 +159,7 @@ impl Service {
         }
         *self.remote.write().await = remote;
         *self.connection.write().await = c.clone();
+        self.invalidate_live(&c, identity_changed).await;
         if identity_changed {
             self.changed.notify_waiters();
         }
@@ -201,11 +215,7 @@ impl Service {
             return Err(AppError::new(ErrorCode::InvalidInput));
         }
         let c = self.connection.read().await.clone();
-        let p = c
-            .player
-            .as_ref()
-            .filter(|p| p.player_key == req.player_key)
-            .ok_or(AppError::new(ErrorCode::Forbidden))?;
+        let p = self.same_region_player(&req.player_key, &c).await?;
         let ident = c
             .identification
             .as_ref()
@@ -264,10 +274,14 @@ impl Service {
                 .execute(&self.pool)
                 .await?;
             let conn = self.connection.read().await.clone();
-            let player = conn
-                .player
-                .as_ref()
-                .ok_or(AppError::new(ErrorCode::ClientNotFound))?;
+            let player = self
+                .same_region_player(
+                    task.player_key
+                        .as_deref()
+                        .ok_or(AppError::new(ErrorCode::InvalidInput))?,
+                    &conn,
+                )
+                .await?;
             let remote = self
                 .remote
                 .read()
@@ -284,9 +298,9 @@ impl Service {
             if task.checkpoint > 0 {
                 self.checkpoint(&task).await?;
                 let raw = self
-                    .fetch_page(&remote, player, 0, source.clone(), &task)
+                    .fetch_page(&remote, &player, 0, source.clone(), &task)
                     .await?;
-                let items = clients::normalize(&raw, player, source.clone(), None)?;
+                let items = clients::normalize(&raw, &player, source.clone(), None)?;
                 let _workspace = self.maintenance.read().await;
                 let current = self.connection.read().await;
                 if current.session_epoch != task.session_epoch {
@@ -304,7 +318,7 @@ impl Service {
                     task.checkpoint * 45
                 };
                 let raw = match self
-                    .fetch_page(&remote, player, offset, source.clone(), &task)
+                    .fetch_page(&remote, &player, offset, source.clone(), &task)
                     .await
                 {
                     Ok(raw) => raw,
@@ -317,12 +331,12 @@ impl Service {
                     {
                         source = domain::choose_source(ident, false, true, &player.server_id)?;
                         fallback = Some(format!("{:?}", e.code));
-                        self.fetch_page(&remote, player, offset, source.clone(), &task)
+                        self.fetch_page(&remote, &player, offset, source.clone(), &task)
                             .await?
                     }
                     Err(e) => return Err(e),
                 };
-                let items = clients::normalize(&raw, player, source.clone(), fallback.clone())?;
+                let items = clients::normalize(&raw, &player, source.clone(), fallback.clone())?;
                 let exhausted = items.len() < 50;
                 task.checkpoint += 1;
                 // Hold the identity read lock through commit; a switch waits until this safe checkpoint completes.
@@ -419,7 +433,7 @@ impl Service {
         storage::vacuum_backup(&self.pool, &db).await?;
         let bytes = tokio::fs::read(&db).await?;
         let settings = self.settings.lock().await.clone();
-        let data = json!({"schemaVersion":2,"database":STANDARD.encode(&bytes),"sha256":storage::hash(&bytes),"settings":settings});
+        let data = json!({"schemaVersion":3,"database":STANDARD.encode(&bytes),"sha256":storage::hash(&bytes),"settings":settings});
         let file = self.root.join("backups").join(format!("{id}.riftmind"));
         tokio::fs::write(&file, serde_json::to_vec(&data)?).await?;
         tokio::fs::remove_file(db).await?;
@@ -462,9 +476,12 @@ impl Service {
    let mut conn=self.pool.acquire().await?;conn.close_on_drop();
    sqlx::query("ATTACH DATABASE ? AS restore_source").bind(restore_path.to_string_lossy().as_ref()).execute(&mut *conn).await?;
    let mut tx=sqlx::Connection::begin(&mut *conn).await?;sqlx::query("PRAGMA defer_foreign_keys=ON").execute(&mut *tx).await?;
+   // Keep current maintenance tasks observable while replacing the restored workspace.
+   sqlx::query("CREATE TEMP TABLE restore_active_jobs AS SELECT * FROM main.jobs WHERE kind IN ('restore','backup','diagnostics') AND state IN ('queued','running')").execute(&mut *tx).await?;
    for table in storage::TABLES.iter().rev(){sqlx::query(&format!("DELETE FROM {table}")).execute(&mut *tx).await?;}
    for table in storage::TABLES{sqlx::query(&format!("INSERT INTO {table} SELECT * FROM restore_source.{table}")).execute(&mut *tx).await?;}
    sqlx::query("UPDATE jobs SET state='interrupted',cancel_requested=1 WHERE state IN ('running','queued')").execute(&mut *tx).await?;
+   sqlx::query("INSERT OR REPLACE INTO jobs SELECT * FROM temp.restore_active_jobs").execute(&mut *tx).await?;
    let old=self.settings.lock().await.clone();self.store.save(&settings).await?;
    if let Err(e)=tx.commit().await {self.store.save(&old).await?;return Err(e.into())}
    *self.settings.lock().await=settings;sqlx::query("DETACH DATABASE restore_source").execute(&mut *conn).await?;Ok(())
@@ -478,6 +495,7 @@ impl Service {
         tokio::fs::remove_file(self.root.join("restore-journal.json")).await?;
         let _ = tokio::fs::remove_file(&restore_path).await;
         self.state.write().await.workspace_epoch = uuid::Uuid::new_v4().to_string();
+        *self.live.write().await = LiveSnapshot::default();
         self.emit("workspace-reset", None, 0).await;
         Ok(MaintenanceResult {
             reference: id.into(),
@@ -519,6 +537,14 @@ impl Service {
             };
         }
         match command {
+            Command::get_live_snapshot(_) => out!(self.live_snapshot().await?),
+            Command::search_player(r) => out!(self.search_player(r).await?),
+            Command::get_player_profile(r) => out!(self.player_profile(r).await?),
+            Command::list_favorites(_) => out!(self.favorites().await?),
+            Command::set_favorite(r) => out!(self.set_favorite(r).await?),
+            Command::get_champion_pool(r) => out!(self.champion_pool(r).await?),
+            Command::compare_matches(r) => out!(self.compare_matches(r).await?),
+            Command::get_issue_summary(r) => out!(self.issue_summary(r).await?),
             Command::get_match_review_data(r) => out!(self.review_data(r).await?),
             Command::fetch_match_details(r) => out!(self.start_details(r).await?),
             Command::generate_review(r) => out!(self.start_review(r).await?),
@@ -554,7 +580,7 @@ impl Service {
                     .await;
                 out!(n)
             }
-            Command::save_training_goal(r) => out!(self.save_goal(r).await?),
+            Command::save_training_goal(r) => out!(self.save_goal(*r).await?),
             Command::list_training_goals(r) => out!(self.list_goals(r).await?),
             Command::get_goal_progress(r) => out!(self.goal_progress(r).await?),
             Command::evaluate_training_goal(r) => out!(self.start_evaluation(&r.id).await?),

@@ -1,0 +1,35 @@
+{
+  "source": "Independently constructed synthetic inputs. No credentials or live verification.",
+  "rules": {
+    "gold_deficit_10": {
+      "version": "1",
+      "predicate": "reliable gold_diff_10 < 0, boolean per match"
+    },
+    "death_before_objective": {
+      "version": "1",
+      "windowMs": 60000,
+      "predicate": "target death strictly before an objective event, within 60000ms; boolean per match, no causation"
+    }
+  },
+  "aggregation": {
+    "outcomes": [
+      "win",
+      "loss",
+      "remake",
+      "unknown"
+    ],
+    "winRate": 0.5,
+    "winRateSamples": 2,
+    "remakesExcluded": 1,
+    "unknownExcluded": 1,
+    "kdaZeroDeaths": "missing, never infinity",
+    "minTrendSamples": 5
+  },
+  "live": {
+    "publicSeats": 10,
+    "localGenerationBeforeGameId": true,
+    "championChangeRetainsGeneration": true,
+    "cancelClearsRoster": true,
+    "accountChangeRejectsLateSnapshot": true
+  }
+}

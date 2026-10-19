@@ -2,7 +2,7 @@ use crate::contracts::*;
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 pub const CONVERTER: &str = "2.1";
-pub const RULES: &str = "2.1";
+pub const RULES: &str = "3.0";
 fn invalid() -> AppError {
     AppError::new(ErrorCode::InvalidInput)
 }
@@ -632,7 +632,78 @@ pub fn metrics(input: &AnalysisInput) -> Vec<MetricResult> {
             ));
         }
     }
+    let gold = m
+        .iter()
+        .find(|m| m.id == "gold_diff_10" && m.status == MetricStatus::Available)
+        .and_then(|m| m.value);
+    let eligible = supported(c) && !c.remake;
+    m.push(basic(
+        "gold_deficit_10",
+        "ratio",
+        if eligible {
+            gold.map(|v| if v < 0. { 1. } else { 0. })
+        } else {
+            None
+        },
+    ));
+    let complete = ["kills", "objectives"].iter().all(|k| {
+        input
+            .capabilities
+            .get(*k)
+            .is_some_and(|c| c.status == DataStatus::Ready)
+    });
+    let deaths = deaths_before_objective(input);
+    m.push(basic(
+        "death_before_objective",
+        "ratio",
+        (eligible && complete).then_some(if deaths.is_empty() { 0. } else { 1. }),
+    ));
+    for metric in m
+        .iter_mut()
+        .filter(|m| ["gold_deficit_10", "death_before_objective"].contains(&m.id.as_str()))
+    {
+        if !eligible {
+            metric.status = MetricStatus::NotApplicable;
+            metric.reason = Some(
+                if c.remake {
+                    "remake"
+                } else {
+                    "mode_unsupported"
+                }
+                .into(),
+            );
+        } else if metric.value.is_none() {
+            metric.reason = Some(
+                if metric.id == "death_before_objective" {
+                    "missing_or_partial_timeline"
+                } else if c.duration_ms < 600000 {
+                    "short_match"
+                } else if opponent(c).is_none() {
+                    "opponent_unreliable"
+                } else {
+                    "missing_frame"
+                }
+                .into(),
+            );
+        }
+    }
+
     m
+}
+pub fn deaths_before_objective(input: &AnalysisInput) -> Vec<&TimelineEvent> {
+    input
+        .events
+        .iter()
+        .filter(|d| {
+            d.kind == "CHAMPION_KILL"
+                && d.victim_id == Some(input.context.target_id)
+                && input.events.iter().any(|o| {
+                    ["ELITE_MONSTER_KILL", "BUILDING_KILL"].contains(&o.kind.as_str())
+                        && o.timestamp_ms > d.timestamp_ms
+                        && o.timestamp_ms - d.timestamp_ms <= 60000
+                })
+        })
+        .collect()
 }
 // All registered rules share the ranked/CLASSIC/map-11 scope in `supported`.
 // None is an explicit all-patches declaration for rules that only describe recorded facts.
@@ -805,6 +876,48 @@ pub fn report(input: &AnalysisInput) -> Result<ReviewReport> {
                     vec!["observation_window_60s_not_causation".into()]
                 } else if *rule == "build" {
                     vec!["item_semantics_unavailable".into()]
+                } else {
+                    vec![]
+                },
+            });
+        }
+    }
+    for id in ["gold_deficit_10", "death_before_objective"] {
+        if m.iter().any(|m| m.id == id && m.value == Some(1.)) {
+            let mut refs = Vec::new();
+            if id == "gold_deficit_10" {
+                refs.extend(
+                    findings
+                        .iter()
+                        .filter(|f| f.rule_id == "development")
+                        .flat_map(|f| f.evidence_ids.clone()),
+                );
+            } else {
+                for e in deaths_before_objective(input) {
+                    refs.push(e.id.clone());
+                    evidence.push(event_evidence(input, e)?);
+                    for o in input.events.iter().filter(|o| {
+                        ["ELITE_MONSTER_KILL", "BUILDING_KILL"].contains(&o.kind.as_str())
+                            && o.timestamp_ms > e.timestamp_ms
+                            && o.timestamp_ms - e.timestamp_ms <= 60000
+                    }) {
+                        refs.push(o.id.clone());
+                        evidence.push(event_evidence(input, o)?);
+                    }
+                }
+            }
+            findings.push(Finding {
+                id: format!("{id}-{}", input.fingerprint),
+                rule_id: id.into(),
+                rule_version: "1".into(),
+                priority: 0,
+                message_key: format!("finding_{id}"),
+                action_key: None,
+                params: BTreeMap::new(),
+                metric_ids: vec![id.into()],
+                evidence_ids: refs,
+                limitations: if id == "death_before_objective" {
+                    vec!["observation_window_60s_not_causation".into()]
                 } else {
                     vec![]
                 },

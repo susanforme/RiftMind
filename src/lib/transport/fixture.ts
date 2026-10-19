@@ -1,4 +1,5 @@
 import type { AppState, ConnectionState, EventEnvelope, MatchSummary, Settings, Task, UpdateSettings, MatchQuery, CommandMap, AssetRequest } from '../../generated/contracts';
+import { scoutingFixture, resetScoutingFixture, scoutingPlayers } from './scouting-fixture';
 import { reviewFixture, resetReviewFixture } from './review-fixture';
 import type { CommandName, Transport } from './index';
 const previewArt = import.meta.glob<string>('../../../tests/fixtures/ui-art/*.png', { eager: true, query: '?url', import: 'default' });
@@ -11,9 +12,9 @@ let settings: Settings;
 let connection: ConnectionState;
 let matches: MatchSummary[];
 let tasks: Record<string, Task>;
-const app: AppState = { phase: 'ready', runtimeId: 'fixture-runtime', workspaceEpoch: 'fixture-epoch', appVersion: '0.1.0', databaseVersion: 2, settingsVersion: 1, updateStatus: { state: 'unavailable', version: null, downloaded: 0, total: null, reason: 'UPDATE_NOT_CONFIGURED' } };
+const app: AppState = { phase: 'ready', runtimeId: 'fixture-runtime', workspaceEpoch: 'fixture-epoch', appVersion: '0.1.0', databaseVersion: 3, settingsVersion: 1, updateStatus: { state: 'unavailable', version: null, downloaded: 0, total: null, reason: 'UPDATE_NOT_CONFIGURED' } };
 export function resetFixture() {
-  resetReviewFixture();
+  resetReviewFixture(); resetScoutingFixture();
   now = new Date('2026-10-19T00:00:00Z');
   settings = { schemaVersion: 1, revision: 0, languagePreference: 'system', themeId: 'default', colorModePreference: 'system', sidebarCollapsed: false, closeBehavior: 'tray', autoConnect: true, autoSync: true, syncPages: 3, workspaceTabs: [], activeTab: '' };
   connection = { phase: 'disconnected', sessionEpoch: 'fixture-session', instance: null, player: null, identification: null, sgpReady: false, lcuReady: false, retryAt: null }; matches = []; tasks = {}; sequence = 0;
@@ -46,7 +47,7 @@ async function execute(command: CommandName, args: unknown): Promise<unknown> {
     case 'retry_connection': emit('connection-changed'); return connection;
     case 'list_client_instances': return connection.instance ? [connection.instance] : [];
     case 'select_client_instance': return connection;
-    case 'list_players': return [...new Map(matches.map(m => [m.playerKey, { playerKey: m.playerKey, serverId: m.serverId, puuid: 'synthetic-player', displayName: 'Rift Walker #DEMO', updatedAt: now.toISOString() }])).values()];
+    case 'list_players': return [...scoutingPlayers(), ...new Map(matches.map(m => [m.playerKey, { playerKey: m.playerKey, serverId: m.serverId, puuid: 'synthetic-player', displayName: 'Rift Walker #DEMO', updatedAt: now.toISOString() }])).values()];
     case 'list_matches': { const q = args as MatchQuery; const rows = matches.filter(m => m.playerKey === q.playerKey && (!q.queueId || m.queueId === q.queueId) && (!q.championId || m.championId === q.championId) && (!q.from || m.startedAt >= q.from) && (!q.to || m.startedAt <= q.to)); const offset = Number(q.cursor) || 0; return { items: rows.slice(offset, offset + 50), total: rows.length, nextCursor: rows.length > offset + 50 ? String(offset + 50) : null, coverage: { pages: 3, matchesCount: rows.length, exhausted: true, lastSync: now.toISOString() } }; }
     case 'sync_player_matches': { if (!connection.player || connection.phase !== 'connected') fail('waiting_auth'); generateMatches(); const id = crypto.randomUUID(); tasks[id] = { id, kind: 'sync', result: null, stage: 'completed', retryAt: null, playerKey: connection.player.playerKey, state: 'completed', checkpoint: 3, budget: 3, sessionEpoch: connection.sessionEpoch, updatedAt: now.toISOString(), error: null }; emit('match-updated'); return tasks[id]; }
     case 'get_task_status': case 'cancel_task': return tasks[(args as { id: string }).id] || fail('not_found');
@@ -61,7 +62,7 @@ async function execute(command: CommandName, args: unknown): Promise<unknown> {
     case 'get_storage_usage': case 'clear_asset_cache': return { databaseBytes: matches.length * 1024, assetBytes: 0, backupBytes: 0 };
     case 'check_for_updates': case 'install_update': return { state: 'unavailable', version: null, downloaded: 0, total: null, reason: 'UPDATE_NOT_CONFIGURED' };
     case 'create_backup': case 'restore_backup': case 'export_diagnostics': return fail('endpoint_unsupported');
-    default: return reviewFixture(command, args, { matches, connection, now, emit, fail, task: (reference, kind) => { const id = crypto.randomUUID(); const task: Task = { id, kind, result: { reference, workspaceEpoch: app.workspaceEpoch }, playerKey: connection.player?.playerKey || null, state: 'completed', checkpoint: 2, budget: 2, sessionEpoch: connection.sessionEpoch, updatedAt: now.toISOString(), error: null, stage: 'completed', retryAt: null }; tasks[id] = task; return task; } });
+    default: { const context: Parameters<typeof reviewFixture>[2] = { matches, connection, now, emit, fail, task: (reference, kind) => { const id = crypto.randomUUID(); const task: Task = { id, kind, result: { reference, workspaceEpoch: app.workspaceEpoch }, playerKey: connection.player?.playerKey || null, state: 'completed', checkpoint: 2, budget: 2, sessionEpoch: connection.sessionEpoch, updatedAt: now.toISOString(), error: null, stage: 'completed', retryAt: null }; tasks[id] = task; return task; } }; const value = scoutingFixture(command, args, context, context); return value === undefined ? reviewFixture(command, args, context) : value; }
   }
 }
 export function fixtureTransport(): Transport { return { mode: 'fixture', call: <K extends CommandName>(command: K, args: CommandMap[K]['input']) => execute(command, args).then(v => structuredClone(v) as CommandMap[K]['output']), subscribe: async listener => { listeners.add(listener); return () => { listeners.delete(listener); }; } }; }

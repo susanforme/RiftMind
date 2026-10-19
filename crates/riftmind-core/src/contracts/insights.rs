@@ -1,0 +1,14 @@
+dto!(AnalysisFilter {player_key:String, queue_id:Option<u32>, position:Option<String>, patch:Option<String>, from:Option<String>, to:Option<String>, champion_id:Option<u32>});
+dto!(ChampionQuery {filter:AnalysisFilter, sort:String, cursor:Option<u32>, limit:Option<u32>});
+dto!(ChampionTrend {match_key:String, started_at:String, outcome:Outcome, group:String});
+dto!(ChampionStats {champion_id:Option<u32>, games:u32, win_rate:SampleMetric, kills:SampleMetric, deaths:SampleMetric, assists:SampleMetric, kda:SampleMetric, cs_per_min:SampleMetric, damage_share:SampleMetric, trend:Vec<ChampionTrend>});
+dto!(ChampionPool {items:Vec<ChampionStats>, next_cursor:Option<u32>, cached_matches:u32, filtered_matches:u32, from:Option<String>, to:Option<String>, truncated:bool});
+dto!(CompareSide {match_key:String, player_key:String, input_revision:Option<u32>, report_id:Option<String>});
+dto!(CompareQuery {left:CompareSide, right:CompareSide});
+dto!(MetricDelta {id:String, version:String, unit:String, left:Option<f64>, right:Option<f64>, delta:Option<f64>, reason:Option<String>});
+dto!(Comparison {left:ReviewData, right:ReviewData, metrics:Vec<MetricDelta>, differences:Vec<String>, duration_ms:u32});
+dto!(ReportLink {match_key:String, player_key:String, report_id:String, input_revision:u32, evidence_ids:Vec<String>});
+dto!(IssueGroup {rule_id:String, rule_version:String, group:String, hits:u32, eligible:u32, excluded:BTreeMap<String,u32>, rate:Option<f64>, insufficient:bool, metric_id:Option<String>, reports:Vec<ReportLink>});
+dto!(IssueQuery {filter:AnalysisFilter, cursor:Option<u32>, limit:Option<u32>});
+dto!(IssueSummary {items:Vec<IssueGroup>, next_cursor:Option<u32>, reports:u32, truncated:bool});
+dto!(GoalOrigin {filter:AnalysisFilter, rule_id:String, rule_version:String, reports:Vec<ReportLink>});

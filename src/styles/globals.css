@@ -48,14 +48,17 @@ button[role=combobox] > svg { flex-shrink: 0; }
 .connection-card > svg { flex-shrink: 0; }
 .connection-card strong { display: block; font-size: 12px; font-weight: 500; }
 .connection-card small { display: block; font-size: 10px; max-width: 112px; overflow: hidden; text-overflow: ellipsis; }
-.mode-switch { display: flex; padding: 3px; gap: 3px; background: var(--background); border: 1px solid var(--border); border-radius: 7px; margin: 0 3px 9px; justify-content: space-between; }
-.mode-switch .button-icon { width: 37px; height: 29px; }
-.mode-switch button[aria-pressed=true] { background: var(--card); color: var(--primary); }
-.collapse-toggle { font-size: 11px; height: 32px; }
+.sidebar-actions { display: flex; align-items: center; gap: 4px; }
+.sidebar-actions .nav-item { flex: 1; min-width: 0; }
+.theme-toggle.button { width: 36px; height: 40px; flex-shrink: 0; color: var(--muted-foreground); }
+.sidebar-toggle.button { width: 40px; height: 40px; flex-shrink: 0; pointer-events: auto; }
+.titlebar-brand:has(.sidebar-toggle) { padding: 0 10px; gap: 6px; }
+.titlebar-brand .sidebar-toggle svg { color: var(--muted-foreground); }
 .is-collapsed .sidebar-label { display: none; }
 .is-collapsed .nav-item { padding: 8px; justify-content: center; }
 .is-collapsed .connection-card { justify-content: center; padding: 14px 0; }
-.is-collapsed .mode-switch { flex-direction: column; margin: 0 0 8px; align-items: center; border: 0; background: transparent; }
+.is-collapsed .sidebar-actions { flex-direction: column; }
+.is-collapsed .sidebar-actions .nav-item { flex: none; }
 .workspace { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
 .titlebar { grid-column: 1 / -1; display: flex; align-items: stretch; min-width: 0; height: 48px; background: var(--titlebar); border-bottom: 1px solid var(--border); user-select: none; }
 .titlebar-brand { display: flex; align-items: center; gap: 10px; flex: 0 0 176px; padding: 0 18px; font-weight: 600; font-size: 14px; }
@@ -348,3 +351,34 @@ fieldset legend { float: left; width: 100%; padding: 0; }
   .window-controls .button, .work-tab.active, .nav-item.selected { border: 1px solid ButtonText; }
   .window-controls .button:hover { background: Highlight; color: HighlightText; }
 }
+/* Scouting views follow the workspace's semantic palette and compact data hierarchy. */
+.player-tools [data-slot="card-content"], .live-page > [data-slot="card"] [data-slot="card-content"] { padding-top: 20px; }
+.player-tools form input { flex: 1; min-width: 120px; max-width: 360px; }
+.favorites { margin-top: 16px; }
+.live-page, .champions-page, .compare-page { display: grid; gap: 20px; }
+.live-teams, .compare-sides { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 20px; align-items: start; }
+.live-teams section > h2 { margin-bottom: 12px; }
+.live-seat.current-player { border-inline-start: 3px solid var(--primary); }
+.live-seat [data-slot="card-title"] { gap: 6px; }
+.live-seat [data-slot="card-title"] > button { padding-left: 0; white-space: normal; text-align: left; }
+.profile-stats { display: grid; gap: 8px; font-size: 13px; }
+.profile-skeleton { height: 100px; }
+.analysis-filters { flex-wrap: wrap; }
+.analysis-filters > label { min-width: 100px; flex: 1; }
+.analysis-filters input { width: 100%; }
+.pool-chart { width: 100%; height: 220px; min-width: 0; }
+.champion-trends { min-width: 160px; max-width: 260px; display: grid; gap: 8px; }
+.champion-trends .actions { gap: 4px; }
+.compare-page table small { display: block; }
+.compare-sides [data-slot="card-content"] { min-width: 0; }
+.compare-sides [data-slot="select-trigger"] { max-width: 100%; }
+.compare-selection { justify-content: end; }
+.issues-panel { min-width: 0; }
+.issues-panel td { vertical-align: top; }
+.issues-panel td .badge { display: block; }
+@media (max-width: 960px) { .live-teams,.compare-sides { grid-template-columns: minmax(0,1fr); } .analysis-filters > label { min-width: 130px; } }
+.compare-events { max-height: 270px; overflow: auto; display: grid; gap: 8px; }
+.compare-values { max-height: 330px; overflow: auto; }
+.pool-chart-content { padding-top: 20px; }
+.inline-entity { display: inline-flex; align-items: center; gap: 6px; margin-inline-end: 10px; vertical-align: middle; }
+.inline-entity [data-slot="avatar"] { width: 24px; height: 24px; }

@@ -1,0 +1,3 @@
+dto!(LiveSeat {seat:u32, team_id:u32, player:Option<Player>, champion_id:Option<u32>, spell_ids:Vec<u32>, position:Option<String>, current:bool});
+dto!(LiveSnapshot {session_epoch:String, generation:String, revision:u32, phase:String, game_id:Option<String>, queue_id:Option<u32>, mode:Option<String>, bans:Vec<u32>, seats:Vec<LiveSeat>, stale:bool, updated_at:String, match_key:Option<String>, error:Option<ErrorCode>});
+impl Default for LiveSnapshot { fn default()->Self { Self { session_epoch:String::new(), generation:uuid::Uuid::new_v4().to_string(), revision:0, phase:"None".into(), game_id:None, queue_id:None, mode:None, bans:vec![], seats:vec![], stale:true, updated_at:crate::storage::now(), match_key:None,error:None } } }

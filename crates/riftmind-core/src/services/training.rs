@@ -22,10 +22,11 @@ fn exclusion(input: &AnalysisInput, scope: Option<&GoalScope>) -> Option<&'stati
     if !analysis::supported(c) {
         return Some("mode_unsupported");
     }
-    if c.duration_ms < 600000 {
+    let needs_opponent = scope.is_none_or(|s| s.metric_id != "death_before_objective");
+    if needs_opponent && c.duration_ms < 600000 {
         return Some("short_match");
     }
-    if analysis::opponent(c).is_none() {
+    if needs_opponent && analysis::opponent(c).is_none() {
         return Some("opponent_unreliable");
     }
     if let Some(s) = scope {
@@ -39,11 +40,32 @@ fn exclusion(input: &AnalysisInput, scope: Option<&GoalScope>) -> Option<&'stati
         if analysis::patch(&c.version) != s.patch {
             return Some("patch_mismatch");
         }
+        if let Some(origin) = &s.origin {
+            if origin
+                .filter
+                .champion_id
+                .is_some_and(|id| p.champion_id != Some(id))
+            {
+                return Some("champion_mismatch");
+            }
+            if origin
+                .filter
+                .from
+                .as_ref()
+                .is_some_and(|t| c.started_at < *t)
+                || origin.filter.to.as_ref().is_some_and(|t| c.started_at > *t)
+            {
+                return Some("date_mismatch");
+            }
+        }
     }
     None
 }
 impl Service {
-    async fn local_reports(&self, player: &str) -> Result<Vec<(ReviewReport, AnalysisInput)>> {
+    pub(super) async fn local_reports(
+        &self,
+        player: &str,
+    ) -> Result<Vec<(ReviewReport, AnalysisInput)>> {
         domain::validate_key(player)?;
         let rows=sqlx::query("SELECT r.payload report,json_set(i.payload,'$.frames',json('[]'),'$.events',json('[]')) input FROM reviews r JOIN analysis_inputs i ON i.id=r.input_id JOIN matches m ON m.match_key=r.match_key WHERE r.player_key=? AND r.id=(SELECT r2.id FROM reviews r2 JOIN analysis_inputs i2 ON i2.id=r2.input_id WHERE r2.match_key=r.match_key AND r2.player_key=r.player_key ORDER BY i2.revision DESC,r2.revision DESC LIMIT 1) ORDER BY m.started_at DESC,m.match_key DESC LIMIT 10000").bind(player).fetch_all(&self.pool).await?;
         rows.iter()
@@ -71,7 +93,7 @@ impl Service {
                 continue;
             }
             let reason = exclusion(&input, Some(&goal.scope)).or_else(|| {
-                if report.rule_version != analysis::RULES {
+                if !["2.1", analysis::RULES].contains(&report.rule_version.as_str()) {
                     Some("rule_mismatch")
                 } else {
                     None
@@ -115,12 +137,65 @@ impl Service {
                 .patch
                 .split('.')
                 .all(|p| !p.is_empty() && p.bytes().all(|b| b.is_ascii_digit()))
-            || !["cs_10", "deaths_per_10"].contains(&s.metric_id.as_str())
+            || ![
+                "cs_10",
+                "deaths_per_10",
+                "gold_deficit_10",
+                "death_before_objective",
+            ]
+            .contains(&s.metric_id.as_str())
             || s.metric_version != "1"
             || !["increase", "decrease"].contains(&s.direction.as_str())
             || !s.target.is_finite()
             || s.target < 0.
             || s.target > 1000.
+        {
+            return Err(AppError::new(ErrorCode::InvalidInput));
+        }
+        if let Some(origin) = &s.origin {
+            let filter = super::insights::validate_filter(origin.filter.clone())?;
+            if filter.player_key != s.player_key
+                || filter.queue_id != Some(s.queue_id)
+                || filter.position.as_deref() != Some(&s.position)
+                || filter.patch.as_deref() != Some(&s.patch)
+                || origin.rule_id != s.metric_id
+                || origin.rule_version != s.metric_version
+                || origin.reports.len() > 1000
+                || origin.reports.is_empty()
+            {
+                return Err(AppError::new(ErrorCode::InvalidInput));
+            }
+            for link in &origin.reports {
+                let summary = db::summary(
+                    &self.pool,
+                    &MatchRef {
+                        match_key: link.match_key.clone(),
+                        player_key: s.player_key.clone(),
+                    },
+                )
+                .await?;
+                if !super::insights::matches_filter(&filter, &summary) {
+                    return Err(AppError::new(ErrorCode::InvalidInput));
+                }
+                let r = db::report(&self.pool, &link.report_id).await?;
+                if r.match_key != link.match_key
+                    || r.player_key != s.player_key
+                    || r.input_revision != link.input_revision
+                    || !r.findings.iter().any(|f| {
+                        f.rule_id == origin.rule_id
+                            && f.rule_version == origin.rule_version
+                            && link
+                                .evidence_ids
+                                .iter()
+                                .all(|id| f.evidence_ids.contains(id))
+                    })
+                {
+                    return Err(AppError::new(ErrorCode::InvalidInput));
+                }
+            }
+        }
+        if ["gold_deficit_10", "death_before_objective"].contains(&s.metric_id.as_str())
+            && s.target > 1.
         {
             return Err(AppError::new(ErrorCode::InvalidInput));
         }
@@ -287,7 +362,7 @@ impl Service {
             goal.revision,
             &members,
             &excluded,
-            "1",
+            "2",
         ))?);
         let key = format!(
             "{}|{}|{}",
@@ -357,7 +432,7 @@ impl Service {
                     id: uuid::Uuid::new_v4().to_string(),
                     goal_id: goal.id.clone(),
                     revision,
-                    algorithm_version: "1".into(),
+                    algorithm_version: "2".into(),
                     baseline,
                     current,
                     delta: current.zip(baseline).map(|(a, b)| a - b),

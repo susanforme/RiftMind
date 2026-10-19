@@ -45,5 +45,7 @@
   "restore": "Restore",
   "windowControls": "Window controls",
   "windowActionFailed": "Window operation failed. Try again.",
-  "skipToContent": "Skip to content"
+  "skipToContent": "Skip to content",
+  "noOptions": "No matching options",
+  "openOptions": "Open options"
 }

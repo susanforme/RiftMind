@@ -4,7 +4,7 @@
   "entries": [
     {
       "path": "crates/riftmind-core/src/clients/mod.rs",
-      "sha256": "cf64fadab21b4a67f037968a6b9a2ba59b9fcf8f357c98e7ef4c4a59bc693da1"
+      "sha256": "65e8337d163e783eda73ff4130a42fd0e8547b12ccf29b814e77897cb15049ee"
     },
     {
       "path": "crates/riftmind-core/src/domain/servers.json",
@@ -12,7 +12,7 @@
     },
     {
       "path": "src/lib/transport/fixture.ts",
-      "sha256": "bb7396f5d3e419deedb6a7e6c3d4e7f7e879357716c03c0dc9970b67f21bc266"
+      "sha256": "54842c535692a7f562bdffea9a7d67d74b8f1a6f897bdc4b83d4ba67a6b45ac0"
     },
     {
       "path": "tests/fixtures/icon.png",
@@ -43,6 +43,10 @@
       "sha256": "2777d44345974b93f8af378430811670566d0451b6410b2caff2984e93797357"
     },
     {
+      "path": "tests/fixtures/ui-art/champion-266.png",
+      "sha256": "852d739fb696684549064266851df91ecd03729e06b1a192dc14af01549b7f3f"
+    },
+    {
       "path": "tests/fixtures/ui-art/champion-51.png",
       "sha256": "f7a515360f30f33dfe5ab4e8886ce59a70c2d333f924252f48f5f9a2fbc6edf4"
     },
@@ -53,6 +57,18 @@
     {
       "path": "tests/fixtures/ui-art/champion-99.png",
       "sha256": "64639bea2aa7d622dd07287de7a7820950e567f0993c7dcc422e1e699fd743fd"
+    },
+    {
+      "path": "tests/fixtures/ui-art/entity-sources.json",
+      "sha256": "523005da1cd1ea7d78efa8c094946d3fa3a1d92a4478afea1a2a870c8c3048d5"
+    },
+    {
+      "path": "tests/fixtures/ui-art/item-1001.png",
+      "sha256": "f2b2a8ba7ae715c8906d3037d38778aa545f3d0740091640484aa3d126396ad0"
+    },
+    {
+      "path": "tests/fixtures/ui-art/item-1052.png",
+      "sha256": "5b6d009e518f50c73db3b4a7442d3bff0928fb2ea527babd77140ce817562e8a"
     },
     {
       "path": "tests/fixtures/ui-art/item-3020.png",
@@ -79,6 +95,46 @@
       "sha256": "f03fb411e12c597bfb88a747a00e9f47ae39019eee398833ee933c51f47fb597"
     },
     {
+      "path": "tests/fixtures/ui-art/skill-1031.png",
+      "sha256": "d4007421a453486e00709d533c7777d7ea68a31f6c32cfe0a9704be4009fea40"
+    },
+    {
+      "path": "tests/fixtures/ui-art/skill-1032.png",
+      "sha256": "fb77f1efec029da75c3718399558cd8432507a08d5e264ea63827c8186139abf"
+    },
+    {
+      "path": "tests/fixtures/ui-art/skill-1033.png",
+      "sha256": "f17a5c92b47e07664b9248428e4ff577b4ece3ebc24cd166b0710457497788f5"
+    },
+    {
+      "path": "tests/fixtures/ui-art/skill-1034.png",
+      "sha256": "5c1095c39353b5f7af61b8c66d818b82bcdfcfbbddd3cadedc526e47fa8b42fe"
+    },
+    {
+      "path": "tests/fixtures/ui-art/skill-641.png",
+      "sha256": "f64a7454914e2eb71149e293eafb2fa3aefd1a8ac75b14b349da00deb3bbab46"
+    },
+    {
+      "path": "tests/fixtures/ui-art/skill-642.png",
+      "sha256": "0628b1d34554b7ce45480a60287734489dfbec68943ef9c75ee76fef4e6c3bce"
+    },
+    {
+      "path": "tests/fixtures/ui-art/skill-643.png",
+      "sha256": "6f9ecda36566ec35d6ac7cec8688cbd9635baeb3db408a4c8e1414c6fb4dcb48"
+    },
+    {
+      "path": "tests/fixtures/ui-art/skill-644.png",
+      "sha256": "219ec6eb20e5cbe0be73205eb11675a0ceefe387f187940a94cd3744c5490129"
+    },
+    {
+      "path": "tests/fixtures/ui-art/spell-14.png",
+      "sha256": "958db3407c83a9499a5e464c2e37df59c6544590dcd3d822965a83740303b9af"
+    },
+    {
+      "path": "tests/fixtures/ui-art/spell-4.png",
+      "sha256": "1272fe7b3275c0afc872a6aaa6b65e27d41572d57f9ce19b9ed81b79aa5eb2aa"
+    },
+    {
       "path": "tests/fixtures/review/expected.json",
       "sha256": "76b12d85409c95f1425574239cb794558dca5cbe5ec82615b03e9afc79ff0e62"
     },
@@ -88,11 +144,19 @@
     },
     {
       "path": "tests/fixtures/review/normalized.json",
-      "sha256": "bd8b40ab9f755eca51bf5261fc529c546ae1389e8026513eec96ba2ad29a7997"
+      "sha256": "2207adbffbe5f8d37c740d833c0c72da081d6b97affd5c7a92fbf3b7f097f84d"
     },
     {
       "path": "tests/fixtures/review/sgp.json",
       "sha256": "3b1aa83398d54572a7a130efe919607cdc34e5c17c7871ecf29702da47e81951"
+    },
+    {
+      "path": "tests/fixtures/scouting/expected.json",
+      "sha256": "1c5045eba09c9e57120b09870733729f97d7db365d9481efa425b46dab60a13f"
+    },
+    {
+      "path": "tests/fixtures/scouting/live.json",
+      "sha256": "1b6d5094e2811d617246eda28393a496f627ed228aeb0d9863424843773cac84"
     }
   ]
 }

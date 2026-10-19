@@ -1,0 +1,229 @@
+{
+  "phase": "ChampSelect",
+  "game": {
+    "gameData": {
+      "gameId": 0,
+      "queueId": 420,
+      "gameMode": "CLASSIC",
+      "teamOne": [
+        {
+          "cellId": 0,
+          "puuid": "synthetic-player",
+          "gameName": "Rift Walker",
+          "tagLine": "TEST",
+          "championId": 103,
+          "assignedPosition": "MIDDLE",
+          "spell1Id": 4,
+          "spell2Id": 14
+        },
+        {
+          "cellId": 1,
+          "puuid": "public-player-1",
+          "gameName": "Player 1",
+          "tagLine": "TEST",
+          "championId": 64,
+          "assignedPosition": "JUNGLE",
+          "spell1Id": 4,
+          "spell2Id": 14
+        },
+        {
+          "cellId": 2,
+          "puuid": "public-player-2",
+          "gameName": "Player 2",
+          "tagLine": "TEST",
+          "championId": 222,
+          "assignedPosition": "BOTTOM",
+          "spell1Id": 4,
+          "spell2Id": 14
+        },
+        {
+          "cellId": 3,
+          "puuid": "public-player-3",
+          "gameName": "Player 3",
+          "tagLine": "TEST",
+          "championId": 99,
+          "assignedPosition": "TOP",
+          "spell1Id": 4,
+          "spell2Id": 14
+        },
+        {
+          "cellId": 4,
+          "puuid": "public-player-4",
+          "gameName": "Player 4",
+          "tagLine": "TEST",
+          "championId": 51,
+          "assignedPosition": "UTILITY",
+          "spell1Id": 4,
+          "spell2Id": 14
+        }
+      ],
+      "teamTwo": [
+        {
+          "cellId": 0,
+          "puuid": "public-player-5",
+          "gameName": "Player 5",
+          "tagLine": "TEST",
+          "championId": 103,
+          "assignedPosition": "MIDDLE",
+          "spell1Id": 4,
+          "spell2Id": 14
+        },
+        {
+          "cellId": 1,
+          "puuid": "public-player-6",
+          "gameName": "Player 6",
+          "tagLine": "TEST",
+          "championId": 64,
+          "assignedPosition": "JUNGLE",
+          "spell1Id": 4,
+          "spell2Id": 14
+        },
+        {
+          "cellId": 2,
+          "puuid": "public-player-7",
+          "gameName": "Player 7",
+          "tagLine": "TEST",
+          "championId": 222,
+          "assignedPosition": "BOTTOM",
+          "spell1Id": 4,
+          "spell2Id": 14
+        },
+        {
+          "cellId": 3,
+          "puuid": "public-player-8",
+          "gameName": "Player 8",
+          "tagLine": "TEST",
+          "championId": 99,
+          "assignedPosition": "TOP",
+          "spell1Id": 4,
+          "spell2Id": 14
+        },
+        {
+          "cellId": 4,
+          "puuid": "public-player-9",
+          "gameName": "Player 9",
+          "tagLine": "TEST",
+          "championId": 51,
+          "assignedPosition": "UTILITY",
+          "spell1Id": 4,
+          "spell2Id": 14
+        }
+      ]
+    }
+  },
+  "champSelect": {
+    "myTeam": [
+      {
+        "cellId": 0,
+        "puuid": "synthetic-player",
+        "gameName": "Rift Walker",
+        "tagLine": "TEST",
+        "championId": 103,
+        "assignedPosition": "MIDDLE",
+        "spell1Id": 4,
+        "spell2Id": 14
+      },
+      {
+        "cellId": 1,
+        "puuid": "public-player-1",
+        "gameName": "Player 1",
+        "tagLine": "TEST",
+        "championId": 64,
+        "assignedPosition": "JUNGLE",
+        "spell1Id": 4,
+        "spell2Id": 14
+      },
+      {
+        "cellId": 2,
+        "puuid": "public-player-2",
+        "gameName": "Player 2",
+        "tagLine": "TEST",
+        "championId": 222,
+        "assignedPosition": "BOTTOM",
+        "spell1Id": 4,
+        "spell2Id": 14
+      },
+      {
+        "cellId": 3,
+        "puuid": "public-player-3",
+        "gameName": "Player 3",
+        "tagLine": "TEST",
+        "championId": 99,
+        "assignedPosition": "TOP",
+        "spell1Id": 4,
+        "spell2Id": 14
+      },
+      {
+        "cellId": 4,
+        "puuid": "public-player-4",
+        "gameName": "Player 4",
+        "tagLine": "TEST",
+        "championId": 51,
+        "assignedPosition": "UTILITY",
+        "spell1Id": 4,
+        "spell2Id": 14
+      }
+    ],
+    "theirTeam": [
+      {
+        "cellId": 0,
+        "puuid": "public-player-5",
+        "gameName": "Player 5",
+        "tagLine": "TEST",
+        "championId": 103,
+        "assignedPosition": "MIDDLE",
+        "spell1Id": 4,
+        "spell2Id": 14
+      },
+      {
+        "cellId": 1,
+        "puuid": "public-player-6",
+        "gameName": "Player 6",
+        "tagLine": "TEST",
+        "championId": 64,
+        "assignedPosition": "JUNGLE",
+        "spell1Id": 4,
+        "spell2Id": 14
+      },
+      {
+        "cellId": 2,
+        "puuid": "public-player-7",
+        "gameName": "Player 7",
+        "tagLine": "TEST",
+        "championId": 222,
+        "assignedPosition": "BOTTOM",
+        "spell1Id": 4,
+        "spell2Id": 14
+      },
+      {
+        "cellId": 3,
+        "puuid": "public-player-8",
+        "gameName": "Player 8",
+        "tagLine": "TEST",
+        "championId": 99,
+        "assignedPosition": "TOP",
+        "spell1Id": 4,
+        "spell2Id": 14
+      },
+      {
+        "cellId": 4,
+        "puuid": "public-player-9",
+        "gameName": "Player 9",
+        "tagLine": "TEST",
+        "championId": 51,
+        "assignedPosition": "UTILITY",
+        "spell1Id": 4,
+        "spell2Id": 14
+      }
+    ],
+    "bans": {
+      "myTeamBans": [
+        157,
+        266
+      ],
+      "theirTeamBans": [
+        99
+      ]
+    }
+  }
+}

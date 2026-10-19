@@ -202,7 +202,24 @@ dto!(AppState {
     update_status: UpdateStatus
 });
 dto!(MatchSummary {match_key:String,player_key:String,game_id:String,server_id:String,started_at:String,queue_id:Option<u32>,champion_id:Option<u32>,version:String,outcome:Outcome,kills:Option<u32>,deaths:Option<u32>,assists:Option<u32>,duration:Option<u32>,position:Option<String>,cs:Option<u32>,items:Vec<u32>,source:Source,fallback_reason:Option<String>,revision:u32,review_state:Option<String>});
-dto!(MatchQuery {player_key:String,queue_id:Option<u32>,champion_id:Option<u32>,from:Option<String>,to:Option<String>,cursor:Option<String>,page_size:Option<u32>});
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct MatchQuery {
+    pub player_key: String,
+    pub queue_id: Option<u32>,
+    pub champion_id: Option<u32>,
+    pub from: Option<String>,
+    pub to: Option<String>,
+    pub cursor: Option<String>,
+    pub page_size: Option<u32>,
+    #[serde(default)]
+    #[ts(optional)]
+    pub position: Option<String>,
+    #[serde(default)]
+    #[ts(optional)]
+    pub patch: Option<String>,
+}
+
 dto!(MatchPage {items:Vec<MatchSummary>,next_cursor:Option<String>,total:u32,coverage:Option<Coverage>,last_task:Option<Task>});
 dto!(Coverage {
     last_sync: String,
@@ -221,7 +238,8 @@ enumeration!(ResourceKind {
     Champion,
     Item,
     Rune,
-    Spell
+    Spell,
+    Skill
 });
 dto!(ResourceId {
     kind: ResourceKind,
@@ -242,6 +260,9 @@ dto!(UpdateStatus {state:String,version:Option<String>,downloaded:f64,total:Opti
 dto!(EventEnvelope {event_version:u32,runtime_id:String,workspace_epoch:String,sequence:u32,revision:u32,kind:String,object_key:Option<String>});
 
 include!("review.rs");
+include!("live.rs");
+include!("players.rs");
+include!("insights.rs");
 
 // This registry generates both command names and input/output types, including nullable IDs.
 macro_rules! registry {($($name:ident : $input:ty => $output:ty),* $(,)?) => {
@@ -252,6 +273,14 @@ macro_rules! registry {($($name:ident : $input:ty => $output:ty),* $(,)?) => {
  pub fn command_map()->String{let mut s=String::from("export interface CommandMap {\n");$(s.push_str(&format!("  {}: {{ input: {}; output: {} }};\n",stringify!($name),<$input>::name(),<$output>::name()));)*s.push_str("}\n");s}
 };}
 registry! {
+ get_live_snapshot:Empty=>LiveSnapshot,
+ search_player:PlayerSearch=>Player,
+ get_player_profile:PlayerProfileQuery=>PlayerProfile,
+ list_favorites:Empty=>Vec<Player>,
+ set_favorite:FavoriteChange=>Vec<Player>,
+ get_champion_pool:ChampionQuery=>ChampionPool,
+ compare_matches:CompareQuery=>Comparison,
+ get_issue_summary:IssueQuery=>IssueSummary,
  get_app_state:Empty=>AppState,
  get_connection_state:Empty=>ConnectionState,
  list_client_instances:Empty=>Vec<ClientInstance>,
@@ -283,7 +312,7 @@ registry! {
  save_review_note:SaveNote=>ReviewNote,
  delete_review_note:DeleteNote=>Empty,
  save_review_feedback:SaveFeedback=>ReviewFeedback,
- save_training_goal:SaveGoal=>TrainingGoal,
+ save_training_goal:Box<SaveGoal> =>TrainingGoal,
  list_training_goals:GoalQuery=>GoalPage,
  get_goal_progress:GoalProgressQuery=>GoalProgress,
  evaluate_training_goal:IdInput=>Task,
@@ -374,7 +403,30 @@ pub fn generate_types() -> String {
         GoalProgress,
         PlayerProgressQuery,
         TrendPoint,
-        PlayerProgress
+        PlayerProgress,
+        LiveSeat,
+        LiveSnapshot,
+        PlayerSearch,
+        FavoriteChange,
+        PlayerProfileQuery,
+        RankEntry,
+        SampleMetric,
+        ChampionRecent,
+        PlayerProfile,
+        AnalysisFilter,
+        ChampionQuery,
+        ChampionTrend,
+        ChampionStats,
+        ChampionPool,
+        CompareSide,
+        CompareQuery,
+        MetricDelta,
+        Comparison,
+        ReportLink,
+        IssueGroup,
+        IssueQuery,
+        IssueSummary,
+        GoalOrigin
     );
     s.push_str(&command_map());
     s

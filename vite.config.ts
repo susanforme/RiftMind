@@ -10,7 +10,7 @@ export default defineConfig({
       for (const output of Object.values(bundle)) {
         if (output.type !== 'chunk') continue;
         for (const id of Object.keys(output.modules)) {
-          if (/[/\\](?:src[/\\]app[/\\]dev|tests[/\\]fixtures)[/\\]|[/\\]src[/\\]lib[/\\]transport[/\\](?:fixture|review-fixture|harness)\.ts/.test(id)) {
+          if (/[/\\](?:src[/\\]app[/\\]dev|tests[/\\]fixtures)[/\\]|[/\\]src[/\\]lib[/\\]transport[/\\](?:fixture|scouting-fixture|review-fixture|harness)\.ts/.test(id)) {
             this.error(`Development module included in production: ${id}`);
           }
         }

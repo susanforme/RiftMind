@@ -9,8 +9,11 @@ use std::{
     str::FromStr,
     time::Duration,
 };
-pub const MIGRATION: &str = include_str!("../../../../src-tauri/migrations/0001_stage1.sql");
-pub const MIGRATION2: &str = include_str!("../../../../src-tauri/migrations/0002_stage2.sql");
+pub const MIGRATION: &str = include_str!("../../../../src-tauri/migrations/0001_workspace.sql");
+pub const MIGRATION2: &str =
+    include_str!("../../../../src-tauri/migrations/0002_review_training.sql");
+pub const MIGRATION_PLAYERS_INSIGHTS: &str =
+    include_str!("../../../../src-tauri/migrations/0003_players_insights.sql");
 pub mod review;
 pub const TABLES: &[&str] = &[
     "players",
@@ -29,6 +32,8 @@ pub const TABLES: &[&str] = &[
     "review_feedback",
     "training_goals",
     "goal_evaluations",
+    "favorites",
+    "player_profiles",
 ];
 pub fn now() -> String {
     chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true)
@@ -73,11 +78,11 @@ pub async fn preflight(path: &Path) -> Result<()> {
     let integrity: String = sqlx::query_scalar("PRAGMA quick_check")
         .fetch_one(&pool)
         .await?;
-    if version > 2 || integrity != "ok" {
+    if version > 3 || integrity != "ok" {
         pool.close().await;
         return Err(AppError::new(ErrorCode::BackupInvalid));
     }
-    if version < 2 {
+    if version < 3 {
         let backup = path.with_extension(format!("pre-migration-{}.db", uuid::Uuid::new_v4()));
         vacuum_backup(&pool, &backup).await?;
         if let Some(root) = path.parent() {
@@ -102,6 +107,9 @@ pub async fn open(path: &Path) -> Result<SqlitePool> {
     }
     if version < 2 {
         sqlx::Executor::execute(&mut *tx, MIGRATION2).await?;
+    }
+    if version < 3 {
+        sqlx::Executor::execute(&mut *tx, MIGRATION_PLAYERS_INSIGHTS).await?;
     }
     tx.commit().await?;
     if version < 2 {
@@ -137,6 +145,13 @@ pub async fn players(pool: &SqlitePool) -> Result<Vec<Player>> {
 }
 pub async fn list(pool: &SqlitePool, mut q: MatchQuery) -> Result<MatchPage> {
     crate::domain::validate_key(&q.player_key)?;
+    if q.position.as_ref().is_some_and(|s| {
+        !["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY", "UNKNOWN"].contains(&s.as_str())
+    }) || q.patch.as_ref().is_some_and(|s| {
+        s.len() > 20 || s.is_empty() || !s.bytes().all(|b| b.is_ascii_digit() || b == b'.')
+    }) {
+        return Err(AppError::new(ErrorCode::InvalidInput));
+    }
     let limit = q.page_size.unwrap_or(50);
     if !(1..=100).contains(&limit) {
         return Err(AppError::new(ErrorCode::InvalidInput));
@@ -169,8 +184,15 @@ pub async fn list(pool: &SqlitePool, mut q: MatchQuery) -> Result<MatchPage> {
             || c[0] != q.player_key
             || c[1]
                 != hash(
-                    serde_json::to_string(&(&q.queue_id, &q.champion_id, &q.from, &q.to))?
-                        .as_bytes(),
+                    serde_json::to_string(&(
+                        &q.queue_id,
+                        &q.champion_id,
+                        &q.from,
+                        &q.to,
+                        &q.position,
+                        &q.patch,
+                    ))?
+                    .as_bytes(),
                 )
         {
             return Err(AppError::new(ErrorCode::InvalidInput));
@@ -194,8 +216,19 @@ pub async fn list(pool: &SqlitePool, mut q: MatchQuery) -> Result<MatchPage> {
     filter!(q.champion_id, " AND p.champion_id=");
     filter!(&q.from, " AND m.started_at>=");
     filter!(&q.to, " AND m.started_at<=");
+    filter!(
+        &q.position,
+        " AND COALESCE(NULLIF(p.position,''),'UNKNOWN')="
+    );
+    if let Some(patch) = &q.patch {
+        b.push(" AND (m.version=")
+            .push_bind(patch)
+            .push(" OR m.version LIKE ")
+            .push_bind(format!("{patch}.%"))
+            .push(")");
+    }
     // Count shares the same validated filters; cursor never changes the total.
-    let total:i64=sqlx::query_scalar("SELECT COUNT(*) FROM match_participants p JOIN matches m USING(match_key) WHERE p.player_key=? AND (? IS NULL OR m.queue_id=?) AND (? IS NULL OR p.champion_id=?) AND (? IS NULL OR m.started_at>=?) AND (? IS NULL OR m.started_at<=?)").bind(&q.player_key).bind(q.queue_id).bind(q.queue_id).bind(q.champion_id).bind(q.champion_id).bind(&q.from).bind(&q.from).bind(&q.to).bind(&q.to).fetch_one(pool).await?;
+    let total:i64=sqlx::query_scalar("SELECT COUNT(*) FROM match_participants p JOIN matches m USING(match_key) WHERE p.player_key=? AND (? IS NULL OR m.queue_id=?) AND (? IS NULL OR p.champion_id=?) AND (? IS NULL OR m.started_at>=?) AND (? IS NULL OR m.started_at<=?) AND (? IS NULL OR COALESCE(NULLIF(p.position,''),'UNKNOWN')=?) AND (? IS NULL OR m.version=? OR m.version LIKE ?)").bind(&q.player_key).bind(q.queue_id).bind(q.queue_id).bind(q.champion_id).bind(q.champion_id).bind(&q.from).bind(&q.from).bind(&q.to).bind(&q.to).bind(&q.position).bind(&q.position).bind(&q.patch).bind(&q.patch).bind(q.patch.as_ref().map(|p|format!("{p}.%"))).fetch_one(pool).await?;
     if let Some(c) = &cursor {
         b.push(" AND (m.started_at < ")
             .push_bind(&c[2])
@@ -231,7 +264,17 @@ pub async fn list(pool: &SqlitePool, mut q: MatchQuery) -> Result<MatchPage> {
         let last = items.last().unwrap();
         Some(serde_json::to_string(&[
             q.player_key.clone(),
-            hash(serde_json::to_string(&(&q.queue_id, &q.champion_id, &q.from, &q.to))?.as_bytes()),
+            hash(
+                serde_json::to_string(&(
+                    &q.queue_id,
+                    &q.champion_id,
+                    &q.from,
+                    &q.to,
+                    &q.position,
+                    &q.patch,
+                ))?
+                .as_bytes(),
+            ),
             last.started_at.clone(),
             last.match_key.clone(),
         ])?)

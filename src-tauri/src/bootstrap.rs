@@ -25,14 +25,20 @@ pub async fn initialize(app: &AppHandle) -> Result<Arc<Service>> {
                     vec![
                         tauri_plugin_sql::Migration {
                             version: 1,
-                            description: "stage1",
+                            description: "workspace",
                             sql: storage::MIGRATION,
                             kind: tauri_plugin_sql::MigrationKind::Up,
                         },
                         tauri_plugin_sql::Migration {
                             version: 2,
-                            description: "stage2",
+                            description: "review_training",
                             sql: storage::MIGRATION2,
+                            kind: tauri_plugin_sql::MigrationKind::Up,
+                        },
+                        tauri_plugin_sql::Migration {
+                            version: 3,
+                            description: "players_insights",
+                            sql: storage::MIGRATION_PLAYERS_INSIGHTS,
                             kind: tauri_plugin_sql::MigrationKind::Up,
                         },
                     ],

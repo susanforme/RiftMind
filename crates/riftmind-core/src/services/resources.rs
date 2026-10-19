@@ -397,13 +397,21 @@ impl ResourceClient {
                 ResourceKind::Item => "item",
                 ResourceKind::Rune => "rune",
                 ResourceKind::Spell => "spell",
+                ResourceKind::Skill => "skill",
             };
+            // Skill IDs combine champion ID and the 1-based Q/W/E/R slot in one resource key.
+            if resource.kind == ResourceKind::Skill
+                && (resource.id / 10 == 0 || !(1..=4).contains(&(resource.id % 10)))
+            {
+                return Err(AppError::new(ErrorCode::InvalidInput));
+            }
             let resource_id = format!("{kind}:{}", resource.id);
             let file = match resource.kind {
                 ResourceKind::Champion => format!("champions/{}", resource.id),
                 ResourceKind::Item => "items".into(),
                 ResourceKind::Rune => "perks".into(),
                 ResourceKind::Spell => "summoner-spells".into(),
+                ResourceKind::Skill => format!("champions/{}", resource.id / 10),
             };
             let mut object = None;
             for language in if locale == "default" {
@@ -415,7 +423,12 @@ impl ResourceClient {
                     .metadata(root, &format!("{prefix}{language}/v1/{file}.json"))
                     .await
                 {
-                    let data = if let Some(array) = meta.as_array() {
+                    let data = if resource.kind == ResourceKind::Skill {
+                        meta.get("spells")
+                            .and_then(Value::as_array)
+                            .and_then(|spells| spells.get((resource.id % 10 - 1) as usize))
+                            .cloned()
+                    } else if let Some(array) = meta.as_array() {
                         array
                             .iter()
                             .find(|v| v["id"].as_u64() == Some(resource.id as u64))
@@ -442,8 +455,13 @@ impl ResourceClient {
                             resource.id
                         ))
                     } else {
-                        object["iconPath"]
-                            .as_str()
+                        object
+                            .get(if resource.kind == ResourceKind::Skill {
+                                "abilityIconPath"
+                            } else {
+                                "iconPath"
+                            })
+                            .and_then(Value::as_str)
                             .and_then(|s| s.strip_prefix("/lol-game-data/assets/"))
                             .map(|s| format!("{prefix}default/{}", s.to_ascii_lowercase()))
                     }

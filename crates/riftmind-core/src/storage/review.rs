@@ -554,11 +554,54 @@ pub async fn validate_business_evidence(pool: &SqlitePool) -> Result<()> {
             return Err(AppError::new(ErrorCode::BackupInvalid));
         }
     }
+    let profiles=sqlx::query("SELECT p.player_key,p.scope,p.collected_at,p.payload,u.server_id,u.puuid FROM player_profiles p JOIN players u USING(player_key)").fetch_all(pool).await?;
+    for row in profiles {
+        let profile: PlayerProfile = serde_json::from_str(row.get("payload"))?;
+        let key: String = row.get("player_key");
+        let server: String = row.get("server_id");
+        let puuid: String = row.get("puuid");
+        let scope = profile
+            .queue_id
+            .map(|n| n.to_string())
+            .unwrap_or("all".into());
+        if profile.player.player_key != key
+            || profile.player.server_id != server
+            || profile.player.puuid != puuid
+            || key != format!("{server}:{puuid}")
+            || scope != row.get::<String, _>("scope")
+            || profile.collected_at != row.get::<String, _>("collected_at")
+            || chrono::DateTime::parse_from_rfc3339(&profile.collected_at).is_err()
+        {
+            return Err(AppError::new(ErrorCode::BackupInvalid));
+        }
+    }
     let goals: Vec<String> = sqlx::query_scalar("SELECT payload FROM training_goals")
         .fetch_all(pool)
         .await?;
     for g in goals {
         let g: TrainingGoal = serde_json::from_str(&g)?;
+        if let Some(origin) = &g.scope.origin {
+            if origin.filter.player_key != g.scope.player_key
+                || origin.rule_id != g.scope.metric_id
+                || origin.rule_version != g.scope.metric_version
+            {
+                return Err(AppError::new(ErrorCode::BackupInvalid));
+            }
+            for link in &origin.reports {
+                let r = report(pool, &link.report_id).await?;
+                if r.player_key != link.player_key
+                    || r.player_key != g.scope.player_key
+                    || r.match_key != link.match_key
+                    || r.input_revision != link.input_revision
+                    || link
+                        .evidence_ids
+                        .iter()
+                        .any(|id| !r.evidence.iter().any(|e| &e.id == id))
+                {
+                    return Err(AppError::new(ErrorCode::BackupInvalid));
+                }
+            }
+        }
         for member in &g.baseline {
             validate_member(pool, member, &g.scope.player_key).await?;
         }

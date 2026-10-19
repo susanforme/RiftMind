@@ -1,0 +1,57 @@
+{
+  "source": "Riot Data Dragon 16.20.1; UI preview only; no live client data",
+  "entries": [
+    {
+      "path": "tests/fixtures/ui-art/skill-1031.png",
+      "url": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/spell/AhriQ.png"
+    },
+    {
+      "path": "tests/fixtures/ui-art/skill-1032.png",
+      "url": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/spell/AhriW.png"
+    },
+    {
+      "path": "tests/fixtures/ui-art/skill-1033.png",
+      "url": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/spell/AhriE.png"
+    },
+    {
+      "path": "tests/fixtures/ui-art/skill-1034.png",
+      "url": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/spell/AhriR.png"
+    },
+    {
+      "path": "tests/fixtures/ui-art/skill-641.png",
+      "url": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/spell/LeeSinQOne.png"
+    },
+    {
+      "path": "tests/fixtures/ui-art/skill-642.png",
+      "url": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/spell/LeeSinWOne.png"
+    },
+    {
+      "path": "tests/fixtures/ui-art/skill-643.png",
+      "url": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/spell/LeeSinEOne.png"
+    },
+    {
+      "path": "tests/fixtures/ui-art/skill-644.png",
+      "url": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/spell/LeeSinR.png"
+    },
+    {
+      "path": "tests/fixtures/ui-art/spell-4.png",
+      "url": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/spell/SummonerFlash.png"
+    },
+    {
+      "path": "tests/fixtures/ui-art/spell-14.png",
+      "url": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/spell/SummonerDot.png"
+    },
+    {
+      "path": "tests/fixtures/ui-art/champion-266.png",
+      "url": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Aatrox.png"
+    },
+    {
+      "path": "tests/fixtures/ui-art/item-1001.png",
+      "url": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/item/1001.png"
+    },
+    {
+      "path": "tests/fixtures/ui-art/item-1052.png",
+      "url": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/item/1052.png"
+    }
+  ]
+}

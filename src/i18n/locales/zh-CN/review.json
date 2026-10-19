@@ -157,5 +157,22 @@
   "reason_rule_objectives_missing": "资源观察缺少事件数据",
   "reason_rule_build_missing": "构建过程缺少时间线",
   "enemyJungler": "敌方打野",
-  "targetParticipant": "目标参与者"
+  "targetParticipant": "目标参与者",
+  "metric_gold_deficit_10": "10 分钟经济落后",
+  "metric_death_before_objective": "资源事件前 60 秒内死亡",
+  "finding_gold_deficit_10": "10 分钟经济落后",
+  "finding_death_before_objective": "资源事件前 60 秒内死亡",
+  "metric_lane_cs": "线上补刀",
+  "metric_jungle_cs": "野怪补刀",
+  "metric_total_cs": "总补刀",
+  "metric_gold_10": "10 分钟经济",
+  "metric_xp_10": "10 分钟经验",
+  "metric_cs_diff_10": "10 分钟补刀差",
+  "metric_xp_diff_10": "10 分钟经验差",
+  "metric_cs_15": "15 分钟总补刀",
+  "metric_gold_15": "15 分钟经济",
+  "metric_xp_15": "15 分钟经验",
+  "metric_cs_diff_15": "15 分钟补刀差",
+  "metric_gold_diff_15": "15 分钟经济差",
+  "metric_xp_diff_15": "15 分钟经验差"
 }

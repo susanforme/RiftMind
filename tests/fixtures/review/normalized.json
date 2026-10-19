@@ -3053,6 +3053,25 @@
         "priority": 0,
         "ruleId": "build",
         "ruleVersion": "1"
+      },
+      {
+        "actionKey": null,
+        "evidenceIds": [
+          "event-8-0",
+          "event-9-0"
+        ],
+        "id": "death_before_objective-2d60b7778e559dbae2f5387f05f9355d4e0bacaa87aee41f58fb248ce9d5805a",
+        "limitations": [
+          "observation_window_60s_not_causation"
+        ],
+        "messageKey": "finding_death_before_objective",
+        "metricIds": [
+          "death_before_objective"
+        ],
+        "params": {},
+        "priority": 0,
+        "ruleId": "death_before_objective",
+        "ruleVersion": "1"
       }
     ],
     "generatedAt": "2026-10-19T00:00:00Z",
@@ -3303,11 +3322,31 @@
         "unit": "xp",
         "value": 0.0,
         "version": "1"
+      },
+      {
+        "denominator": null,
+        "id": "gold_deficit_10",
+        "reason": null,
+        "sampledAtMs": null,
+        "status": "available",
+        "unit": "ratio",
+        "value": 0.0,
+        "version": "1"
+      },
+      {
+        "denominator": null,
+        "id": "death_before_objective",
+        "reason": null,
+        "sampledAtMs": null,
+        "status": "available",
+        "unit": "ratio",
+        "value": 1.0,
+        "version": "1"
       }
     ],
     "playerKey": "TENCENT_HN1:synthetic-player",
     "revision": 1,
-    "ruleVersion": "2.1",
+    "ruleVersion": "3.0",
     "semanticVersion": null
   }
 }

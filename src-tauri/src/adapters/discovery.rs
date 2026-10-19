@@ -48,7 +48,6 @@ fn discover() -> Vec<Candidate> {
         .collect()
 }
 pub async fn monitor(service: Arc<Service>) {
-    let mut last_phase = String::new();
     let wake = Arc::new(tokio::sync::Notify::new());
     let mut ws_id = String::new();
     let mut ws_task: Option<tokio::task::JoinHandle<()>> = None;
@@ -97,6 +96,8 @@ pub async fn monitor(service: Arc<Service>) {
                         match client.subscribe().await {
                             Ok(mut socket) => {
                                 delay = 1;
+                                // Reconcile after subscribing, including reconnects that missed events.
+                                notify.notify_one();
                                 while let Some(Ok(message)) = socket.next().await {
                                     if message.is_text() {
                                         notify.notify_one();
@@ -177,22 +178,9 @@ pub async fn monitor(service: Arc<Service>) {
             } else {
                 let _ = service.set_connection(c, None).await;
             }
-            if let Ok(phase) = lcu.get("/lol-gameflow/v1/gameflow-phase").await {
-                let phase = phase.as_str().unwrap_or_default();
-                if phase == "EndOfGame"
-                    && last_phase != "EndOfGame"
-                    && service.settings.lock().await.auto_sync
-                {
-                    if let Some(p) = service.connection.read().await.player.clone() {
-                        let _ = service
-                            .start_sync(SyncRequest {
-                                player_key: p.player_key,
-                                pages: 1,
-                            })
-                            .await;
-                    }
-                }
-                last_phase = phase.into();
+            if service.refresh_live().await.is_err() {
+                service.live.write().await.stale = true;
+                service.emit("live-changed", None, 0).await;
             }
         } else {
             if let Some(task) = ws_task.take() {

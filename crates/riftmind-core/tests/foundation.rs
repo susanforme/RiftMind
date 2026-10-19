@@ -61,6 +61,8 @@ async fn wait(s: &Service, id: &str) -> Task {
 }
 fn query(player: &str) -> MatchQuery {
     MatchQuery {
+        position: None,
+        patch: None,
         player_key: player.into(),
         queue_id: None,
         champion_id: None,

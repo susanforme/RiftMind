@@ -7,7 +7,7 @@ import { Button } from '../../components/ui/button';
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from '../../components/ui/context-menu';
 
-export function TitleBar({ children }: { children?: ReactNode }) {
+export function TitleBar({ children, sidebarToggle }: { children?: ReactNode; sidebarToggle?: ReactNode }) {
   const { t } = useTranslation();
   const desktop = transport.mode === 'desktop';
   const [maximized, setMaximized] = useState(false);
@@ -44,7 +44,7 @@ export function TitleBar({ children }: { children?: ReactNode }) {
   }
   const maximizeLabel = t(maximized ? 'common.restore' : 'common.maximize');
   const bar = <header className="titlebar" data-focused={focused}>
-    <div className="titlebar-brand" data-tauri-drag-region><Swords size={18} aria-hidden="true" /><span>RiftMind</span></div>
+    <div className="titlebar-brand" data-tauri-drag-region>{sidebarToggle || <Swords size={18} aria-hidden="true" />}<span>RiftMind</span></div>
     {children}
     <div className="drag-region" data-tauri-drag-region />
     <div className="window-controls" role="group" aria-label={t('common.windowControls')}>

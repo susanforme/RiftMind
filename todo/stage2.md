@@ -2,7 +2,7 @@
 
 状态：本地业务链路已实现，Mac 自动化验收已接通；Windows 与真实客户端验收待执行。日期：2026-10-19。**按用户确认，一期已完成，二期在现有基座上继续开发。** 本文保留完整验收规格，实际实施与验证边界见 [二期验收记录](../docs/stage2-verification.md)。
 
-已交付的实现入口：`contracts/review.rs`、`domain/analysis.rs`、`services/review.rs`、`services/training.rs`、`storage/review.rs`、`0002_stage2.sql`、复盘/进展页面，以及 `bun run verify:stage2`。下方逐项完成框仍作为完整产品验收清单，未以 Mac 合成验证替代 Windows、实机联网及完整性能验收。
+已交付的实现入口：`contracts/review.rs`、`domain/analysis.rs`、`services/review.rs`、`services/training.rs`、`storage/review.rs`、`0002_review_training.sql`、复盘/进展页面，以及 `bun run verify:stage2`。下方逐项完成框仍作为完整产品验收清单，未以 Mac 合成验证替代 Windows、实机联网及完整性能验收。
 
 总体设计见 [架构设计](../docs/architecture.md)，已交付范围见 [一期计划](stage1.md)。架构中的阶段 0–5 是能力依赖顺序，不等同于产品期数；本期覆盖 DETAILS 接入、确定性复盘、图表和本地训练闭环。历史 [一期验收记录](../docs/stage1-verification.md) 保留原始测试结论，实际环境验证结果在二期单独记录。
 
@@ -206,7 +206,7 @@
 
 ### 7.1 增量迁移
 
-新增迁移，例如 `0002_stage2.sql`，不得修改已发布的一期迁移来伪装升级。生产与 core/harness 复用相同迁移；升级前备份、较新 schema 拒绝、失败恢复沿用一期流程。
+新增迁移，例如 `0002_review_training.sql`，不得修改已发布的一期迁移来伪装升级。生产与 core/harness 复用相同迁移；升级前备份、较新 schema 拒绝、失败恢复沿用一期流程。
 
 | 对象 | 增量职责 |
 | --- | --- |

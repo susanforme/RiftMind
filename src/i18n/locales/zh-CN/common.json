@@ -45,5 +45,7 @@
   "restore": "还原",
   "windowControls": "窗口控制",
   "windowActionFailed": "窗口操作失败，请重试。",
-  "skipToContent": "跳转到内容"
+  "skipToContent": "跳转到内容",
+  "noOptions": "没有匹配的选项",
+  "openOptions": "展开选项"
 }

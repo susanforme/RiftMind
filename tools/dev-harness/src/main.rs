@@ -32,6 +32,9 @@ struct Scenario {
     asset_calls: u32,
     assets_offline: bool,
     generation: u32,
+    live: Option<Value>,
+    details_calls: u32,
+    profile_calls: u32,
 }
 fn allowed(headers: &HeaderMap, b: &Bridge) -> bool {
     headers
@@ -124,6 +127,100 @@ fn chrono_time_ms() -> i64 {
         .unwrap()
         .as_millis() as i64
 }
+fn preview_entity_image(path: &str) -> Option<&'static [u8]> {
+    let name = path.rsplit('/').next()?.strip_suffix(".png")?;
+    let (kind, id) = if path.contains("/champion-icons/") {
+        ("champion", name)
+    } else if path.contains("/items/") {
+        ("item", name)
+    } else if path.contains("/abilities/") {
+        ("skill", name)
+    } else if name == "flash" {
+        ("spell", "4")
+    } else if name == "ignite" {
+        ("spell", "14")
+    } else {
+        return None;
+    };
+    match (kind, id) {
+        ("champion", "103") => {
+            Some(include_bytes!("../../../tests/fixtures/ui-art/champion-103.png").as_slice())
+        }
+        ("champion", "157") => {
+            Some(include_bytes!("../../../tests/fixtures/ui-art/champion-157.png").as_slice())
+        }
+        ("champion", "222") => {
+            Some(include_bytes!("../../../tests/fixtures/ui-art/champion-222.png").as_slice())
+        }
+        ("champion", "266") => {
+            Some(include_bytes!("../../../tests/fixtures/ui-art/champion-266.png").as_slice())
+        }
+        ("champion", "51") => {
+            Some(include_bytes!("../../../tests/fixtures/ui-art/champion-51.png").as_slice())
+        }
+        ("champion", "64") => {
+            Some(include_bytes!("../../../tests/fixtures/ui-art/champion-64.png").as_slice())
+        }
+        ("champion", "99") => {
+            Some(include_bytes!("../../../tests/fixtures/ui-art/champion-99.png").as_slice())
+        }
+        ("item", "1001") => {
+            Some(include_bytes!("../../../tests/fixtures/ui-art/item-1001.png").as_slice())
+        }
+        ("item", "1052") => {
+            Some(include_bytes!("../../../tests/fixtures/ui-art/item-1052.png").as_slice())
+        }
+        ("item", "3020") => {
+            Some(include_bytes!("../../../tests/fixtures/ui-art/item-3020.png").as_slice())
+        }
+        ("item", "3089") => {
+            Some(include_bytes!("../../../tests/fixtures/ui-art/item-3089.png").as_slice())
+        }
+        ("item", "3118") => {
+            Some(include_bytes!("../../../tests/fixtures/ui-art/item-3118.png").as_slice())
+        }
+        ("item", "3135") => {
+            Some(include_bytes!("../../../tests/fixtures/ui-art/item-3135.png").as_slice())
+        }
+        ("item", "3157") => {
+            Some(include_bytes!("../../../tests/fixtures/ui-art/item-3157.png").as_slice())
+        }
+        ("item", "4645") => {
+            Some(include_bytes!("../../../tests/fixtures/ui-art/item-4645.png").as_slice())
+        }
+        ("skill", "1031") => {
+            Some(include_bytes!("../../../tests/fixtures/ui-art/skill-1031.png").as_slice())
+        }
+        ("skill", "1032") => {
+            Some(include_bytes!("../../../tests/fixtures/ui-art/skill-1032.png").as_slice())
+        }
+        ("skill", "1033") => {
+            Some(include_bytes!("../../../tests/fixtures/ui-art/skill-1033.png").as_slice())
+        }
+        ("skill", "1034") => {
+            Some(include_bytes!("../../../tests/fixtures/ui-art/skill-1034.png").as_slice())
+        }
+        ("skill", "641") => {
+            Some(include_bytes!("../../../tests/fixtures/ui-art/skill-641.png").as_slice())
+        }
+        ("skill", "642") => {
+            Some(include_bytes!("../../../tests/fixtures/ui-art/skill-642.png").as_slice())
+        }
+        ("skill", "643") => {
+            Some(include_bytes!("../../../tests/fixtures/ui-art/skill-643.png").as_slice())
+        }
+        ("skill", "644") => {
+            Some(include_bytes!("../../../tests/fixtures/ui-art/skill-644.png").as_slice())
+        }
+        ("spell", "14") => {
+            Some(include_bytes!("../../../tests/fixtures/ui-art/spell-14.png").as_slice())
+        }
+        ("spell", "4") => {
+            Some(include_bytes!("../../../tests/fixtures/ui-art/spell-4.png").as_slice())
+        }
+        _ => None,
+    }
+}
 async fn mock_resource(
     State(b): State<Bridge>,
     uri: OriginalUri,
@@ -141,10 +238,15 @@ async fn mock_resource(
         }
     }
     let zh = uri.path().contains("/zh_cn/");
+    if uri.path().ends_with("summoner-spells.json") {
+        return Json(json!([{"id":4,"name":"Flash","iconPath":"/lol-game-data/assets/assets/spells/flash.png"},{"id":14,"name":"Ignite","iconPath":"/lol-game-data/assets/assets/spells/ignite.png"}])).into_response();
+    }
     if uri.path().ends_with("items.json") {
         return Json(json!([
             {"id":3089,"name":if zh {"灭世者的死亡之帽"} else {"Rabadon's Deathcap"},"iconPath":"/lol-game-data/assets/assets/items/3089.png"},
-            {"id":3020,"name":if zh {"法师之靴"} else {"Sorcerer's Shoes"},"iconPath":"/lol-game-data/assets/assets/items/3020.png"}
+            {"id":3020,"name":if zh {"法师之靴"} else {"Sorcerer's Shoes"},"iconPath":"/lol-game-data/assets/assets/items/3020.png"},
+            {"id":1001,"name":if zh {"速度之靴"} else {"Boots"},"iconPath":"/lol-game-data/assets/assets/items/1001.png"},
+            {"id":1052,"name":if zh {"增幅典籍"} else {"Amplifying Tome"},"iconPath":"/lol-game-data/assets/assets/items/1052.png"}
         ])).into_response();
     }
     if uri.path().ends_with(".json") {
@@ -156,17 +258,19 @@ async fn mock_resource(
             .trim_end_matches(".json")
             .parse()
             .unwrap_or(0);
-        return Json(json!({"id":id,"name":if zh {if id==103 {"九尾妖狐"}else{"盲僧"}}else if id==103 {"Ahri"}else{"Lee Sin"}})).into_response();
+        return Json(json!({"id":id,"name":if zh {if id==103 {"九尾妖狐"}else{"盲僧"}}else if id==103 {"Ahri"}else{"Lee Sin"},"spells":[{"name":"Q","abilityIconPath":format!("/lol-game-data/assets/assets/abilities/{}1.png",id)},{"name":"W","abilityIconPath":format!("/lol-game-data/assets/assets/abilities/{}2.png",id)},{"name":"E","abilityIconPath":format!("/lol-game-data/assets/assets/abilities/{}3.png",id)},{"name":"R","abilityIconPath":format!("/lol-game-data/assets/assets/abilities/{}4.png",id)}]})).into_response();
     }
     (
         [("content-type", "image/png")],
-        include_bytes!("../../../tests/fixtures/icon.png").as_slice(),
+        preview_entity_image(uri.path())
+            .unwrap_or(include_bytes!("../../../tests/fixtures/icon.png").as_slice()),
     )
         .into_response()
 }
 async fn mock_page(
     State(b): State<Bridge>,
     headers: HeaderMap,
+    AxumPath(puuid): AxumPath<String>,
     Query(q): Query<HashMap<String, String>>,
 ) -> impl IntoResponse {
     if headers.get("authorization").and_then(|h| h.to_str().ok()) != Some("Bearer synthetic-rso") {
@@ -186,7 +290,7 @@ async fn mock_page(
             Json(json!({})),
         );
     }
-    let p = b
+    let mut p = b
         .service
         .connection
         .read()
@@ -198,7 +302,12 @@ async fn mock_page(
         .get("startIndex")
         .and_then(|v| v.parse().ok())
         .unwrap_or(0);
+    p.puuid = puuid;
+    p.player_key = format!("{}:{}", p.server_id, p.puuid);
     let mut page = clients::synthetic_page(&p, offset);
+    if q.get("count").is_some_and(|c| c == "20") {
+        page["games"].as_array_mut().unwrap().truncate(20);
+    }
     let generation = b.scenario.lock().await.generation;
     if generation > 0 {
         for (i, g) in page["games"].as_array_mut().unwrap().iter_mut().enumerate() {
@@ -221,6 +330,9 @@ async fn mock_single(
     let (status, delay) = {
         let mut s = b.scenario.lock().await;
         s.calls += 1;
+        if endpoint == "DETAILS" {
+            s.details_calls += 1;
+        }
         (s.status, s.delay)
     };
     if delay > 0 {
@@ -269,6 +381,42 @@ async fn mock_single(
     }
     (StatusCode::OK, Json(value))
 }
+async fn mock_live(State(b): State<Bridge>) -> Json<Value> {
+    let s = b.scenario.lock().await;
+    Json(
+        s.live
+            .clone()
+            .unwrap_or_else(|| json!({"phase":"Lobby","game":null,"champSelect":null})),
+    )
+}
+async fn mock_search(
+    State(b): State<Bridge>,
+    Query(q): Query<HashMap<String, String>>,
+) -> impl IntoResponse {
+    let state = b.scenario.lock().await;
+    let query = q.get("query").map(String::as_str).unwrap_or("");
+    if query == "missing#TEST" {
+        return (StatusCode::OK, Json(json!({})));
+    }
+    if state.status >= 400 {
+        return (StatusCode::from_u16(state.status).unwrap(), Json(json!({})));
+    }
+    let (name, tag) = query.rsplit_once('#').unwrap_or((query, "TEST"));
+    (
+        StatusCode::OK,
+        Json(json!({"puuid":"searched-player","gameName":name,"tagLine":tag})),
+    )
+}
+async fn mock_ranks(State(b): State<Bridge>) -> impl IntoResponse {
+    let mut s = b.scenario.lock().await;
+    s.profile_calls += 1;
+    (
+        StatusCode::OK,
+        Json(
+            json!({"queues":[{"queueType":"RANKED_SOLO_5x5","tier":"GOLD","division":"II","leaguePoints":44}]}),
+        ),
+    )
+}
 async fn scenario(
     State(b): State<Bridge>,
     headers: HeaderMap,
@@ -296,7 +444,29 @@ async fn scenario(
             .unwrap_or(0)
             .min(99) as u32;
     }
+    {
+        let mut state = b.scenario.lock().await;
+        if v.get("livePhase").is_some() {
+            let mut raw: Value = state.live.clone().unwrap_or_else(|| {
+                serde_json::from_str(include_str!("../../../tests/fixtures/scouting/live.json"))
+                    .unwrap()
+            });
+            raw["phase"] = v["livePhase"].clone();
+            if let Some(id) = v.get("gameId") {
+                raw["game"]["gameData"]["gameId"] = id.clone();
+            }
+            if let Some(id) = v.get("championId") {
+                raw["champSelect"]["myTeam"][0]["championId"] = id.clone();
+                raw["game"]["gameData"]["teamOne"][0]["championId"] = id.clone();
+            }
+            if v["anonymous"] == true {
+                raw["champSelect"]["theirTeam"][0]["puuid"] = Value::Null;
+            }
+            state.live = Some(raw);
+        }
+    }
     let result = configure(&b, mode).await;
+    let _ = b.service.refresh_live().await;
     (StatusCode::OK, Json(json!({"ok":result.is_ok()})))
 }
 async fn configure(b: &Bridge, mode: &str) -> riftmind_core::contracts::Result<()> {
@@ -405,6 +575,9 @@ async fn run() -> std::result::Result<(), Box<dyn std::error::Error>> {
         scenario: Arc::new(Mutex::new(Scenario::default())),
     };
     let mock_app = Router::new()
+        .route("/test/live", get(mock_live))
+        .route("/test/search", get(mock_search))
+        .route("/test/ranks", get(mock_ranks))
         .route(
             "/match-history-query/v1/products/lol/player/{puuid}/SUMMARY",
             get(mock_page),
@@ -424,6 +597,7 @@ async fn run() -> std::result::Result<(), Box<dyn std::error::Error>> {
     )
     .await
     .map_err(|e| format!("{:?}", e.code))?;
+    let _ = service.refresh_live().await;
     println!(
         "{}",
         json!({"port":listener.local_addr()?.port(),"token":b.token,"directory":root})
@@ -439,7 +613,7 @@ async fn run() -> std::result::Result<(), Box<dyn std::error::Error>> {
             get(|State(b): State<Bridge>| async move {
                 {
                     let state = b.scenario.lock().await;
-                    Json(json!({"calls":state.calls,"assetCalls":state.asset_calls}))
+                    Json(json!({"calls":state.calls,"assetCalls":state.asset_calls,"detailsCalls":state.details_calls,"profileCalls":state.profile_calls}))
                 }
             }),
         )
