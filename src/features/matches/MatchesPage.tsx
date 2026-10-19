@@ -1,15 +1,6 @@
-import { matchOutcomeClasses } from '../../lib/match-outcome';
 import { MatchPreparationPanel } from './MatchPreparationPanel';
 import { ChampionSelect } from '../../components/ChampionSelect';
-import {
-  queueName,
-  positionName,
-  codeName,
-  championName,
-  matchName,
-  errorName,
-  playerName,
-} from '../../lib/display-names';
+import { playerName } from '../../lib/display-names';
 import { serverName } from '../../lib/server-name';
 import { PlayerSearchFavorites } from '../players/PlayerSearchFavorites';
 import { FavoriteButton } from '../players/FavoriteButton';
@@ -29,7 +20,7 @@ import {
   X,
   Clock3,
   Archive,
-  CircleHelp,
+  Search as SearchIcon,
 } from 'lucide-react';
 import { matchesRoute, type Search } from '../../app/router';
 import { transport } from '../../app/runtime';
@@ -47,12 +38,25 @@ import {
 import { Progress } from '../../components/ui/progress';
 import { Button } from '../../components/ui/button';
 import { ErrorNotice } from '../../components/ErrorNotice';
-import type { MatchSummary } from '../../generated/contracts';
+import { portraitCatalogueVersion } from '../../components/GameEntityIcon';
+import { PlayerAvatar } from '../players/PlayerAvatar';
+import { ChampionArtwork, selectedChampionSkin } from '../../components/ChampionArtwork';
+import { Skeleton } from '../../components/ui/skeleton';
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '../../components/ui/dialog';
+import {
+  groupMatchesByDate,
+  recentMatchStats,
+  MatchHistoryRow,
+  MatchDetails,
+} from './MatchHistory';
 export function MatchesPage() {
   const { t, i18n } = useTranslation();
   const search = matchesRoute.useSearch();
   const navigate = useNavigate();
   const [selected, setSelected] = useState<string[]>([]);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [playerSearchOpen, setPlayerSearchOpen] = useState(false);
+  const [selectedSkins, setSelectedSkins] = useState<Record<number, number>>({});
   const [filters, setFilters] = useState(search);
   const [taskId, setTaskId] = useState<string | null>(null);
   const filtersEdited = useRef(false);
@@ -142,47 +146,95 @@ export function MatchesPage() {
       hour: '2-digit',
       minute: '2-digit',
     }).format(new Date(date));
-  const hasFilters = !!(search.queue || search.champion || search.from || search.to);
+  const hasFilters = !!(
+    search.queue ||
+    search.champion ||
+    search.from ||
+    search.to ||
+    search.position ||
+    search.patch
+  );
+  const matches = page.data?.items || [];
+  const activeMatch = matches.find((match) => match.matchKey === search.match) || matches[0];
+  const stats = recentMatchStats(matches);
+  const artworkVersion =
+    activeMatch?.version && activeMatch.version !== 'unknown'
+      ? activeMatch.version
+      : portraitCatalogueVersion;
+  const artworkLocale = i18n.language === 'zh-CN' ? 'zh-CN' : 'en-US';
+  const skins = useQuery({
+    queryKey: ['champion-skins', artworkVersion, artworkLocale, activeMatch?.championId],
+    queryFn: () =>
+      transport.call('get_champion_skins', {
+        championId: activeMatch!.championId!,
+        version: artworkVersion,
+        locale: artworkLocale,
+      }),
+    enabled: !!activeMatch?.championId,
+    staleTime: Infinity,
+    retry: false,
+  });
+  const skin = selectedChampionSkin(
+    skins.data?.skins || [],
+    activeMatch?.championId ? selectedSkins[activeMatch.championId] : undefined,
+  );
   return (
     <div
       data-ui="page matches-page"
-      className="max-w-[1400px] pt-[30px] px-9 pb-[26px] m-auto max-[1150.01px]:p-[26px] max-[900.01px]:p-[22px] max-[650.01px]:py-[18px] max-[650.01px]:px-4"
+      className="mx-auto grid w-full max-w-[1800px] min-w-0 gap-4 p-6 max-[900px]:gap-4 max-[900px]:p-4"
     >
-      <div
-        data-ui="page-heading"
-        className="flex items-center justify-between gap-6 mb-7 max-[650.01px]:mb-[22px] max-[650.01px]:gap-2.5"
-      >
+      <div data-ui="page-heading" className="flex items-center justify-between gap-4">
         <div>
-          <h1>{t('matches.title')}</h1>
+          <h1 className="text-xl font-semibold">{t('matches.title')}</h1>
         </div>
-        <Button
-          disabled={
-            !canSync || connection.data?.phase !== 'connected' || sync.isPending || !!working
-          }
-          title={t('matches.sync')}
-          onClick={() => sync.mutate()}
-        >
-          <Download aria-hidden="true" size={16} />
-          {t(working ? 'matches.syncing' : 'matches.sync')}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Dialog open={playerSearchOpen} onOpenChange={setPlayerSearchOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <SearchIcon aria-hidden="true" />
+                {t('matches.findPlayer')}
+              </Button>
+            </DialogTrigger>
+            <DialogContent
+              closeLabel={t('common.close')}
+              aria-describedby={undefined}
+              className="max-w-2xl"
+            >
+              <DialogTitle>{t('scouting.searchPlayer')}</DialogTitle>
+              <PlayerSearchFavorites onOpen={() => setPlayerSearchOpen(false)} />
+            </DialogContent>
+          </Dialog>
+          <Button
+            disabled={
+              !canSync || connection.data?.phase !== 'connected' || sync.isPending || !!working
+            }
+            title={t('matches.sync')}
+            onClick={() => sync.mutate()}
+          >
+            <Download aria-hidden="true" size={16} />
+            {t(working ? 'matches.syncing' : 'matches.sync')}
+          </Button>
+        </div>
       </div>
-      <PlayerSearchFavorites />
       {playerKey && (
         <Card
           data-ui="player-banner"
-          className="pt-0 px-0 pb-[26px] flex items-center gap-4 border-0 border-b border-b-border rounded-none shadow-none bg-transparent max-[650.01px]:flex-wrap max-[650.01px]:gap-3"
+          className="relative flex min-h-52 flex-wrap items-center gap-5 overflow-hidden border border-border bg-card p-6 max-[900px]:min-h-44 max-[900px]:p-4"
           role="region"
           aria-label={t('matches.playerOverview')}
         >
-          <div className="w-14 h-14 shrink-0 rounded-xl bg-accent text-primary grid place-items-center">
-            <Swords aria-hidden="true" size={27} />
+          <ChampionArtwork skin={skin} version={artworkVersion} banner />
+          <div className="relative z-10">
+            <PlayerAvatar player={player} />
           </div>
           <div
             data-ui="player-identity"
-            className="min-w-0 [&_h2]:text-[24px] [&_h2]:font-semibold [&_h2]:tracking-[-.5px] [&_h2]:overflow-hidden [&_h2]:text-ellipsis [&_h2]:whitespace-nowrap max-[650.01px]:[&_h2]:text-[20px]"
+            className="relative z-10 min-w-0 [&_h2]:text-[24px] [&_h2]:font-semibold [&_h2]:tracking-[-.5px] [&_h2]:overflow-hidden [&_h2]:text-ellipsis [&_h2]:whitespace-nowrap max-[650.01px]:[&_h2]:text-[20px]"
           >
-            <h2>{player ? playerName(t, player) : t('common.defaultTab')}</h2>
-            <FavoriteButton playerKey={playerKey} />
+            <div className="flex items-center gap-2">
+              <h2>{player ? playerName(t, player) : t('common.defaultTab')}</h2>
+              <FavoriteButton playerKey={playerKey} />
+            </div>
             <div className="flex items-center gap-2.5 text-[12px] text-muted-foreground mt-[5px]">
               <span>{serverName(t, player?.serverId)}</span>
               <Badge
@@ -198,7 +250,34 @@ export function MatchesPage() {
               </Badge>
             </div>
           </div>
-          <div className="ml-auto w-[230px] min-w-0 grid gap-1.5 [&_label]:text-muted-foreground [&_label]:text-[12px] max-[900.01px]:w-[190px] max-[650.01px]:w-full max-[650.01px]:mt-1.5 max-[650.01px]:mx-0 max-[650.01px]:mb-0">
+          {!!matches.length && (
+            <div className="relative z-10 flex flex-wrap items-center gap-5 border-l border-border pl-5 max-[900px]:order-3 max-[900px]:w-full max-[900px]:border-l-0 max-[900px]:border-t max-[900px]:pt-4 max-[900px]:pl-0">
+              <div className="grid gap-1">
+                <span className="text-xs text-muted-foreground">
+                  {t('matches.pageSummary', { count: matches.length })}
+                </span>
+                <div className="flex gap-3 text-lg font-semibold tabular-nums">
+                  <span className="text-(--win)">
+                    {stats.wins} {t('matches.win')}
+                  </span>
+                  <span className="text-(--loss)">
+                    {stats.losses} {t('matches.loss')}
+                  </span>
+                </div>
+              </div>
+              <div className="grid gap-1">
+                <span className="text-xs text-muted-foreground">{t('matches.winRate')}</span>
+                <strong className="text-xl tabular-nums">
+                  {stats.winRate === null ? '—' : `${stats.winRate}%`}
+                </strong>
+              </div>
+              <div className="grid gap-1">
+                <span className="text-xs text-muted-foreground">KDA</span>
+                <strong className="text-xl tabular-nums">{stats.kda ?? '—'}</strong>
+              </div>
+            </div>
+          )}
+          <div className="relative z-10 ml-auto grid w-52 min-w-0 gap-1.5 rounded-lg bg-card/90 p-3 [&_label]:text-xs [&_label]:text-muted-foreground max-[650px]:w-full">
             <Label htmlFor="saved-players">{t('matches.openPlayer')}</Label>
             <Select
               disabled={!players.data?.length}
@@ -221,42 +300,68 @@ export function MatchesPage() {
                 ))}
               </SelectContent>
             </Select>
+            {!!skins.data?.skins.length && (
+              <>
+                <Label htmlFor="champion-artwork-skin">{t('matches.artwork')}</Label>
+                <Select
+                  value={skin ? String(skin.id) : ''}
+                  onValueChange={(value) => {
+                    if (activeMatch?.championId)
+                      setSelectedSkins((current) => ({
+                        ...current,
+                        [activeMatch.championId!]: Number(value),
+                      }));
+                  }}
+                >
+                  <SelectTrigger id="champion-artwork-skin">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {skins.data.skins.map((option) => (
+                      <SelectItem key={option.id} value={String(option.id)}>
+                        {option.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </>
+            )}
           </div>
         </Card>
       )}
       {playerKey && (
-        <div data-ui="actions" className="flex items-center gap-2 justify-end">
-          <Button
-            variant="outline"
-            disabled={selected.length !== 2}
-            onClick={() => {
-              const tab = `compare:${crypto.randomUUID()}`;
-              void navigate({
-                to: '/compare',
-                search: {
-                  tab,
-                  player: playerKey,
-                  leftPlayer: playerKey,
-                  rightPlayer: playerKey,
-                  left: selected[0],
-                  right: selected[1],
-                },
-              });
-            }}
-          >
-            {t('scouting.compare')}
-          </Button>
-          {selected.length > 0 && (
-            <Button variant="ghost" onClick={() => setSelected([])}>
-              {t('common.reset')}
-            </Button>
-          )}
-        </div>
-      )}
-      {playerKey && (
         <>
-          <div className="flex items-center justify-between gap-5 pt-6 px-0 pb-4">
-            <h2>{t('matches.history')}</h2>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold">{t('matches.history')}</h2>
+            {playerKey && (
+              <div data-ui="actions" className="flex items-center gap-2 justify-end">
+                <Button
+                  variant="outline"
+                  disabled={selected.length !== 2}
+                  onClick={() => {
+                    const tab = `compare:${crypto.randomUUID()}`;
+                    void navigate({
+                      to: '/compare',
+                      search: {
+                        tab,
+                        player: playerKey,
+                        leftPlayer: playerKey,
+                        rightPlayer: playerKey,
+                        left: selected[0],
+                        right: selected[1],
+                      },
+                    });
+                  }}
+                >
+                  {t('scouting.compare')}
+                </Button>
+                {selected.length > 0 && (
+                  <Button variant="ghost" onClick={() => setSelected([])}>
+                    {t('common.reset')}
+                  </Button>
+                )}
+              </div>
+            )}
             <div className="flex items-center gap-[18px] text-[12px] text-muted-foreground [&_>_div]:flex [&_>_div]:items-center [&_>_div]:gap-1.5 [&_svg]:w-3.5 [&_svg]:h-3.5 [&_strong]:text-foreground [&_strong]:font-medium [&_[data-slot=button]]:pt-1 [&_[data-slot=button]]:pr-0 [&_[data-slot=button]]:pb-1 [&_[data-slot=button]]:pl-1.5 max-[900.01px]:[&_>_div:nth-child(2)]:hidden">
               <div>
                 <Archive aria-hidden="true" size={16} />
@@ -280,7 +385,7 @@ export function MatchesPage() {
             </div>
           </div>
           <form
-            className="flex items-end gap-2.5 mb-5 flex-wrap [&_>_svg]:text-muted-foreground [&_>_svg]:mt-0 [&_>_svg]:mr-0.5 [&_>_svg]:mb-[9px] [&_>_svg]:ml-0 [&_label]:grid [&_label]:gap-1.5 [&_label]:flex-1 [&_label]:min-w-[125px] [&_label]:max-w-[200px] [&_label_>_span]:text-[12px] [&_label_>_span]:text-muted-foreground [&_input]:w-full [&_input]:h-9 [&_input]:bg-card [&_input]:text-[12px] [&_input]:shadow-none [&_button[role=combobox]]:w-full [&_button[role=combobox]]:h-9 [&_button[role=combobox]]:bg-card [&_button[role=combobox]]:text-[12px] [&_button[role=combobox]]:shadow-none [&_>_[data-slot=button]]:h-9 max-[650.01px]:[&_label]:min-w-[125px] max-[650.01px]:[&_label]:max-w-none max-[650.01px]:[&_>_svg]:hidden"
+            className="flex items-end gap-2.5 flex-wrap [&_>_svg]:text-muted-foreground [&_>_svg]:mt-0 [&_>_svg]:mr-0.5 [&_>_svg]:mb-[9px] [&_>_svg]:ml-0 [&_label]:grid [&_label]:gap-1.5 [&_label]:flex-1 [&_label]:min-w-[125px] [&_label]:max-w-[200px] [&_label_>_span]:text-[12px] [&_label_>_span]:text-muted-foreground [&_input]:w-full [&_input]:h-9 [&_input]:bg-card [&_input]:text-[12px] [&_input]:shadow-none [&_button[role=combobox]]:w-full [&_button[role=combobox]]:h-9 [&_button[role=combobox]]:bg-card [&_button[role=combobox]]:text-[12px] [&_button[role=combobox]]:shadow-none [&_>_[data-slot=button]]:h-9 max-[650.01px]:[&_label]:min-w-[125px] max-[650.01px]:[&_label]:max-w-none max-[650.01px]:[&_>_svg]:hidden"
             onSubmit={(e) => {
               e.preventDefault();
               filter({ ...filters, cursor: undefined });
@@ -391,9 +496,10 @@ export function MatchesPage() {
         </div>
       )}
       {page.isFetching && !page.data ? (
-        <div className="min-h-[360px] flex items-center justify-center flex-col text-center gap-3 py-[35px] px-6 [&_p]:text-muted-foreground [&_p]:max-w-[370px] [&_p]:text-[13px] [&_p]:leading-[1.8] [&_h2]:text-[19px] [&_h2]:font-semibold">
-          <RefreshCw aria-hidden="true" className="animate-[spin_1.5s_linear_infinite]" />
-          <p>{t('common.loading')}</p>
+        <div className="grid gap-3" aria-label={t('common.loading')}>
+          {Array.from({ length: 5 }, (_, index) => (
+            <Skeleton key={index} className="h-24 w-full rounded-lg" />
+          ))}
         </div>
       ) : !page.data?.items.length ? (
         <div className="min-h-[360px] flex items-center justify-center flex-col text-center gap-3 py-[35px] px-6 [&_p]:text-muted-foreground [&_p]:max-w-[370px] [&_p]:text-[13px] [&_p]:leading-[1.8] [&_h2]:text-[19px] [&_h2]:font-semibold">
@@ -409,24 +515,72 @@ export function MatchesPage() {
           )}
         </div>
       ) : (
-        <div className="grid gap-2">
-          {page.data.items.map((match) => (
-            <MatchRow
-              key={`${match.playerKey}:${match.matchKey}`}
-              match={match}
-              selected={selected.includes(match.matchKey)}
-              disabled={selected.length >= 20 && !selected.includes(match.matchKey)}
-              onSelect={() =>
-                setSelected((current) =>
-                  current.includes(match.matchKey)
-                    ? current.filter((key) => key !== match.matchKey)
-                    : current.length < 20
-                      ? [...current, match.matchKey]
-                      : current,
-                )
-              }
-            />
-          ))}
+        <div className="grid min-w-0 items-start gap-6 min-[1280px]:grid-cols-[minmax(0,1fr)_340px] min-[1600px]:grid-cols-[minmax(0,1fr)_400px]">
+          <div className="min-w-0 space-y-5" aria-label={t('matches.history')}>
+            {groupMatchesByDate(matches, i18n.language).map((group) => (
+              <section key={group.date} className="min-w-0">
+                <h3 className="mb-1 rounded-md bg-muted/50 px-3 py-2 text-xs font-medium text-muted-foreground">
+                  {group.date}
+                </h3>
+                <div className="divide-y divide-border/60">
+                  {group.matches.map((match) => (
+                    <MatchHistoryRow
+                      key={`${match.playerKey}:${match.matchKey}`}
+                      match={match}
+                      active={activeMatch?.matchKey === match.matchKey}
+                      selected={selected.includes(match.matchKey)}
+                      disabled={selected.length >= 20 && !selected.includes(match.matchKey)}
+                      onInspect={() => {
+                        void navigate({
+                          to: '/matches',
+                          search: { ...search, match: match.matchKey },
+                          replace: true,
+                          resetScroll: false,
+                        });
+                        if (window.matchMedia('(max-width: 1279px)').matches) setDetailsOpen(true);
+                      }}
+                      onSelect={() =>
+                        setSelected((current) =>
+                          current.includes(match.matchKey)
+                            ? current.filter((key) => key !== match.matchKey)
+                            : current.length < 20
+                              ? [...current, match.matchKey]
+                              : current,
+                        )
+                      }
+                    />
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+          {activeMatch && (
+            <aside className="sticky top-6 hidden min-w-0 min-[1280px]:block">
+              <MatchDetails
+                key={`${activeMatch.playerKey}:${activeMatch.matchKey}`}
+                match={activeMatch}
+                skin={skin}
+                workspaceEpoch={app.data?.workspaceEpoch}
+              />
+            </aside>
+          )}
+          <Dialog open={detailsOpen && !!activeMatch} onOpenChange={setDetailsOpen}>
+            <DialogContent
+              closeLabel={t('common.close')}
+              aria-describedby={undefined}
+              className="p-4"
+            >
+              <DialogTitle>{t('matches.details')}</DialogTitle>
+              {activeMatch && (
+                <MatchDetails
+                  key={`${activeMatch.playerKey}:${activeMatch.matchKey}`}
+                  match={activeMatch}
+                  skin={skin}
+                  workspaceEpoch={app.data?.workspaceEpoch}
+                />
+              )}
+            </DialogContent>
+          </Dialog>
         </div>
       )}
       {playerKey && app.data?.workspaceEpoch && (
@@ -464,154 +618,5 @@ export function MatchesPage() {
         </footer>
       )}
     </div>
-  );
-}
-function MatchRow({
-  match: m,
-  selected,
-  disabled,
-  onSelect,
-}: {
-  match: MatchSummary;
-  selected: boolean;
-  disabled: boolean;
-  onSelect: () => void;
-}) {
-  const navigate = useNavigate();
-  const { t, i18n } = useTranslation();
-  const locale = i18n.language === 'zh-CN' ? 'zh-CN' : 'en-US';
-  const assets = useQuery({
-    queryKey: ['assets', m.version, locale, m.championId, m.items],
-    queryFn: () =>
-      transport.call('resolve_assets', {
-        version: m.version,
-        locale,
-        championIds: [m.championId!],
-        resourceIds: m.items.map((id) => ({ kind: 'item' as const, id })),
-      }),
-    enabled: !!m.championId && m.version !== 'unknown',
-    staleTime: Infinity,
-    retry: false,
-  });
-  const asset = assets.data?.find((a) => a.resourceId === `champion:${m.championId}`);
-  const queue = queueName(t, m.queueId);
-  const kda = [m.kills, m.deaths, m.assists].map((n) => n ?? '—');
-  return (
-    <Card
-      data-ui="match-row"
-      className={`flex items-center gap-5 py-[15px] px-[18px] border border-border border-l-3 border-l-(--outcome) rounded-[7px] shadow-none bg-card min-w-0 min-h-[88px] flex-wrap hover:bg-(--row-bg) max-[1150.01px]:gap-3.5 max-[1150.01px]:p-3.5 max-[900.01px]:gap-3 max-[650.01px]:gap-2.5 max-[650.01px]:flex-wrap max-[650.01px]:p-3 ${matchOutcomeClasses[m.outcome]}`}
-    >
-      <div className="grid [flex:0_0_110px] min-w-0 gap-[3px] [&_strong]:text-(--outcome) [&_strong]:text-[15px] [&_strong]:font-[650] [&_small]:text-[12px] [&_small]:overflow-hidden [&_small]:text-ellipsis [&_small]:whitespace-nowrap [&_span]:text-muted-foreground [&_span]:text-[11px] [&_span]:flex [&_span]:items-center [&_span]:gap-[5px] max-[1150.01px]:basis-[100px] max-[650.01px]:basis-20">
-        <strong>{t(`matches.${m.outcome}`)}</strong>
-        <small title={queue}>{queue}</small>
-        <span>
-          <Clock3 aria-hidden="true" size={11} />
-          {m.duration != null
-            ? `${Math.floor(m.duration / 60)}:${String(m.duration % 60).padStart(2, '0')}`
-            : '—'}
-        </span>
-      </div>
-      <div className="w-12 h-12 bg-muted text-muted-foreground border border-input rounded-[10px] grid place-items-center shrink-0 overflow-hidden [&_img]:w-full [&_img]:h-full [&_img]:object-cover [&_img]:scale-[1.08] max-[900.01px]:w-[42px] max-[900.01px]:h-[42px]">
-        {asset?.reference ? (
-          <img src={asset.reference} alt="" />
-        ) : (
-          <CircleHelp aria-hidden="true" size={26} />
-        )}
-      </div>
-      <div className="grid min-w-[88px] flex-1 [&_strong]:text-[14px] [&_strong]:font-semibold [&_strong]:overflow-hidden [&_strong]:text-ellipsis [&_strong]:whitespace-nowrap [&_small]:text-[11px] [&_small]:mt-1 max-[900.01px]:min-w-20 max-[650.01px]:min-w-[65px]">
-        <strong>{asset?.name || championName(t, m.championId)}</strong>
-        <small>
-          {positionName(t, m.position)} · {t('matches.cs')} {m.cs ?? '—'}
-        </small>
-      </div>
-      <div className="min-w-[115px] grid text-center [&_strong]:text-[20px] [&_strong]:font-semibold [&_strong]:tabular-nums [&_strong]:whitespace-nowrap [&_strong_span]:text-muted-foreground [&_strong_span]:text-[16px] [&_strong_span]:font-normal [&_strong_[data-ui~=deaths]]:text-(--loss) [&_strong_[data-ui~=deaths]]:text-[20px] [&_strong_[data-ui~=deaths]]:font-medium [&_small]:text-[10px] [&_small]:mt-0.5 max-[900.01px]:min-w-[100px] max-[900.01px]:[&_strong]:text-[18px] max-[900.01px]:[&_strong_[data-ui~=deaths]]:text-[18px] max-[650.01px]:ml-auto max-[650.01px]:min-w-[85px]">
-        <strong>
-          {kda[0]} <span>/</span> <span data-ui="deaths">{kda[1]}</span> <span>/</span> {kda[2]}
-        </strong>
-        <small>KDA</small>
-      </div>
-      <div
-        className="grid grid-cols-[repeat(6,_28px)] gap-[3px] ml-auto [&_>_span]:grid [&_>_span]:place-items-center [&_>_span]:w-7 [&_>_span]:h-7 [&_>_span]:bg-muted [&_>_span]:border [&_>_span]:border-border [&_>_span]:rounded-sm [&_>_span]:text-muted-foreground [&_>_span]:overflow-hidden [&_img]:block [&_img]:w-full [&_img]:h-full [&_img]:object-cover max-[1150.01px]:grid-cols-[repeat(3,_24px)] max-[1150.01px]:[&_>_span]:w-6 max-[1150.01px]:[&_>_span]:h-6 max-[650.01px]:hidden"
-        aria-label={t('matches.items')}
-        title={t('matches.items')}
-      >
-        {Array.from({ length: 6 }, (_, i) => m.items[i] || 0).map((id, i) => (
-          <span
-            key={`${i}:${id}`}
-            className={!id ? 'opacity-50' : ''}
-            title={
-              id
-                ? assets.data?.find((a) => a.resourceId === `item:${id}`)?.name ||
-                  t('common.unknown', { id })
-                : t('matches.emptyItem')
-            }
-          >
-            {assets.data?.find((a) => a.resourceId === `item:${id}`)?.reference ? (
-              <img
-                src={assets.data.find((a) => a.resourceId === `item:${id}`)!.reference!}
-                alt={
-                  assets.data?.find((a) => a.resourceId === `item:${id}`)?.name ||
-                  t('labels.item', { id })
-                }
-              />
-            ) : id ? (
-              <CircleHelp aria-hidden="true" size={14} />
-            ) : null}
-          </span>
-        ))}
-      </div>
-      <div className="grid text-right min-w-[115px] text-[12px] gap-1.5 text-muted-foreground [&_small]:text-[10px] max-[1150.01px]:min-w-[100px] max-[900.01px]:min-w-[94px] max-[900.01px]:text-[11px] max-[650.01px]:w-full max-[650.01px]:flex max-[650.01px]:justify-end max-[650.01px]:border-t max-[650.01px]:border-t-border max-[650.01px]:pt-2">
-        <time>
-          {new Intl.DateTimeFormat(i18n.language, {
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-          }).format(new Date(m.startedAt))}
-        </time>
-        <small
-          title={`${t('matches.version')}: ${m.version} / ${t('matches.source')}: ${codeName(t, 'source', m.source)}`}
-        >
-          {t('matches.version')} {m.version}
-        </small>
-        {m.fallbackReason && (
-          <small title={t('matches.fallback', { reason: errorName(t, m.fallbackReason) })}>
-            {t('matches.source')}: {codeName(t, 'source', 'lcu')}
-          </small>
-        )}
-      </div>
-      <div className="grid gap-1.5 justify-items-center pr-3 max-[1000.01px]:flex max-[1000.01px]:w-full max-[1000.01px]:justify-end max-[1000.01px]:py-1 max-[1000.01px]:px-4">
-        <Button
-          size="sm"
-          variant={selected ? 'default' : 'outline'}
-          aria-pressed={selected}
-          aria-label={`${t('training.selectMatch')} ${matchName(t, m.matchKey)}`}
-          disabled={disabled}
-          onClick={onSelect}
-        >
-          {t('training.selectMatch')}
-        </Button>
-        <Badge variant="outline">{t(`review.list_${m.reviewState || 'missing'}`)}</Badge>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() =>
-            void navigate({
-              to: '/matches/$matchKey/review',
-              params: { matchKey: m.matchKey },
-              search: { player: m.playerKey },
-            })
-          }
-        >
-          {t('review.open')}
-        </Button>
-      </div>
-      <span
-        className="text-(--outcome) w-4 shrink-0 empty:hidden"
-        title={m.kills == null ? t('matches.dataMissing') : undefined}
-      >
-        {m.kills == null && <CircleHelp aria-hidden="true" size={16} />}
-      </span>
-    </Card>
   );
 }

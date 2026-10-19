@@ -1,4 +1,5 @@
 import { GameEntityIcon } from '../../components/GameEntityIcon';
+import { matchOutcomeClasses } from '../../lib/match-outcome';
 import { championName, groupName } from '../../lib/display-names';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
@@ -62,13 +63,13 @@ export function ChampionsPage() {
   return (
     <div
       data-ui="page champions-page"
-      className="max-w-[1400px] pt-[30px] px-9 pb-[26px] m-auto max-[1150.01px]:p-[26px] max-[900.01px]:p-[22px] max-[650.01px]:py-[18px] max-[650.01px]:px-4 grid gap-5"
+      className="mx-auto grid w-full max-w-[1600px] gap-6 p-4 md:p-6"
     >
       <div
         data-ui="page-heading"
-        className="flex items-center justify-between gap-6 mb-7 max-[650.01px]:mb-[22px] max-[650.01px]:gap-2.5"
+        className="flex min-w-0 flex-wrap items-center justify-between gap-4"
       >
-        <h1>{t('scouting.champions')}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t('scouting.champions')}</h1>
       </div>
       <AnalysisFilters
         key={JSON.stringify(search)}
@@ -85,7 +86,7 @@ export function ChampionsPage() {
         }}
       />
       <ErrorNotice error={pool.error || players.error} />
-      <div data-ui="actions" className="flex items-center gap-2">
+      <div data-ui="actions" className="flex flex-wrap items-center gap-3">
         <Badge variant="outline">
           {t('scouting.localCoverage', { count: pool.data?.cachedMatches || 0 })}
         </Badge>
@@ -96,7 +97,7 @@ export function ChampionsPage() {
           </span>
         )}
         {pool.data?.truncated && <Badge variant="outline">{t('scouting.limited')}</Badge>}
-        <Label>
+        <Label className="ms-auto flex items-center gap-2 text-xs text-muted-foreground">
           {t('scouting.sort')}
           <Select
             value={sort}
@@ -120,7 +121,7 @@ export function ChampionsPage() {
       </div>
       {!!pool.data?.items.length && (
         <Card>
-          <CardContent className="pt-5">
+          <CardContent className="pt-4 pb-3">
             <ChartBoundary fallback={t('review.chartFailed')}>
               <Suspense fallback={t('common.loading')}>
                 <ChampionGamesChart rows={pool.data.items} />
@@ -130,74 +131,93 @@ export function ChampionsPage() {
         </Card>
       )}
       <Card>
-        <CardContent>
+        <CardContent className="p-0">
           {pool.isPending ? (
-            t('common.loading')
+            <div className="p-5 text-sm text-muted-foreground">{t('common.loading')}</div>
           ) : !pool.data?.items.length ? (
-            t('scouting.empty')
+            <div className="p-5 text-sm text-muted-foreground">{t('scouting.empty')}</div>
           ) : (
-            <Table>
-              <TableHeader>
+            <Table className="tabular-nums [&_td]:px-4 [&_td]:py-4 [&_th]:px-4">
+              <TableHeader className="bg-muted/40">
                 <TableRow>
                   {[
                     'champion',
                     'games',
                     'win_rate',
-                    'kills',
-                    'deaths',
-                    'assists',
+                    'combat',
                     'kda',
                     'cs_per_min',
                     'damage_share',
                     'trend',
                   ].map((k) => (
-                    <TableHead key={k}>{t(`scouting.${k}`)}</TableHead>
+                    <TableHead
+                      key={k}
+                      className={k === 'champion' || k === 'trend' ? '' : 'text-right'}
+                    >
+                      {k === 'combat'
+                        ? `${t('scouting.kills')} / ${t('scouting.deaths')} / ${t('scouting.assists')}`
+                        : t(`scouting.${k}`)}
+                    </TableHead>
                   ))}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {pool.data.items.map((row) => (
                   <TableRow key={row.championId ?? 'unknown'}>
-                    <TableCell>
-                      <Button
-                        variant="link"
-                        disabled={!row.championId}
-                        onClick={() =>
-                          void navigate({
-                            to: '/matches',
-                            search: { ...search, player, champion: row.championId! },
-                          })
-                        }
-                      >
+                    <TableCell className="min-w-40">
+                      <div className="flex items-center gap-3">
                         <GameEntityIcon
                           kind="champion"
                           id={row.championId}
                           label={championName(t, row.championId)}
+                          className="size-12 rounded-lg"
                         />
-                        {championName(t, row.championId)}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        disabled={!row.championId}
-                        onClick={() =>
-                          void navigate({ to: '/notebooks', search: { champion: row.championId! } })
-                        }
-                      >
-                        {t('notebooks.titlePage')}
-                      </Button>
+                        <div className="grid justify-items-start gap-1">
+                          <Button
+                            variant="link"
+                            className="h-auto p-0 font-semibold text-foreground"
+                            disabled={!row.championId}
+                            onClick={() =>
+                              void navigate({
+                                to: '/matches',
+                                search: { ...search, player, champion: row.championId! },
+                              })
+                            }
+                          >
+                            {championName(t, row.championId)}
+                          </Button>
+                          <Button
+                            variant="link"
+                            className="h-auto p-0 text-xs text-muted-foreground"
+                            disabled={!row.championId}
+                            onClick={() =>
+                              void navigate({
+                                to: '/notebooks',
+                                search: { champion: row.championId! },
+                              })
+                            }
+                          >
+                            {t('notebooks.titlePage')}
+                          </Button>
+                        </div>
+                      </div>
                     </TableCell>
-                    <TableCell>{row.games}</TableCell>
-                    {[
-                      row.winRate,
-                      row.kills,
-                      row.deaths,
-                      row.assists,
-                      row.kda,
-                      row.csPerMin,
-                      row.damageShare,
-                    ].map((m, i) => (
-                      <TableCell key={i}>
-                        <MetricValue metric={m} ratio={i === 0 || i === 6} />
+                    <TableCell className="text-right font-semibold">{row.games}</TableCell>
+                    <TableCell className="text-right">
+                      <MetricValue metric={row.winRate} ratio />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2 whitespace-nowrap">
+                        <MetricValue metric={row.kills} />
+                        <span className="text-muted-foreground">/</span>
+                        <MetricValue metric={row.deaths} />
+                        <span className="text-muted-foreground">/</span>
+                        <MetricValue metric={row.assists} />
+                      </div>
+                    </TableCell>
+                    {[row.kda, row.csPerMin, row.damageShare].map((metric, index) => (
+                      <TableCell key={index} className="text-right">
+                        <MetricValue metric={metric} ratio={index === 2} />
                       </TableCell>
                     ))}
                     <TableCell>
@@ -205,11 +225,15 @@ export function ChampionsPage() {
                         {[...new Set(row.trend.map((p) => p.group))].map((group) => (
                           <div key={group}>
                             <small>{groupName(t, group)}</small>
-                            <div data-ui="actions" className="flex items-center gap-2">
+                            <div data-ui="actions" className="flex flex-wrap items-center gap-1">
                               {row.trend
                                 .filter((p) => p.group === group)
                                 .map((p) => (
-                                  <Badge key={p.matchKey} variant="outline">
+                                  <Badge
+                                    key={p.matchKey}
+                                    variant="outline"
+                                    className={`${matchOutcomeClasses[p.outcome]} border-transparent bg-(--row-bg) text-(--outcome)`}
+                                  >
                                     {t(`matches.${p.outcome}`)}
                                   </Badge>
                                 ))}

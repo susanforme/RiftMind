@@ -17,21 +17,32 @@ export default function ChampionGamesChart({ rows }: { rows: ChampionStats[] }) 
       const style = getComputedStyle(ref.current!);
       chart.setOption({
         animation: false,
-        grid: { left: 40, right: 20, top: 20, bottom: 30 },
+        grid: { left: 12, right: 12, top: 20, bottom: 12, containLabel: true },
         textStyle: { color: style.getPropertyValue('--foreground').trim() },
-        color: [style.getPropertyValue('--primary').trim()],
-        tooltip: { renderMode: 'richText' },
+        color: [style.getPropertyValue('--chart-self').trim()],
+        tooltip: {
+          renderMode: 'richText',
+          backgroundColor: style.getPropertyValue('--popover').trim(),
+          borderColor: style.getPropertyValue('--border').trim(),
+          textStyle: { color: style.getPropertyValue('--popover-foreground').trim() },
+        },
         xAxis: {
           type: 'category',
-          axisLabel: { color: style.getPropertyValue('--muted-foreground').trim() },
-          axisLine: { lineStyle: { color: style.getPropertyValue('--border').trim() } },
+          axisLabel: {
+            color: style.getPropertyValue('--muted-foreground').trim(),
+            hideOverlap: true,
+          },
+          axisLine: { lineStyle: { color: style.getPropertyValue('--chart-axis').trim() } },
           data: rows.slice(0, 15).map((r) => championName(t, r.championId)),
         },
         yAxis: {
           type: 'value',
-          axisLabel: { color: style.getPropertyValue('--muted-foreground').trim() },
+          axisLabel: {
+            color: style.getPropertyValue('--muted-foreground').trim(),
+            hideOverlap: true,
+          },
           minInterval: 1,
-          splitLine: { lineStyle: { color: style.getPropertyValue('--border').trim() } },
+          splitLine: { lineStyle: { color: style.getPropertyValue('--chart-grid').trim() } },
         },
         series: [
           {
@@ -47,7 +58,10 @@ export default function ChampionGamesChart({ rows }: { rows: ChampionStats[] }) 
     const observer = new ResizeObserver(() => chart.resize());
     observer.observe(ref.current);
     const theme = new MutationObserver(draw);
-    theme.observe(document.documentElement, { attributes: true, attributeFilter: ['data-mode'] });
+    theme.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme', 'data-mode'],
+    });
     return () => {
       theme.disconnect();
       observer.disconnect();

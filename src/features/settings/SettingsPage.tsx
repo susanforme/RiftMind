@@ -42,11 +42,11 @@ import { Button } from '../../components/ui/button';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { ErrorNotice } from '../../components/ErrorNotice';
 import type { Settings, SettingsPatch } from '../../generated/contracts';
-const settingsPanelClassName = 'rounded-[9px] px-6 py-[22px] scroll-mt-6 max-[650.01px]:p-[18px]';
+const settingsPanelClassName = 'rounded-xl px-6 py-5 scroll-mt-6 max-[650.01px]:p-4';
 const settingsHeadingClassName =
-  'flex items-center gap-[9px] border-b pb-[18px] text-[15px] [&_svg]:w-[17px] [&_svg]:text-muted-foreground';
+  'flex items-center gap-3 border-b pb-4 text-base [&_svg]:w-[17px] [&_svg]:text-muted-foreground';
 const settingsFieldClassName =
-  'grid grid-cols-[minmax(0,1fr)_minmax(160px,230px)] items-center gap-x-6 gap-y-[5px] border-b py-[18px] last:border-b-0 last:pb-0 max-[650.01px]:grid-cols-1 max-[650.01px]:gap-2.5';
+  'grid grid-cols-[minmax(0,1fr)_minmax(160px,230px)] items-center gap-x-6 gap-y-1.5 border-b py-4 last:border-b-0 last:pb-0 max-[650.01px]:grid-cols-1 max-[650.01px]:gap-2.5';
 const settingsLabelClassName = 'flex items-center gap-1.5 text-[13px] leading-none [&>svg]:hidden';
 const settingsControlClassName =
   'col-start-2 row-span-2 row-start-1 w-full max-[650.01px]:col-start-1 max-[650.01px]:row-auto';
@@ -186,11 +186,11 @@ export function SettingsPage() {
   return (
     <div
       data-ui="page settings-page"
-      className="pt-[30px] px-9 pb-[26px] m-auto max-[1150.01px]:p-[26px] max-[900.01px]:p-[22px] max-[650.01px]:py-[18px] max-[650.01px]:px-4 max-w-[1160px]"
+      className="p-6 m-auto max-[900.01px]:p-5 max-[650.01px]:p-4 max-w-[1160px]"
     >
       <div
         data-ui="page-heading"
-        className="flex items-center justify-between gap-6 mb-7 max-[650.01px]:mb-[22px] max-[650.01px]:gap-2.5"
+        className="flex items-center justify-between gap-6 mb-6 max-[650.01px]:mb-5 max-[650.01px]:gap-2.5"
       >
         <div>
           <h1>{t('settings.title')}</h1>
@@ -224,7 +224,7 @@ export function SettingsPage() {
             },
           )}
         </nav>
-        <div className="grid gap-6 min-w-0">
+        <div className="grid gap-5 min-w-0">
           <div className="contents">
             <Card className={settingsPanelClassName} id="settings-general">
               <h2 className={settingsHeadingClassName}>
@@ -547,7 +547,7 @@ export function SettingsPage() {
       <ErrorNotice error={usage.error || app.error || operation.error || save.error} />
       <div
         data-ui="save-bar"
-        className="sticky bottom-0 bg-card border border-border rounded-lg py-3 px-[18px] flex gap-5 justify-between items-center mt-6 ml-[184px] text-[12px] [box-shadow:var(--shadow)] z-2 [&_>_div:first-child]:wrap-anywhere [&_>_div:first-child]:min-w-0 [&_>_div:first-child]:text-muted-foreground max-[1150.01px]:ml-40 max-[900.01px]:ml-0 max-[650.01px]:p-3 max-[650.01px]:gap-2.5 max-[650.01px]:flex-wrap max-[650.01px]:[&_>_div:first-child]:basis-full max-[650.01px]:[&_[data-ui~=actions]]:flex-wrap"
+        className="sticky bottom-0 bg-card border border-border rounded-xl py-3 px-5 flex gap-5 justify-between items-center mt-6 ml-[184px] text-[12px] [box-shadow:var(--shadow)] z-2 [&_>_div:first-child]:wrap-anywhere [&_>_div:first-child]:min-w-0 [&_>_div:first-child]:text-muted-foreground max-[1150.01px]:ml-40 max-[900.01px]:ml-0 max-[650.01px]:p-3 max-[650.01px]:gap-2.5 max-[650.01px]:flex-wrap max-[650.01px]:[&_>_div:first-child]:basis-full max-[650.01px]:[&_[data-ui~=actions]]:flex-wrap"
       >
         <div aria-live="polite">
           {operation.isPending ? (

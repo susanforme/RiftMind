@@ -7,6 +7,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import {
   Swords,
+  BookOpen,
   UsersRound,
   History,
   ChartNoAxesCombined,
@@ -63,7 +64,7 @@ const colorModeCycle: Record<ColorMode, { icon: typeof Sun; next: ColorMode }> =
   system: { icon: Monitor, next: 'light' },
 };
 const sidebarNavigationClassName =
-  'justify-start w-full h-10 py-2 px-2.5 gap-2.5 data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground [[data-collapsed=true]_&]:p-2 [[data-collapsed=true]_&]:justify-center forced-colors:data-[selected=true]:border forced-colors:data-[selected=true]:border-[ButtonText]';
+  'relative justify-start w-full h-12 my-1 py-3 px-3 gap-3 text-sm data-[selected=true]:bg-accent data-[selected=true]:text-primary before:absolute before:inset-y-3 before:left-0 before:w-[3px] before:rounded-full data-[selected=true]:before:bg-primary [[data-collapsed=true]_&]:p-2 [[data-collapsed=true]_&]:justify-center forced-colors:data-[selected=true]:border forced-colors:data-[selected=true]:border-[ButtonText]';
 const safeSearch = (tab: WorkspaceTab): Search => {
   try {
     return validateSearch(JSON.parse(tab.search));
@@ -223,6 +224,7 @@ export function AppShell() {
     if (!workspaceReady || !initialized.current) return;
     const search = location.search as Search;
     if (
+      tabs.length > 1 &&
       activeId.startsWith('matches:') &&
       tabs.some((tab) => tab.id === 'matches' && !tab.playerKey)
     ) {
@@ -439,7 +441,7 @@ export function AppShell() {
       <RuntimeEffects />
       <div
         data-collapsed={collapsed}
-        className="grid grid-cols-[176px_minmax(0,_1fr)] grid-rows-[48px_minmax(0,_1fr)] h-full data-[collapsed=true]:grid-cols-[60px_minmax(0,_1fr)] max-[900.01px]:grid-cols-[60px_minmax(0,_1fr)]"
+        className="grid grid-cols-[208px_minmax(0,_1fr)] grid-rows-[48px_minmax(0,_1fr)] h-full data-[collapsed=true]:grid-cols-[64px_minmax(0,_1fr)] max-[900.01px]:grid-cols-[64px_minmax(0,_1fr)]"
       >
         <TitleBar
           sidebarToggle={
@@ -496,7 +498,7 @@ export function AppShell() {
                   <div
                     key={tab.id}
                     data-active={activeId === tab.id}
-                    className="flex items-center min-w-[125px] max-w-[285px] text-muted-foreground rounded-[6px_6px_0_0] border border-transparent border-b-0 hover:bg-muted data-[active=true]:text-foreground data-[active=true]:bg-background data-[active=true]:border-border [&_>_button[role=tab]]:min-w-0 [&_>_button[role=tab]]:flex [&_>_button[role=tab]]:flex-1 [&_>_button[role=tab]]:gap-[7px] [&_>_button[role=tab]]:border-0 [&_>_button[role=tab]]:bg-transparent [&_>_button[role=tab]]:shadow-none [&_>_button[role=tab]]:text-[12px] [&_>_button[role=tab]]:pt-2 [&_>_button[role=tab]]:pr-1.5 [&_>_button[role=tab]]:pb-2 [&_>_button[role=tab]]:pl-3 [&_>_button[role=tab]_>_span:first-of-type]:overflow-hidden [&_>_button[role=tab]_>_span:first-of-type]:text-ellipsis [&_>_button[role=tab]_>_span:first-of-type]:whitespace-nowrap [&_svg]:shrink-0 forced-colors:data-[active=true]:border forced-colors:data-[active=true]:border-[ButtonText]"
+                    className="flex items-center shrink-0 min-w-[160px] max-w-[285px] text-muted-foreground rounded-[6px_6px_0_0] border border-transparent border-b-0 hover:bg-muted data-[active=true]:text-foreground data-[active=true]:bg-background data-[active=true]:border-border data-[active=true]:border-t-primary/60 [&_>_button[role=tab]]:min-w-0 [&_>_button[role=tab]]:flex [&_>_button[role=tab]]:flex-1 [&_>_button[role=tab]]:gap-[7px] [&_>_button[role=tab]]:border-0 [&_>_button[role=tab]]:bg-transparent [&_>_button[role=tab]]:shadow-none [&_>_button[role=tab]]:text-[13px] [&_>_button[role=tab]]:pt-2 [&_>_button[role=tab]]:pr-1.5 [&_>_button[role=tab]]:pb-2 [&_>_button[role=tab]]:pl-3 [&_>_button[role=tab]_>_span:first-of-type]:overflow-hidden [&_>_button[role=tab]_>_span:first-of-type]:text-ellipsis [&_>_button[role=tab]_>_span:first-of-type]:whitespace-nowrap [&_svg]:shrink-0 forced-colors:data-[active=true]:border forced-colors:data-[active=true]:border-[ButtonText]"
                     draggable
                     onDragStart={() => {
                       drag.current = tab.id;
@@ -514,9 +516,13 @@ export function AppShell() {
                       title={title}
                     >
                       {tab.kind === 'settings' ? (
-                        <Settings2 aria-hidden="true" size={14} />
+                        <Settings2 aria-hidden="true" size={16} />
+                      ) : tab.kind === 'notebooks' ? (
+                        <BookOpen aria-hidden="true" size={16} />
+                      ) : tab.kind === 'matches' ? (
+                        <History aria-hidden="true" size={16} />
                       ) : (
-                        <Swords aria-hidden="true" size={14} />
+                        <Swords aria-hidden="true" size={16} />
                       )}
                       <span>{title}</span>
                       {tab.kind === 'settings' && dirty && (
@@ -585,35 +591,10 @@ export function AppShell() {
           </Tabs>
         </TitleBar>
         <aside
-          className="row-start-2 bg-(--sidebar) border-r border-r-border flex flex-col py-3 px-2.5 min-w-0 [&_nav]:flex-1 max-[900.01px]:[&_[data-ui~=nav-item]]:p-2 max-[900.01px]:[&_[data-ui~=nav-item]]:justify-center [&_[data-ui~=sidebar-label]]:min-w-0 [&_[data-ui~=sidebar-label]]:overflow-hidden [&_[data-ui~=sidebar-label]]:text-ellipsis [&_[data-ui~=sidebar-label]]:whitespace-nowrap"
+          className="row-start-2 bg-(--sidebar) border-r border-r-border flex flex-col py-5 px-3 min-w-0 [&_nav]:flex-1 max-[900.01px]:[&_[data-ui~=nav-item]]:p-2 max-[900.01px]:[&_[data-ui~=nav-item]]:justify-center [&_[data-ui~=sidebar-label]]:min-w-0 [&_[data-ui~=sidebar-label]]:overflow-hidden [&_[data-ui~=sidebar-label]]:text-ellipsis [&_[data-ui~=sidebar-label]]:whitespace-nowrap"
           id="app-sidebar"
         >
           <nav aria-label={t('common.matches')}>
-            <Button
-              variant="ghost"
-              data-ui="nav-item"
-              data-selected={location.pathname === '/notebooks'}
-              className={sidebarNavigationClassName}
-              aria-label={t('notebooks.titlePage')}
-              aria-current={location.pathname === '/notebooks' ? 'page' : undefined}
-              title={t('notebooks.titlePage')}
-              onClick={() =>
-                activate({
-                  id: 'notebooks:64',
-                  kind: 'notebooks',
-                  playerKey: null,
-                  search: '{"champion":64}',
-                })
-              }
-            >
-              <UsersRound aria-hidden="true" size={19} />
-              <span
-                data-ui="sidebar-label"
-                className="[[data-collapsed=true]_&]:hidden max-[900.01px]:hidden"
-              >
-                {t('notebooks.titlePage')}
-              </span>
-            </Button>
             {(['live', 'champions'] as const).map((kind) => (
               <Button
                 key={kind}
@@ -702,6 +683,31 @@ export function AppShell() {
                 {t('review.progress')}
               </span>
             </Button>
+            <Button
+              variant="ghost"
+              data-ui="nav-item"
+              data-selected={location.pathname === '/notebooks'}
+              className={sidebarNavigationClassName}
+              aria-label={t('notebooks.titlePage')}
+              aria-current={location.pathname === '/notebooks' ? 'page' : undefined}
+              title={t('notebooks.titlePage')}
+              onClick={() =>
+                activate({
+                  id: 'notebooks:64',
+                  kind: 'notebooks',
+                  playerKey: null,
+                  search: '{"champion":64}',
+                })
+              }
+            >
+              <BookOpen aria-hidden="true" size={19} />
+              <span
+                data-ui="sidebar-label"
+                className="[[data-collapsed=true]_&]:hidden max-[900.01px]:hidden"
+              >
+                {t('notebooks.titlePage')}
+              </span>
+            </Button>
           </nav>
           <div className="flex flex-col gap-[5px]">
             <div
@@ -723,7 +729,7 @@ export function AppShell() {
             </div>
             <div
               data-ui="sidebar-actions"
-              className="flex items-center gap-1 [&_[data-ui~=nav-item]]:flex-1 [&_[data-ui~=nav-item]]:min-w-0 [[data-collapsed=true]_&]:flex-col [[data-collapsed=true]_&_[data-ui~=nav-item]]:flex-none"
+              className="flex items-center gap-1 [&_[data-ui~=nav-item]]:flex-1 [&_[data-ui~=nav-item]]:min-w-0 [[data-collapsed=true]_&]:flex-col [[data-collapsed=true]_&_[data-ui~=nav-item]]:flex-none max-[900.01px]:flex-col max-[900.01px]:[&_[data-ui~=nav-item]]:flex-none"
             >
               <Button
                 variant="ghost"

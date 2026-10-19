@@ -50,10 +50,23 @@ test('review evidence, draft close, feedback, goal adoption, assessment, backup 
   await page.goto(
     `/#/matches/${encodeURIComponent(m.matchKey)}/review?player=${encodeURIComponent(playerKey)}`,
   );
-  await expect(page.getByText('Review overview', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Review overview', exact: true })).toBeVisible();
+  await page.getByRole('tab', { name: 'Timeline & evidence', exact: true }).click();
   await expect(page.getByRole('img', { name: 'Personal and opponent gold chart' })).toBeVisible();
+  await page
+    .getByRole('tabpanel', { name: 'Timeline & evidence', exact: true })
+    .getByText('Numeric table', { exact: true })
+    .first()
+    .click();
   await page.getByRole('button', { name: '2:00', exact: true }).first().click();
-  await expect(page.getByText('Source evidence', { exact: true })).toBeVisible();
+  await expect(page).toHaveURL(/at=120000/);
+  await page.getByRole('tab', { name: 'Review overview', exact: true }).click();
+  await page
+    .getByRole('tabpanel', { name: 'Review overview', exact: true })
+    .getByRole('button', { name: '2:00', exact: true })
+    .first()
+    .click();
+  await expect(page.getByRole('heading', { name: 'Source evidence', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Annotate this evidence', exact: true }).click();
   await page
     .getByRole('textbox', { name: 'Note text' })
@@ -62,7 +75,9 @@ test('review evidence, draft close, feedback, goal adoption, assessment, backup 
   await expect(page.locator('[data-ui~=note-text]')).toHaveText(
     '<script>remains plain text</script>',
   );
+  await page.getByRole('tab', { name: 'Review overview', exact: true }).click();
   await page.getByRole('button', { name: 'Helpful', exact: true }).first().click();
+  await page.getByRole('tab', { name: 'Notes', exact: true }).click();
   await page.getByRole('textbox', { name: 'Note text' }).fill('draft survives closing failure');
   await page.getByRole('button', { name: /^Close tab Match review/ }).click();
   await expect(page.getByRole('dialog')).toContainText('Unsaved notes');
@@ -73,6 +88,7 @@ test('review evidence, draft close, feedback, goal adoption, assessment, backup 
   );
   await page.getByRole('button', { name: 'Save note', exact: true }).click();
   await expect(page.locator('[data-ui~=note-text]')).toHaveCount(2);
+  await page.getByRole('tab', { name: 'Review overview', exact: true }).click();
   await page.getByRole('button', { name: 'Adopt training goal', exact: true }).click();
   await page
     .getByRole('dialog')
@@ -105,8 +121,9 @@ test('review evidence, draft close, feedback, goal adoption, assessment, backup 
     `/#/matches/${encodeURIComponent(m.matchKey)}/review?player=${encodeURIComponent(playerKey)}`,
   );
   await expect(page.locator('[data-ui~=note-text]')).toHaveCount(2);
-  await expect(page.getByText('Review overview', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Review overview', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Fetch details', exact: true })).toBeDisabled();
+  await page.getByRole('tab', { name: 'Notes', exact: true }).click();
   await page.getByRole('textbox', { name: 'Note text' }).fill('offline note');
   await page.getByRole('button', { name: 'Save note', exact: true }).click();
   await expect(page.locator('[data-ui~=note-text]')).toHaveCount(3);
@@ -189,7 +206,7 @@ test('invalid old report links stay explicit and list reads never fetch DETAILS'
     `/#/matches/${encodeURIComponent(rows.items[0].matchKey)}/review?player=${encodeURIComponent(playerKey)}&report=missing-report`,
   );
   await expect(page.getByRole('alert')).toBeVisible();
-  await expect(page.getByText('Review overview', { exact: true })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Review overview', exact: true })).toHaveCount(0);
 });
 
 test('chart failures keep report text and editable notes available', async ({ page }) => {
@@ -199,10 +216,13 @@ test('chart failures keep report text and editable notes available', async ({ pa
   await page.goto(
     `/#/matches/${encodeURIComponent(rows[0].matchKey)}/review?player=${encodeURIComponent(playerKey)}`,
   );
+  await page.getByRole('tab', { name: 'Timeline & evidence', exact: true }).click();
   await expect(
     page.getByText('Chart unavailable. Use the numeric table below.', { exact: true }),
   ).toBeVisible();
-  await expect(page.getByText('Review overview', { exact: true })).toBeVisible();
+  await page.getByRole('tab', { name: 'Review overview', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Review overview', exact: true })).toBeVisible();
+  await page.getByRole('tab', { name: 'Notes', exact: true }).click();
   await page
     .getByRole('textbox', { name: 'Note text' })
     .fill('note remains editable when chart fails');

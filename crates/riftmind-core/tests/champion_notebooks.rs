@@ -1086,14 +1086,14 @@ async fn desktop_backup_upgrade_keeps_sqlx_registry_consistent_for_native_recove
             .fetch_one(&upgraded)
             .await
             .unwrap(),
-        5
+        i64::from(storage::DATABASE_VERSION)
     );
     assert_eq!(
         sqlx::query_scalar::<_, i64>("SELECT MAX(version) FROM _sqlx_migrations WHERE success=1")
             .fetch_one(&upgraded)
             .await
             .unwrap(),
-        5
+        i64::from(storage::DATABASE_VERSION)
     );
     let current = sqlx::migrate::Migrator {
         migrations: std::borrow::Cow::Owned(

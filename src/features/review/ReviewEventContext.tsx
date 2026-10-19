@@ -1,3 +1,9 @@
+import { ChevronRight } from 'lucide-react';
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from '../../components/ui/collapsible';
 import { lazy, Suspense, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -70,11 +76,11 @@ export function ReviewEventContext({
     );
   };
   return (
-    <Card>
-      <CardHeader>
+    <Card data-ui="event-context" className="min-w-0 overflow-hidden">
+      <CardHeader className="border-b border-border bg-muted/20">
         <CardTitle>{t('training.eventContext')}</CardTitle>
       </CardHeader>
-      <CardContent data-ui="review-stack" className="grid grid-cols-1 gap-4 min-w-0">
+      <CardContent data-ui="review-stack" className="grid min-w-0 grid-cols-1 gap-4 pt-5">
         <div data-ui="actions" className="flex items-center gap-2">
           {['all', 'death', 'objective'].map((kind) => (
             <Button
@@ -124,13 +130,16 @@ export function ReviewEventContext({
         <ErrorNotice error={context.error} />
         {snapshot && (
           <>
-            <p>
+            <p className="text-xs tabular-nums text-muted-foreground">
               {matchTime(snapshot.fromMs)} – {matchTime(snapshot.toMs)}
             </p>
             {!snapshot.focus && <p>{t('training.noEvents')}</p>}
             {snapshot.focus && (
-              <div data-ui="actions" className="flex items-center gap-2">
-                <strong>{matchTime(snapshot.focus.timestampMs)}</strong>
+              <div
+                data-ui="actions"
+                className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-muted/20 p-3"
+              >
+                <strong className="tabular-nums">{matchTime(snapshot.focus.timestampMs)}</strong>
                 <Badge>
                   {t(`review.event_${snapshot.focus.kind}`, {
                     defaultValue: t('labels.unknownEvent'),
@@ -187,27 +196,43 @@ export function ReviewEventContext({
                 />
               </Suspense>
             </ChartBoundary>
-            <details>
-              <summary>{t('training.numericTable')}</summary>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t('review.time')}</TableHead>
-                    <TableHead>{t('review.gold')}</TableHead>
-                    <TableHead>{t('review.cs')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {snapshot.chart.points.map((point) => (
-                    <TableRow key={point.timestampMs}>
-                      <TableCell>{matchTime(point.timestampMs)}</TableCell>
-                      <TableCell>{numberText(point.gold)}</TableCell>
-                      <TableCell>{numberText(point.cs)}</TableCell>
+            <Collapsible>
+              <CollapsibleTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="group h-auto min-h-9 w-full justify-start gap-2 px-0 py-2 text-left text-sm font-normal whitespace-normal text-muted-foreground"
+                >
+                  <ChevronRight
+                    aria-hidden="true"
+                    className="size-4 shrink-0 transition-transform group-data-[state=open]:rotate-90 motion-reduce:transition-none"
+                  />
+                  {t('training.numericTable')}
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent
+                forceMount
+                className="hidden min-w-0 pb-2 data-[state=open]:block"
+              >
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t('review.time')}</TableHead>
+                      <TableHead>{t('review.gold')}</TableHead>
+                      <TableHead>{t('review.cs')}</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </details>
+                  </TableHeader>
+                  <TableBody>
+                    {snapshot.chart.points.map((point) => (
+                      <TableRow key={point.timestampMs}>
+                        <TableCell>{matchTime(point.timestampMs)}</TableCell>
+                        <TableCell>{numberText(point.gold)}</TableCell>
+                        <TableCell>{numberText(point.cs)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CollapsibleContent>
+            </Collapsible>
             {Object.entries(snapshot.capabilities)
               .filter(([, capability]) => capability?.status !== 'ready')
               .map(([kind, capability]) => (
@@ -264,13 +289,13 @@ export function ReviewEventContext({
               ))}
             </div>
             <div data-ui="actions" className="flex items-center gap-2">
-              {snapshot.evidenceIds.map((id) => (
+              {snapshot.evidenceIds.map((id, index) => (
                 <Button
                   variant="outline"
                   key={id}
                   onClick={() => onSelect(snapshot.focus?.timestampMs || snapshot.fromMs, id)}
                 >
-                  {t('review.evidence')} · {id}
+                  {t('review.evidence')} {index + 1}
                 </Button>
               ))}
             </div>

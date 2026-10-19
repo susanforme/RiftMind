@@ -13,12 +13,16 @@ import { Card, CardContent } from '../../components/ui/card';
 import { ErrorNotice } from '../../components/ErrorNotice';
 import { FavoriteButton } from './FavoriteButton';
 import { useOpenPlayer } from './useOpenPlayer';
-export function PlayerSearchFavorites() {
+export function PlayerSearchFavorites({ onOpen }: { onOpen?: () => void }) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [result, setResult] = useState<Player | null>(null);
   const sequence = useRef(0);
   const open = useOpenPlayer();
+  function openPlayer(player: Player) {
+    open(player);
+    onOpen?.();
+  }
   const app = useQuery({ queryKey: ['app'], queryFn: () => transport.call('get_app_state', {}) });
   const connection = useQuery({
     queryKey: ['connection'],
@@ -50,11 +54,11 @@ export function PlayerSearchFavorites() {
     },
   });
   return (
-    <Card className="[&_[data-slot='card-content']]:pt-5 [&_form_input]:flex-1 [&_form_input]:min-w-[120px] [&_form_input]:max-w-[360px]">
-      <CardContent>
+    <Card className="border-border/70 bg-card/50 [&_[data-slot='card-content']]:p-4 [&_form_input]:flex-1 [&_form_input]:min-w-[120px] [&_form_input]:max-w-[360px]">
+      <CardContent className="flex flex-wrap items-center gap-x-5 gap-y-3">
         <form
           data-ui="actions"
-          className="flex items-center gap-2"
+          className="flex flex-1 flex-wrap items-center gap-2"
           onSubmit={(e) => {
             e.preventDefault();
             setResult(null);
@@ -86,21 +90,24 @@ export function PlayerSearchFavorites() {
         </form>
         <ErrorNotice error={search.error || favorites.error} />
         {result && (
-          <div data-ui="actions" className="flex items-center gap-2">
-            <Button variant="link" onClick={() => open(result)}>
+          <div data-ui="actions player-search-result" className="flex flex-wrap items-center gap-2">
+            <Button variant="link" onClick={() => openPlayer(result)}>
               {playerName(t, result)} · {serverName(t, result.serverId)}
             </Button>
             <FavoriteButton playerKey={result.playerKey} />
           </div>
         )}
-        <div data-ui="actions favorites" className="flex items-center gap-2 mt-4">
+        <div
+          data-ui="actions favorites"
+          className="flex flex-wrap items-center gap-2 text-xs [&_strong]:font-medium"
+        >
           <strong>{t('scouting.favorites')}</strong>
           {!favorites.data?.length && (
             <span className="text-muted-foreground text-[12px]">{t('scouting.empty')}</span>
           )}
           {favorites.data?.map((p) => (
-            <div data-ui="actions" className="flex items-center gap-2" key={p.playerKey}>
-              <Button variant="outline" size="sm" onClick={() => open(p)}>
+            <div data-ui="actions" className="flex flex-wrap items-center gap-2" key={p.playerKey}>
+              <Button variant="outline" size="sm" onClick={() => openPlayer(p)}>
                 {playerName(t, p)} · {serverName(t, p.serverId)}
               </Button>
               <FavoriteButton playerKey={p.playerKey} />

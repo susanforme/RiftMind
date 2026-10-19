@@ -87,25 +87,8 @@ pub fn normalize_live(
                 let puuid = v["puuid"].as_str().filter(|s| {
                     !s.is_empty() && *s != "0" && !s.chars().all(|ch| ch == '0' || ch == '-')
                 });
-                let player = if let Some((server, puuid)) = server.zip(puuid) {
-                    domain::validate_key(puuid)?;
-                    Some(Player {
-                        player_key: format!("{server}:{puuid}"),
-                        server_id: server.into(),
-                        puuid: puuid.into(),
-                        display_name: v["gameName"]
-                            .as_str()
-                            .or_else(|| v["summonerName"].as_str())
-                            .filter(|s| !s.is_empty())
-                            .map(
-                                |name| match v["tagLine"].as_str().filter(|s| !s.is_empty()) {
-                                    Some(tag) => format!("{name}#{tag}"),
-                                    None => name.into(),
-                                },
-                            )
-                            .unwrap_or_default(),
-                        updated_at: storage::now(),
-                    })
+                let player = if let Some((server, _)) = server.zip(puuid) {
+                    Some(clients::player_from_summoner(v, server, "")?)
                 } else {
                     None
                 };
@@ -206,9 +189,9 @@ impl Service {
         }
         let mut old = self.live.write().await;
         let mut next = normalize_live(&raw, &c, &old)?;
-        for seat in &next.seats {
-            if let Some(p) = &seat.player {
-                storage::save_player(&self.pool, p).await?
+        for seat in &mut next.seats {
+            if let Some(player) = &mut seat.player {
+                *player = storage::save_player(&self.pool, player).await?;
             }
         }
         if let Some((server, id)) = c

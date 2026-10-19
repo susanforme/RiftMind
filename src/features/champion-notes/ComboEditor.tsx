@@ -1,3 +1,4 @@
+import { ChevronRight } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { transport } from '../../app/runtime';
 import { spellName } from '../../lib/display-names';
@@ -13,27 +14,37 @@ export function ComboSequence({ championId, steps }: { championId: number; steps
   return (
     <ol
       data-ui="combo-sequence"
-      className="flex flex-wrap items-center gap-2 list-none p-0 [&_li]:flex [&_li]:items-center [&_li]:gap-1.5 [&_li]:py-1 [&_li]:px-2 [&_li]:border [&_li]:border-border [&_li]:rounded-[var(--radius)]"
+      className="flex list-none flex-wrap items-center gap-x-3 gap-y-4 rounded-lg bg-muted/20 p-4"
     >
       {steps.map((step, index) => (
-        <li key={`${index}:${step.action}`}>
-          {['skill', 'spell', 'item'].includes(step.action) && (
-            <GameEntityIcon
-              kind={step.action === 'skill' ? 'skill' : step.action === 'spell' ? 'spell' : 'item'}
-              id={
-                step.action === 'skill' ? skillResourceId(championId, step.entityId) : step.entityId
-              }
-              label={step.label || t(`notebooks.action_${step.action}`)}
-            />
+        <li key={`${index}:${step.action}`} className="flex min-w-0 items-center gap-3">
+          <div className="grid max-w-40 justify-items-center gap-2 text-center text-sm">
+            {['skill', 'spell', 'item'].includes(step.action) && (
+              <GameEntityIcon
+                kind={
+                  step.action === 'skill' ? 'skill' : step.action === 'spell' ? 'spell' : 'item'
+                }
+                id={
+                  step.action === 'skill'
+                    ? skillResourceId(championId, step.entityId)
+                    : step.entityId
+                }
+                label={step.label || t(`notebooks.action_${step.action}`)}
+                className="size-12 rounded-lg border border-border"
+              />
+            )}
+            <span>
+              {step.action === 'skill' ? ['Q', 'W', 'E', 'R'][(step.entityId || 1) - 1] : ''}
+              {step.label
+                ? ` ${step.label}`
+                : step.action === 'skill'
+                  ? ''
+                  : t(`notebooks.action_${step.action}`)}
+            </span>
+          </div>
+          {index < steps.length - 1 && (
+            <ChevronRight aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
           )}
-          <span>
-            {step.action === 'skill' ? ['Q', 'W', 'E', 'R'][(step.entityId || 1) - 1] : ''}
-            {step.label
-              ? ` ${step.label}`
-              : step.action === 'skill'
-                ? ''
-                : t(`notebooks.action_${step.action}`)}
-          </span>
         </li>
       ))}
     </ol>

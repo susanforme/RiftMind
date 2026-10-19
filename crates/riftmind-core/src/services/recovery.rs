@@ -16,7 +16,9 @@ pub async fn validate_bundle(bytes: &[u8], candidate: &Path) -> Result<Settings>
                 .ok_or(AppError::new(ErrorCode::BackupInvalid))?,
         )
         .map_err(|_| AppError::new(ErrorCode::BackupInvalid))?;
-    if ![1, 2, 3, 4, 5].iter().any(|n| value["schemaVersion"] == *n)
+    if !value["schemaVersion"]
+        .as_u64()
+        .is_some_and(|version| (1..=u64::from(storage::DATABASE_VERSION)).contains(&version))
         || value["sha256"] != storage::hash(&db)
     {
         return Err(AppError::new(ErrorCode::BackupInvalid));
@@ -37,7 +39,7 @@ pub async fn validate_bundle(bytes: &[u8], candidate: &Path) -> Result<Settings>
         let version: i64 = sqlx::query_scalar("PRAGMA user_version")
             .fetch_one(&pool)
             .await?;
-        if !(1..=5).contains(&version) {
+        if !(1..=i64::from(storage::DATABASE_VERSION)).contains(&version) {
             return Err(AppError::new(ErrorCode::BackupInvalid));
         }
         let check: String = sqlx::query_scalar("PRAGMA quick_check")

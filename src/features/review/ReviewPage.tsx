@@ -1,9 +1,19 @@
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from '../../components/ui/collapsible';
 import { matchOutcomeClasses } from '../../lib/match-outcome';
 import { ChampionSelect } from '../../components/ChampionSelect';
 import { ReviewEventContext } from './ReviewEventContext';
 import { PersonalBaselinePanel } from '../analysis/PersonalBaselinePanel';
 import { blankNotebook, useNotebookDrafts } from '../champion-notes/notebook-drafts';
-import { GameEntityIcon, skillResourceId } from '../../components/GameEntityIcon';
+import { ChampionArtwork, selectedChampionSkin } from '../../components/ChampionArtwork';
+import {
+  GameEntityIcon,
+  skillResourceId,
+  portraitCatalogueVersion,
+} from '../../components/GameEntityIcon';
 import {
   queueName,
   positionName,
@@ -19,7 +29,7 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, RefreshCw, FileText, Swords } from 'lucide-react';
+import { ChevronRight, ArrowLeft, RefreshCw, FileText } from 'lucide-react';
 import { reviewRoute } from '../../app/router';
 import { transport } from '../../app/runtime';
 import { queryClient } from '../../app/query-client';
@@ -33,6 +43,7 @@ import {
   CardDescription,
 } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import { Textarea } from '../../components/ui/textarea';
 import { Input } from '../../components/ui/input';
@@ -75,6 +86,9 @@ export function ReviewPage() {
   const playerKey = search.player || '';
   const key = { matchKey, playerKey };
   const [taskId, setTaskId] = useState<string | null>(null);
+  const [section, setSection] = useState(
+    search.evidence || search.at != null ? 'timeline' : 'overview',
+  );
   const [metric, setMetric] = useState<'gold' | 'cs'>('gold');
   const [eventKind, setEventKind] = useState('all');
   const [cursor, setCursor] = useState<number | null>(null);
@@ -133,6 +147,21 @@ export function ReviewPage() {
         resourceIds: resourceItems.map((id) => ({ kind: 'item' as const, id })),
       }),
     enabled: !!summary?.championId && summary.version !== 'unknown',
+    staleTime: Infinity,
+    retry: false,
+  });
+  const artworkVersion =
+    summary?.version && summary.version !== 'unknown' ? summary.version : portraitCatalogueVersion;
+  const artworkLocale = i18n.language === 'zh-CN' ? 'zh-CN' : 'en-US';
+  const skins = useQuery({
+    queryKey: ['champion-skins', artworkVersion, artworkLocale, summary?.championId],
+    queryFn: () =>
+      transport.call('get_champion_skins', {
+        championId: summary!.championId!,
+        version: artworkVersion,
+        locale: artworkLocale,
+      }),
+    enabled: !!summary?.championId,
     staleTime: Infinity,
     retry: false,
   });
@@ -428,6 +457,7 @@ export function ReviewPage() {
     [navigate, matchKey, search],
   );
   function selectEvidence(id: string) {
+    setSection('timeline');
     const e =
       report?.evidence.find((e) => e.id === id) || timeline.data?.events.find((e) => e.id === id);
     setCursor(null);
@@ -479,15 +509,12 @@ export function ReviewPage() {
   return (
     <div
       data-ui="page"
-      className="max-w-[1400px] pt-[30px] px-9 pb-[26px] m-auto max-[1150.01px]:p-[26px] max-[900.01px]:p-[22px] max-[650.01px]:py-[18px] max-[650.01px]:px-4 grid grid-cols-1 gap-6 min-w-0 [&_[data-ui~=page-heading]]:mb-0 [&_[data-ui~=page-heading]_p]:text-muted-foreground [&_[data-ui~=page-heading]_p]:text-[12px] [&_[data-ui~=page-heading]_p]:mt-1 [&_[data-ui~=page-heading]_p]:wrap-anywhere [&_[data-ui~=actions]]:flex-wrap [&_label]:grid [&_label]:gap-1.5 [&_label]:text-[12px] [&_label_input]:max-w-40"
+      className="mx-auto grid w-full max-w-[1600px] min-w-0 grid-cols-1 gap-5 p-6 max-[900px]:p-4 [&_[data-ui~=actions]]:flex-wrap [&_label]:grid [&_label]:gap-1.5 [&_label]:text-xs [&_label_input]:max-w-40"
     >
-      <div
-        data-ui="page-heading"
-        className="flex items-center justify-between gap-6 mb-7 max-[650.01px]:mb-[22px] max-[650.01px]:gap-2.5"
-      >
+      <div data-ui="page-heading" className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1>{t('review.title')}</h1>
-          <p>{matchName(t, matchKey)}</p>
+          <h1 className="text-xl font-semibold">{t('review.title')}</h1>
+          <p className="mt-1 text-xs text-muted-foreground">{matchName(t, matchKey)}</p>
         </div>
         <Button variant="outline" onClick={back}>
           <ArrowLeft aria-hidden="true" size={15} />
@@ -517,22 +544,6 @@ export function ReviewPage() {
           </Button>
         </div>
       )}
-      {report && epoch && (
-        <>
-          <ReviewEventContext
-            key={`${report.id}:${search.evidence || ''}`}
-            reportId={report.id}
-            epoch={epoch}
-            at={search.at}
-            evidenceId={search.evidence}
-            onSelect={(at, evidence) => {
-              if (evidence) selectEvidence(evidence);
-              else selectTime(at);
-            }}
-          />
-          <PersonalBaselinePanel reportId={report.id} epoch={epoch} player={playerKey} />
-        </>
-      )}
       {data.isLoading && <Skeleton className="min-h-40" />}
       {!playerKey && (
         <Alert>
@@ -541,17 +552,25 @@ export function ReviewPage() {
       )}
       {data.data && (
         <>
-          <Card>
-            <CardHeader className="pb-4">
+          <Card
+            data-ui="review-summary"
+            className="relative isolate overflow-hidden border-primary/20 bg-card"
+          >
+            <ChampionArtwork
+              skin={selectedChampionSkin(skins.data?.skins || [], undefined)}
+              version={artworkVersion}
+              banner
+            />
+            <CardHeader className="relative pb-4">
               <div className="flex items-center gap-3.5 min-w-0">
-                <div className="w-[52px] h-[52px] rounded-[10px] [flex:0_0_52px] overflow-hidden grid place-items-center bg-muted text-muted-foreground [&_img]:w-full [&_img]:h-full [&_img]:object-cover">
-                  {champion?.reference ? (
-                    <img src={champion.reference} alt="" />
-                  ) : (
-                    <Swords aria-hidden="true" size={24} />
-                  )}
-                </div>
-                <div className="min-w-0 [&_[data-slot='card-title']]:text-[18px] [&_[data-slot='card-title']]:mb-[5px]">
+                <GameEntityIcon
+                  kind="champion"
+                  id={summary?.championId}
+                  version={summary?.version}
+                  label={champion?.name || championName(t, summary?.championId)}
+                  className="size-20 rounded-xl border border-primary/40 max-[650px]:size-16"
+                />
+                <div className="min-w-0 [&_[data-slot='card-title']]:text-2xl [&_[data-slot='card-title']]:mb-[5px]">
                   <CardTitle>
                     {champion?.name || championName(t, data.data.summary.championId)}
                   </CardTitle>
@@ -585,8 +604,28 @@ export function ReviewPage() {
                   </CardDescription>
                 </div>
               </div>
+              {!!summary?.items.length && (
+                <div
+                  className="flex flex-wrap gap-1.5 pt-4"
+                  aria-label={t('notebooks.actualItems')}
+                >
+                  {summary.items.map((id, index) => (
+                    <GameEntityIcon
+                      key={`${index}:${id}`}
+                      kind="item"
+                      id={id}
+                      version={summary.version}
+                      label={
+                        assets.data?.find((asset) => asset.resourceId === `item:${id}`)?.name ||
+                        t('labels.item', { id })
+                      }
+                      className="size-9 border border-border"
+                    />
+                  ))}
+                </div>
+              )}
             </CardHeader>
-            <CardContent className="grid gap-3.5">
+            <CardContent className="relative grid gap-3.5">
               <div className="flex items-center justify-between gap-y-3 gap-x-5 flex-wrap [&_[data-ui~=actions]:first-child]:gap-1.5 max-[700.01px]:items-start max-[700.01px]:flex-col">
                 <div data-ui="actions" className="flex items-center gap-2">
                   <Badge>
@@ -661,489 +700,574 @@ export function ReviewPage() {
               )}
             </CardContent>
           </Card>
-          {report ? (
-            <>
-              <Card>
-                <CardHeader>
-                  <CardTitle>{t('review.overview')}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-5 gap-y-5 gap-x-0 [&_>_div]:grid [&_>_div]:gap-1 [&_>_div]:content-start [&_>_div]:py-0 [&_>_div]:px-[18px] [&_>_div]:border-l [&_>_div]:border-l-border [&_>_div]:min-w-0 min-[1100.01px]:[&>div:nth-child(5n+1)]:border-l-0 min-[1100.01px]:[&>div:nth-child(5n+1)]:pl-0 min-[700.01px]:max-[1100.01px]:[&>div:nth-child(4n+1)]:border-l-0 min-[700.01px]:max-[1100.01px]:[&>div:nth-child(4n+1)]:pl-0 max-[700.01px]:[&>div:nth-child(2n+1)]:border-l-0 max-[700.01px]:[&>div:nth-child(2n+1)]:pl-0 [&_strong]:text-[24px] [&_strong]:leading-[1.4] [&_strong]:font-semibold [&_strong]:tabular-nums [&_strong]:tracking-[-.5px] [&_span]:text-muted-foreground [&_span]:text-[12px] [&_span]:leading-[1.6] [&_small]:text-muted-foreground [&_small]:text-[12px] [&_small]:leading-[1.6] max-[1100.01px]:grid-cols-4 max-[700.01px]:grid-cols-2 ">
-                    {report.metrics
-                      .filter((m) =>
-                        [
-                          'kills',
-                          'deaths',
-                          'assists',
-                          'kda',
-                          'cs_per_min',
-                          'participation',
-                          'gold_share',
-                          'damage_share',
-                          'cs_10',
-                          'gold_diff_10',
-                        ].includes(m.id),
-                      )
-                      .map((m) => (
-                        <div key={m.id}>
-                          <span>
-                            {t(`review.metric_${m.id}`, {
-                              defaultValue: t('labels.unknownMetric'),
-                            })}
-                          </span>
-                          <strong>
-                            {numberText(m.value, m.id === 'kda' ? undefined : m.unit)}
-                          </strong>
-                          {m.reason && (
-                            <small>
-                              {t(`review.reason_${m.reason}`, {
-                                defaultValue: t('labels.unknownReason'),
-                              })}
-                            </small>
-                          )}
-                          {m.sampledAtMs != null && <small>{matchTime(m.sampledAtMs)}</small>}
-                        </div>
-                      ))}
-                  </div>
-                </CardContent>
-              </Card>
-              <div className="grid grid-cols-2 gap-y-6 gap-x-8 max-[1000.01px]:grid-cols-1 max-[1000.01px]:gap-5">
-                {report.findings.map((f) => (
-                  <Card
-                    className="border-0 border-l-2 border-l-border rounded-none bg-transparent pl-[18px]"
-                    key={f.id}
-                  >
-                    <CardHeader className="pt-0 px-0 pb-3 gap-2 [&_[data-slot='card-title']]:flex [&_[data-slot='card-title']]:items-center [&_[data-slot='card-title']]:gap-2 [&_[data-slot='card-title']]:text-[14px] [&_[data-slot='card-title']]:leading-[1.6] [&_[data-slot='card-description']]:text-[13px] [&_[data-slot='card-description']]:leading-[1.8] [&_[data-slot='card-description']]:max-w-[65ch]">
-                      <CardTitle>
-                        {f.priority > 0 && <Badge variant="secondary">{f.priority}</Badge>}{' '}
-                        {t(`review.${f.messageKey}`, {
-                          ...f.params,
-                          defaultValue: t('review.overview'),
-                        })}
-                      </CardTitle>
-                      <CardDescription>
-                        {f.actionKey && t(`review.${f.actionKey}`, { defaultValue: '' })}
-                      </CardDescription>
+          <Tabs value={section} onValueChange={setSection} className="min-w-0">
+            <TabsList className="mb-5 h-11 w-full justify-start rounded-none border-b border-border bg-transparent p-0">
+              {['overview', 'timeline', 'notes'].map((section) => (
+                <TabsTrigger
+                  key={section}
+                  value={section}
+                  className="h-11 rounded-none border-b-2 border-transparent px-5 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+                >
+                  {t(`review.${section}`)}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+            <TabsContent
+              value="overview"
+              forceMount
+              className="hidden space-y-5 data-[state=active]:block"
+            >
+              {report ? (
+                <>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>{t('review.overview')}</CardTitle>
                     </CardHeader>
-                    <CardContent
-                      data-ui="review-stack"
-                      className="grid grid-cols-1 min-w-0 p-0 gap-2.5"
-                    >
-                      <div
-                        data-ui="actions"
-                        className="flex items-center gap-2 gap-y-1 gap-x-3 [&_[data-slot=button]]:p-0 [&_[data-slot=button]]:h-7 [&_[data-slot=button]]:text-primary [&_[data-slot=button]]:text-[12px]"
-                      >
-                        {f.evidenceIds.map((id) => (
-                          <Button
-                            key={id}
-                            variant="link"
-                            size="sm"
-                            onClick={() => selectEvidence(id)}
-                          >
-                            {report.evidence.find((e) => e.id === id)?.timestampMs != null
-                              ? matchTime(report.evidence.find((e) => e.id === id)!.timestampMs!)
-                              : t('review.evidence')}
-                          </Button>
-                        ))}
+                    <CardContent>
+                      <div className="grid grid-cols-5 gap-y-5 gap-x-0 [&_>_div]:grid [&_>_div]:gap-1 [&_>_div]:content-start [&_>_div]:py-0 [&_>_div]:px-[18px] [&_>_div]:border-l [&_>_div]:border-l-border [&_>_div]:min-w-0 min-[1100.01px]:[&>div:nth-child(5n+1)]:border-l-0 min-[1100.01px]:[&>div:nth-child(5n+1)]:pl-0 min-[700.01px]:max-[1100.01px]:[&>div:nth-child(4n+1)]:border-l-0 min-[700.01px]:max-[1100.01px]:[&>div:nth-child(4n+1)]:pl-0 max-[700.01px]:[&>div:nth-child(2n+1)]:border-l-0 max-[700.01px]:[&>div:nth-child(2n+1)]:pl-0 [&_strong]:text-[24px] [&_strong]:leading-[1.4] [&_strong]:font-semibold [&_strong]:tabular-nums [&_strong]:tracking-[-.5px] [&_span]:text-muted-foreground [&_span]:text-[12px] [&_span]:leading-[1.6] [&_small]:text-muted-foreground [&_small]:text-[12px] [&_small]:leading-[1.6] max-[1100.01px]:grid-cols-4 max-[700.01px]:grid-cols-2 ">
+                        {report.metrics
+                          .filter((m) =>
+                            [
+                              'kills',
+                              'deaths',
+                              'assists',
+                              'kda',
+                              'cs_per_min',
+                              'participation',
+                              'gold_share',
+                              'damage_share',
+                              'cs_10',
+                              'gold_diff_10',
+                            ].includes(m.id),
+                          )
+                          .map((m) => (
+                            <div key={m.id}>
+                              <span>
+                                {t(`review.metric_${m.id}`, {
+                                  defaultValue: t('labels.unknownMetric'),
+                                })}
+                              </span>
+                              <strong>
+                                {numberText(m.value, m.id === 'kda' ? undefined : m.unit)}
+                              </strong>
+                              {m.reason && (
+                                <small>
+                                  {t(`review.reason_${m.reason}`, {
+                                    defaultValue: t('labels.unknownReason'),
+                                  })}
+                                </small>
+                              )}
+                              {m.sampledAtMs != null && <small>{matchTime(m.sampledAtMs)}</small>}
+                            </div>
+                          ))}
                       </div>
-                      <div
-                        data-ui="actions"
-                        className="flex items-center gap-2 [&_[data-slot=button]]:text-muted-foreground [&_[data-slot=button]]:h-7 [&_[data-slot=button]]:text-[12px]"
+                    </CardContent>
+                  </Card>
+                  <div className="grid grid-cols-2 gap-y-6 gap-x-8 max-[1000.01px]:grid-cols-1 max-[1000.01px]:gap-5">
+                    {report.findings.map((f) => (
+                      <Card
+                        className="border-0 border-l-2 border-l-border rounded-none bg-transparent pl-[18px]"
+                        key={f.id}
                       >
-                        {['helpful', 'inaccurate'].map((value) => (
-                          <Button
-                            key={value}
-                            variant={
-                              annotations.data?.feedback.find((x) => x.findingId === f.id)
-                                ?.value === value
-                                ? 'secondary'
-                                : 'ghost'
-                            }
-                            aria-pressed={
-                              annotations.data?.feedback.find((x) => x.findingId === f.id)
-                                ?.value === value
-                            }
-                            size="sm"
-                            disabled={feedback.isPending}
-                            onClick={() =>
-                              feedback.mutate({
-                                id: f.id,
-                                value:
+                        <CardHeader className="pt-0 px-0 pb-3 gap-2 [&_[data-slot='card-title']]:flex [&_[data-slot='card-title']]:items-center [&_[data-slot='card-title']]:gap-2 [&_[data-slot='card-title']]:text-[14px] [&_[data-slot='card-title']]:leading-[1.6] [&_[data-slot='card-description']]:text-[13px] [&_[data-slot='card-description']]:leading-[1.8] [&_[data-slot='card-description']]:max-w-[65ch]">
+                          <CardTitle>
+                            {f.priority > 0 && <Badge variant="secondary">{f.priority}</Badge>}{' '}
+                            {t(`review.${f.messageKey}`, {
+                              ...f.params,
+                              defaultValue: t('review.overview'),
+                            })}
+                          </CardTitle>
+                          <CardDescription>
+                            {f.actionKey && t(`review.${f.actionKey}`, { defaultValue: '' })}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent
+                          data-ui="review-stack"
+                          className="grid grid-cols-1 min-w-0 p-0 gap-2.5"
+                        >
+                          <div
+                            data-ui="actions"
+                            className="flex items-center gap-2 gap-y-1 gap-x-3 [&_[data-slot=button]]:p-0 [&_[data-slot=button]]:h-7 [&_[data-slot=button]]:text-primary [&_[data-slot=button]]:text-[12px]"
+                          >
+                            {f.evidenceIds.map((id) => (
+                              <Button
+                                key={id}
+                                variant="link"
+                                size="sm"
+                                onClick={() => selectEvidence(id)}
+                              >
+                                {report.evidence.find((e) => e.id === id)?.timestampMs != null
+                                  ? matchTime(
+                                      report.evidence.find((e) => e.id === id)!.timestampMs!,
+                                    )
+                                  : t('review.evidence')}
+                              </Button>
+                            ))}
+                          </div>
+                          <div
+                            data-ui="actions"
+                            className="flex items-center gap-2 [&_[data-slot=button]]:text-muted-foreground [&_[data-slot=button]]:h-7 [&_[data-slot=button]]:text-[12px]"
+                          >
+                            {['helpful', 'inaccurate'].map((value) => (
+                              <Button
+                                key={value}
+                                variant={
                                   annotations.data?.feedback.find((x) => x.findingId === f.id)
                                     ?.value === value
-                                    ? null
-                                    : value,
-                              })
-                            }
-                          >
-                            {t(`review.${value}`)}
-                          </Button>
-                        ))}
-                      </div>
-                      {f.limitations.map((l) => (
-                        <p className="text-muted-foreground text-[12px]" key={l}>
+                                    ? 'secondary'
+                                    : 'ghost'
+                                }
+                                aria-pressed={
+                                  annotations.data?.feedback.find((x) => x.findingId === f.id)
+                                    ?.value === value
+                                }
+                                size="sm"
+                                disabled={feedback.isPending}
+                                onClick={() =>
+                                  feedback.mutate({
+                                    id: f.id,
+                                    value:
+                                      annotations.data?.feedback.find((x) => x.findingId === f.id)
+                                        ?.value === value
+                                        ? null
+                                        : value,
+                                  })
+                                }
+                              >
+                                {t(`review.${value}`)}
+                              </Button>
+                            ))}
+                          </div>
+                          {f.limitations.map((l) => (
+                            <p className="text-muted-foreground text-[12px]" key={l}>
+                              {t(`review.reason_${l}`, { defaultValue: t('labels.unknownReason') })}
+                            </p>
+                          ))}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                  <ErrorNotice error={feedback.error} />
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>{t('review.limits')}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {report.limitations.map((l) => (
+                        <p key={l}>
                           {t(`review.reason_${l}`, { defaultValue: t('labels.unknownReason') })}
                         </p>
                       ))}
                     </CardContent>
                   </Card>
-                ))}
-              </div>
-              <ErrorNotice error={feedback.error} />
-              <Card>
-                <CardHeader>
-                  <CardTitle>{t('review.limits')}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {report.limitations.map((l) => (
-                    <p key={l}>
-                      {t(`review.reason_${l}`, { defaultValue: t('labels.unknownReason') })}
-                    </p>
-                  ))}
-                </CardContent>
-              </Card>
-            </>
-          ) : (
-            <Alert>
-              <AlertDescription>{t('review.noReport')}</AlertDescription>
-            </Alert>
-          )}
-          {input && (
-            <Card>
-              <CardHeader>
-                <CardTitle>{t('review.timeline')}</CardTitle>
-                <CardDescription>
-                  {t('review.gapsHelp')} · {t('review.targetParticipant')}:{' '}
-                  {participantLabel(input.context.targetId)}
-                </CardDescription>
-              </CardHeader>
-              <CardContent data-ui="review-stack" className="grid grid-cols-1 gap-4 min-w-0">
-                <div data-ui="actions" className="flex items-center gap-2">
-                  <Button
-                    aria-pressed={metric === 'gold'}
-                    variant={metric === 'gold' ? 'default' : 'outline'}
-                    onClick={() => setMetric('gold')}
-                  >
-                    {t('review.gold')}
-                  </Button>
-                  <Button
-                    aria-pressed={metric === 'cs'}
-                    variant={metric === 'cs' ? 'default' : 'outline'}
-                    onClick={() => setMetric('cs')}
-                  >
-                    {t('review.cs')}
-                  </Button>
-                  <Label>
-                    {t('review.time')}
-                    <Input
-                      aria-label={t('review.time')}
-                      type="number"
-                      min={0}
-                      max={Math.floor(input.context.durationMs / 1000)}
-                      value={time}
-                      placeholder="600"
-                      onChange={(e) => setTime(e.target.value)}
-                    />
-                  </Label>
-                  <Button
-                    variant="outline"
-                    disabled={
-                      time === '' ||
-                      Number(time) < 0 ||
-                      Number(time) * 1000 > input.context.durationMs
-                    }
-                    onClick={() => selectTime(Number(time) * 1000)}
-                  >
-                    {t('review.locate')}
-                  </Button>
-                  {search.at != null && (
-                    <Button
-                      variant="ghost"
-                      onClick={() => {
-                        setCursor(null);
-                        void navigate({
-                          to: '/matches/$matchKey/review',
-                          params: { matchKey },
-                          search: { ...search, at: undefined, evidence: undefined },
-                        });
-                      }}
-                    >
-                      {t('common.reset')}
-                    </Button>
-                  )}
-                </div>
-                <ErrorNotice error={chart.error} />
-                {chart.data && (
-                  <ChartBoundary key={input.revision} fallback={t('review.chartFailed')}>
-                    <Suspense fallback={<Skeleton className="min-h-40" />}>
-                      <Chart
-                        data={chart.data}
-                        metric={metric}
-                        onSelect={selectTime}
-                        highlight={
-                          search.at == null
-                            ? undefined
-                            : [
-                                Math.max(0, search.at - 60000),
-                                Math.min(input.context.durationMs, search.at + 60000),
-                              ]
-                        }
-                      />
-                    </Suspense>
-                  </ChartBoundary>
-                )}
-                <div className="max-h-[250px] overflow-auto border-t border-t-border [&_thead]:sticky [&_thead]:top-0 [&_thead]:bg-card [&_thead]:z-1 [&_th]:text-[12px] [&_th]:tabular-nums [&_td]:text-[12px] [&_td]:tabular-nums [&_td_[data-slot=button]]:py-0 [&_td_[data-slot=button]]:px-1 [&_td_[data-slot=button]]:h-7 [&_td_[data-slot=button]]:text-[12px]">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>{t('review.timeLabel')}</TableHead>
-                        <TableHead>{t('review.gold')}</TableHead>
-                        <TableHead>{t('review.cs')}</TableHead>
-                        <TableHead>
-                          {t('review.opponent')} · {t('review.gold')}
-                        </TableHead>
-                        <TableHead>
-                          {t('review.opponent')} · {t('review.cs')}
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {chart.data?.points.map((p) => (
-                        <TableRow key={p.timestampMs}>
-                          <TableCell>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => selectTime(p.timestampMs)}
-                            >
-                              {matchTime(p.timestampMs)}
-                            </Button>
-                          </TableCell>
-                          <TableCell>{numberText(p.gold)}</TableCell>
-                          <TableCell>{numberText(p.cs)}</TableCell>
-                          <TableCell>{numberText(p.opponentGold)}</TableCell>
-                          <TableCell>{numberText(p.opponentCs)}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-                <Label htmlFor="event-filter">{t('review.eventFilter')}</Label>
-                <Select
-                  value={eventKind}
-                  onValueChange={(v) => {
-                    setEventKind(v);
-                    setCursor(null);
-                  }}
-                >
-                  <SelectTrigger id="event-filter" aria-label={t('review.eventFilter')}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {['all', 'deaths', 'objectives', 'build'].map((k) => (
-                      <SelectItem key={k} value={k}>
-                        {t(`review.events_${k}`)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <ErrorNotice error={timeline.error} />
-                <div className="grid max-h-80 overflow-auto">
-                  {timeline.data?.events.map((e) => (
-                    <div
-                      className="flex flex-wrap gap-y-2 gap-x-4 items-center text-[12px] py-2 px-0 border-b border-b-border last:border-b-0 [&_[data-slot=button]]:justify-start [&_[data-slot=button]]:text-primary [&_[data-slot=button]]:py-0 [&_[data-slot=button]]:px-1 [&_[data-slot=button]]:text-[12px] [&_>_span]:text-muted-foreground data-[selected=true]:bg-accent data-[selected=true]:rounded-[var(--radius)]"
-                      key={e.id}
-                    >
-                      <Button
-                        variant="ghost"
-                        disabled={!report}
-                        onClick={() => selectEvidence(e.id)}
-                      >
-                        {matchTime(e.timestampMs)} ·{' '}
-                        {t(`review.event_${e.kind}`, { defaultValue: t('labels.unknownEvent') })}
-                      </Button>
-                      <span>
-                        {participantLabel(e.participantId ?? e.killerId)}
-                        {e.killerId != null &&
-                          e.killerId === enemyJungler &&
-                          ` (${t('review.enemyJungler')})`}
-                        {e.victimId != null && <> → {participantLabel(e.victimId)}</>}{' '}
-                        {e.itemId != null && (
-                          <GameEntityIcon
-                            kind="item"
-                            id={e.itemId}
-                            version={summary?.version}
-                            label={t('labels.item', { id: e.itemId })}
-                          />
-                        )}
-                        {e.skillSlot != null && (
-                          <GameEntityIcon
-                            kind="skill"
-                            id={skillResourceId(
-                              input.context.participants.find(
-                                (participant) => participant.id === e.participantId,
-                              )?.championId,
-                              e.skillSlot,
-                            )}
-                            version={summary?.version}
-                            label={skillName(t, e.skillSlot)}
-                          />
-                        )}
-                        {e.itemId
-                          ? assets.data?.find((a) => a.resourceId === `item:${e.itemId}`)?.name ||
-                            t('labels.item', { id: e.itemId })
-                          : e.monster
-                            ? codeName(t, 'monster', e.monster)
-                            : e.skillSlot
-                              ? skillName(t, e.skillSlot)
-                              : ''}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                <div data-ui="actions" className="flex items-center gap-2">
-                  {cursor != null && (
-                    <Button variant="outline" onClick={() => setCursor(null)}>
-                      {t('matches.first')}
-                    </Button>
-                  )}
-                  <Button
-                    variant="outline"
-                    disabled={timeline.data?.nextCursor == null}
-                    onClick={() => setCursor(timeline.data!.nextCursor)}
-                  >
-                    {t('matches.next')}
-                  </Button>
-                </div>
-                {search.evidence && (
-                  <Card className="bg-background border-0 [&_pre]:max-h-[260px] [&_pre]:overflow-auto [&_pre]:p-3 [&_pre]:bg-muted [&_pre]:rounded-md [&_pre]:text-[12px] [&_p]:wrap-anywhere">
+                </>
+              ) : (
+                <Alert>
+                  <AlertDescription>{t('review.noReport')}</AlertDescription>
+                </Alert>
+              )}
+              {report && epoch && (
+                <PersonalBaselinePanel reportId={report.id} epoch={epoch} player={playerKey} />
+              )}
+            </TabsContent>
+            <TabsContent value="timeline" forceMount className="hidden data-[state=active]:block">
+              <div className="grid min-w-0 items-start gap-5 min-[1280px]:grid-cols-[minmax(0,1.65fr)_minmax(320px,1fr)]">
+                {input && (
+                  <Card>
                     <CardHeader>
-                      <CardTitle>{t('review.evidence')}</CardTitle>
+                      <CardTitle>{t('review.timeline')}</CardTitle>
+                      <CardDescription>
+                        {t('review.gapsHelp')} · {t('review.targetParticipant')}:{' '}
+                        {participantLabel(input.context.targetId)}
+                      </CardDescription>
                     </CardHeader>
-                    <CardContent>
-                      <ErrorNotice error={evidence.error} />
-                      {evidence.data && (
-                        <>
-                          <p className="text-muted-foreground text-[12px]">
-                            {evidence.data.reference.path} · {evidence.data.reference.snapshotId}
-                          </p>
-                          <pre>{JSON.stringify(evidence.data.raw, null, 2)}</pre>
+                    <CardContent data-ui="review-stack" className="grid grid-cols-1 gap-4 min-w-0">
+                      <div data-ui="actions" className="flex items-center gap-2">
+                        <Button
+                          aria-pressed={metric === 'gold'}
+                          variant={metric === 'gold' ? 'default' : 'outline'}
+                          onClick={() => setMetric('gold')}
+                        >
+                          {t('review.gold')}
+                        </Button>
+                        <Button
+                          aria-pressed={metric === 'cs'}
+                          variant={metric === 'cs' ? 'default' : 'outline'}
+                          onClick={() => setMetric('cs')}
+                        >
+                          {t('review.cs')}
+                        </Button>
+                        <Label>
+                          {t('review.time')}
+                          <Input
+                            aria-label={t('review.time')}
+                            type="number"
+                            min={0}
+                            max={Math.floor(input.context.durationMs / 1000)}
+                            value={time}
+                            placeholder="600"
+                            onChange={(e) => setTime(e.target.value)}
+                          />
+                        </Label>
+                        <Button
+                          variant="outline"
+                          disabled={
+                            time === '' ||
+                            Number(time) < 0 ||
+                            Number(time) * 1000 > input.context.durationMs
+                          }
+                          onClick={() => selectTime(Number(time) * 1000)}
+                        >
+                          {t('review.locate')}
+                        </Button>
+                        {search.at != null && (
                           <Button
-                            variant="outline"
+                            variant="ghost"
                             onClick={() => {
-                              setNoteEvidence(search.evidence!);
-                              setNoteReportId(report!.id);
+                              setCursor(null);
+                              void navigate({
+                                to: '/matches/$matchKey/review',
+                                params: { matchKey },
+                                search: { ...search, at: undefined, evidence: undefined },
+                              });
                             }}
                           >
-                            {t('review.annotateEvidence')}
+                            {t('common.reset')}
                           </Button>
-                        </>
+                        )}
+                      </div>
+                      <ErrorNotice error={chart.error} />
+                      {chart.data && (
+                        <ChartBoundary key={input.revision} fallback={t('review.chartFailed')}>
+                          <Suspense fallback={<Skeleton className="min-h-40" />}>
+                            <Chart
+                              data={chart.data}
+                              metric={metric}
+                              onSelect={selectTime}
+                              highlight={
+                                search.at == null
+                                  ? undefined
+                                  : [
+                                      Math.max(0, search.at - 60000),
+                                      Math.min(input.context.durationMs, search.at + 60000),
+                                    ]
+                              }
+                            />
+                          </Suspense>
+                        </ChartBoundary>
+                      )}
+                      <Collapsible>
+                        <CollapsibleTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            className="group h-auto min-h-9 w-full justify-start gap-2 px-0 py-2 text-left text-sm font-normal whitespace-normal text-muted-foreground"
+                          >
+                            <ChevronRight
+                              aria-hidden="true"
+                              className="size-4 shrink-0 transition-transform group-data-[state=open]:rotate-90 motion-reduce:transition-none"
+                            />
+                            {t('training.numericTable')}
+                          </Button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent
+                          forceMount
+                          className="hidden min-w-0 pb-2 data-[state=open]:block"
+                        >
+                          <div className="max-h-[250px] overflow-auto border-t border-t-border [&_thead]:sticky [&_thead]:top-0 [&_thead]:bg-card [&_thead]:z-1 [&_th]:text-[12px] [&_th]:tabular-nums [&_td]:text-[12px] [&_td]:tabular-nums [&_td_[data-slot=button]]:py-0 [&_td_[data-slot=button]]:px-1 [&_td_[data-slot=button]]:h-7 [&_td_[data-slot=button]]:text-[12px]">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>{t('review.timeLabel')}</TableHead>
+                                  <TableHead>{t('review.gold')}</TableHead>
+                                  <TableHead>{t('review.cs')}</TableHead>
+                                  <TableHead>
+                                    {t('review.opponent')} · {t('review.gold')}
+                                  </TableHead>
+                                  <TableHead>
+                                    {t('review.opponent')} · {t('review.cs')}
+                                  </TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {chart.data?.points.map((p) => (
+                                  <TableRow key={p.timestampMs}>
+                                    <TableCell>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => selectTime(p.timestampMs)}
+                                      >
+                                        {matchTime(p.timestampMs)}
+                                      </Button>
+                                    </TableCell>
+                                    <TableCell>{numberText(p.gold)}</TableCell>
+                                    <TableCell>{numberText(p.cs)}</TableCell>
+                                    <TableCell>{numberText(p.opponentGold)}</TableCell>
+                                    <TableCell>{numberText(p.opponentCs)}</TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        </CollapsibleContent>
+                      </Collapsible>
+                      <Label htmlFor="event-filter">{t('review.eventFilter')}</Label>
+                      <Select
+                        value={eventKind}
+                        onValueChange={(v) => {
+                          setEventKind(v);
+                          setCursor(null);
+                        }}
+                      >
+                        <SelectTrigger id="event-filter" aria-label={t('review.eventFilter')}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {['all', 'deaths', 'objectives', 'build'].map((k) => (
+                            <SelectItem key={k} value={k}>
+                              {t(`review.events_${k}`)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <ErrorNotice error={timeline.error} />
+                      <div className="grid max-h-80 overflow-auto">
+                        {timeline.data?.events.map((e) => (
+                          <div
+                            className="flex flex-wrap gap-y-2 gap-x-4 items-center text-[12px] py-2 px-0 border-b border-b-border last:border-b-0 [&_[data-slot=button]]:justify-start [&_[data-slot=button]]:text-primary [&_[data-slot=button]]:py-0 [&_[data-slot=button]]:px-1 [&_[data-slot=button]]:text-[12px] [&_>_span]:text-muted-foreground data-[selected=true]:bg-accent data-[selected=true]:rounded-[var(--radius)]"
+                            key={e.id}
+                            data-selected={e.id === search.evidence}
+                          >
+                            <Button
+                              variant="ghost"
+                              disabled={!report}
+                              onClick={() => selectEvidence(e.id)}
+                            >
+                              {matchTime(e.timestampMs)} ·{' '}
+                              {t(`review.event_${e.kind}`, {
+                                defaultValue: t('labels.unknownEvent'),
+                              })}
+                            </Button>
+                            <span>
+                              {participantLabel(e.participantId ?? e.killerId)}
+                              {e.killerId != null &&
+                                e.killerId === enemyJungler &&
+                                ` (${t('review.enemyJungler')})`}
+                              {e.victimId != null && <> → {participantLabel(e.victimId)}</>}{' '}
+                              {e.itemId != null && (
+                                <GameEntityIcon
+                                  kind="item"
+                                  id={e.itemId}
+                                  version={summary?.version}
+                                  label={t('labels.item', { id: e.itemId })}
+                                />
+                              )}
+                              {e.skillSlot != null && (
+                                <GameEntityIcon
+                                  kind="skill"
+                                  id={skillResourceId(
+                                    input.context.participants.find(
+                                      (participant) => participant.id === e.participantId,
+                                    )?.championId,
+                                    e.skillSlot,
+                                  )}
+                                  version={summary?.version}
+                                  label={skillName(t, e.skillSlot)}
+                                />
+                              )}
+                              {e.itemId
+                                ? assets.data?.find((a) => a.resourceId === `item:${e.itemId}`)
+                                    ?.name || t('labels.item', { id: e.itemId })
+                                : e.monster
+                                  ? codeName(t, 'monster', e.monster)
+                                  : e.skillSlot
+                                    ? skillName(t, e.skillSlot)
+                                    : ''}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                      <div data-ui="actions" className="flex items-center gap-2">
+                        {cursor != null && (
+                          <Button variant="outline" onClick={() => setCursor(null)}>
+                            {t('matches.first')}
+                          </Button>
+                        )}
+                        <Button
+                          variant="outline"
+                          disabled={timeline.data?.nextCursor == null}
+                          onClick={() => setCursor(timeline.data!.nextCursor)}
+                        >
+                          {t('matches.next')}
+                        </Button>
+                      </div>
+                      {search.evidence && (
+                        <Card className="bg-background border-0 [&_pre]:max-h-[260px] [&_pre]:overflow-auto [&_pre]:p-3 [&_pre]:bg-muted [&_pre]:rounded-md [&_pre]:text-[12px] [&_p]:wrap-anywhere">
+                          <CardHeader>
+                            <CardTitle>{t('review.evidence')}</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <ErrorNotice error={evidence.error} />
+                            {evidence.data && (
+                              <>
+                                <Collapsible>
+                                  <CollapsibleTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      className="group h-auto min-h-9 w-full justify-start gap-2 px-0 py-2 text-left text-sm font-normal whitespace-normal text-muted-foreground"
+                                    >
+                                      <ChevronRight
+                                        aria-hidden="true"
+                                        className="size-4 shrink-0 transition-transform group-data-[state=open]:rotate-90 motion-reduce:transition-none"
+                                      />
+                                      {t('review.evidence')}
+                                    </Button>
+                                  </CollapsibleTrigger>
+                                  <CollapsibleContent
+                                    forceMount
+                                    className="hidden min-w-0 pb-2 data-[state=open]:block"
+                                  >
+                                    <pre>{JSON.stringify(evidence.data.raw, null, 2)}</pre>
+                                  </CollapsibleContent>
+                                </Collapsible>
+                                <Button
+                                  variant="outline"
+                                  onClick={() => {
+                                    setSection('notes');
+                                    setNoteEvidence(search.evidence!);
+                                    setNoteReportId(report!.id);
+                                  }}
+                                >
+                                  {t('review.annotateEvidence')}
+                                </Button>
+                              </>
+                            )}
+                          </CardContent>
+                        </Card>
                       )}
                     </CardContent>
                   </Card>
                 )}
-              </CardContent>
-            </Card>
-          )}
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('review.notes')}</CardTitle>
-              <CardDescription>
-                {t(
-                  noteEvidence || editing?.evidenceId ? 'labels.evidenceNote' : 'review.matchNote',
-                )}
-              </CardDescription>
-            </CardHeader>
-            <CardContent data-ui="review-stack" className="grid grid-cols-1 gap-4 min-w-0">
-              <ErrorNotice error={annotations.error || saveNote.error || remove.error} />
-              {(saveNote.error as AppError | null)?.code === 'REVISION_CONFLICT' && (
-                <Button variant="outline" onClick={() => void refreshNoteRevision()}>
-                  {t('review.refreshNoteRevision')}
-                </Button>
-              )}
-              <Label htmlFor="review-note-text">{t('review.noteText')}</Label>
-              <Textarea
-                aria-label={t('review.noteText')}
-                id="review-note-text"
-                maxLength={10000}
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-              />
-              <div data-ui="actions" className="flex items-center gap-2">
-                <Button
-                  disabled={!text.trim() || saveNote.isPending}
-                  onClick={() => saveNote.mutate()}
-                >
-                  {t('review.saveNote')}
-                </Button>
-                {(editing || noteEvidence || text) && (
-                  <Button
-                    variant="ghost"
-                    onClick={() => {
-                      useWorkspace.getState().setReviewDraft(draftKey, null);
-                      setDraftText('');
-                      setEditing(null);
-                      setNoteEvidence(null);
-                      setNoteReportId(null);
+                {report && epoch && (
+                  <ReviewEventContext
+                    key={`${report.id}:${search.evidence || ''}`}
+                    reportId={report.id}
+                    epoch={epoch}
+                    at={search.at}
+                    evidenceId={search.evidence}
+                    onSelect={(at, evidence) => {
+                      if (evidence) selectEvidence(evidence);
+                      else selectTime(at);
                     }}
-                  >
-                    {t('common.cancel')}
-                  </Button>
+                  />
                 )}
               </div>
-              {annotations.data?.notes.map((n) => (
-                <Card
-                  className="bg-background border-0 [&_[data-slot='card-content']]:p-4"
-                  key={n.id}
-                >
-                  <CardContent>
-                    <p
-                      data-ui="note-text"
-                      className="whitespace-pre-wrap wrap-anywhere leading-[1.8]"
-                    >
-                      {n.text}
-                    </p>
-                    <Button
-                      variant="outline"
-                      onClick={() => createNotebook(n.text, n.reportId, n.evidenceId)}
-                    >
-                      {t('notebooks.saveReviewNote')}
+            </TabsContent>
+            <TabsContent value="notes" forceMount className="hidden data-[state=active]:block">
+              <Card>
+                <CardHeader>
+                  <CardTitle>{t('review.notes')}</CardTitle>
+                  <CardDescription>
+                    {t(
+                      noteEvidence || editing?.evidenceId
+                        ? 'labels.evidenceNote'
+                        : 'review.matchNote',
+                    )}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent data-ui="review-stack" className="grid grid-cols-1 gap-4 min-w-0">
+                  <ErrorNotice error={annotations.error || saveNote.error || remove.error} />
+                  {(saveNote.error as AppError | null)?.code === 'REVISION_CONFLICT' && (
+                    <Button variant="outline" onClick={() => void refreshNoteRevision()}>
+                      {t('review.refreshNoteRevision')}
                     </Button>
-                    <small>
-                      {t(n.evidenceId ? 'labels.evidenceNote' : 'review.matchNote')} ·{' '}
-                      {t('review.revision', { n: n.revision })}
-                    </small>
-                    <div data-ui="actions" className="flex items-center gap-2">
+                  )}
+                  <Label htmlFor="review-note-text">{t('review.noteText')}</Label>
+                  <Textarea
+                    aria-label={t('review.noteText')}
+                    id="review-note-text"
+                    maxLength={10000}
+                    className="min-h-40"
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                  />
+                  <div data-ui="actions" className="flex items-center gap-2">
+                    <Button
+                      disabled={!text.trim() || saveNote.isPending}
+                      onClick={() => saveNote.mutate()}
+                    >
+                      {t('review.saveNote')}
+                    </Button>
+                    {(editing || noteEvidence || text) && (
                       <Button
                         variant="ghost"
-                        size="sm"
                         onClick={() => {
-                          setEditing(n);
-                          setNoteEvidence(n.evidenceId);
-                          setNoteReportId(n.reportId);
-                          setDraftText(n.text);
-                          useWorkspace.getState().setReviewDraft(draftKey, {
-                            text: n.text,
-                            note: n,
-                            reportId: n.reportId,
-                            evidenceId: n.evidenceId,
-                            matchKey,
-                            playerKey,
-                            epoch: epoch || '',
-                          });
+                          useWorkspace.getState().setReviewDraft(draftKey, null);
+                          setDraftText('');
+                          setEditing(null);
+                          setNoteEvidence(null);
+                          setNoteReportId(null);
                         }}
                       >
-                        {t('review.edit')}
+                        {t('common.cancel')}
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => setDeleteId(n)}>
-                        {t('review.delete')}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </CardContent>
-          </Card>
+                    )}
+                  </div>
+                  {annotations.data?.notes.map((n) => (
+                    <Card
+                      className="bg-background border-0 [&_[data-slot='card-content']]:p-4"
+                      key={n.id}
+                    >
+                      <CardContent>
+                        <p
+                          data-ui="note-text"
+                          className="whitespace-pre-wrap wrap-anywhere leading-[1.8]"
+                        >
+                          {n.text}
+                        </p>
+                        <Button
+                          variant="outline"
+                          onClick={() => createNotebook(n.text, n.reportId, n.evidenceId)}
+                        >
+                          {t('notebooks.saveReviewNote')}
+                        </Button>
+                        <small>
+                          {t(n.evidenceId ? 'labels.evidenceNote' : 'review.matchNote')} ·{' '}
+                          {t('review.revision', { n: n.revision })}
+                        </small>
+                        <div data-ui="actions" className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setEditing(n);
+                              setNoteEvidence(n.evidenceId);
+                              setNoteReportId(n.reportId);
+                              setDraftText(n.text);
+                              useWorkspace.getState().setReviewDraft(draftKey, {
+                                text: n.text,
+                                note: n,
+                                reportId: n.reportId,
+                                evidenceId: n.evidenceId,
+                                matchKey,
+                                playerKey,
+                                epoch: epoch || '',
+                              });
+                            }}
+                          >
+                            {t('review.edit')}
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => setDeleteId(n)}>
+                            {t('review.delete')}
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
           {supported && (
             <Card>
               <CardHeader>

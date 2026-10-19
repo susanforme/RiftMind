@@ -32,7 +32,8 @@ export function AnalysisFilters({
   const [draft, setDraft] = useState(search);
   return (
     <form
-      className="flex items-end gap-2.5 mb-5 [&_>_svg]:text-muted-foreground [&_>_svg]:mt-0 [&_>_svg]:mr-0.5 [&_>_svg]:mb-[9px] [&_>_svg]:ml-0 [&_label]:grid [&_label]:gap-1.5 [&_label]:flex-1 [&_label]:min-w-[125px] [&_label]:max-w-[200px] [&_label_>_span]:text-[12px] [&_label_>_span]:text-muted-foreground [&_input]:h-9 [&_input]:bg-card [&_input]:text-[12px] [&_input]:shadow-none [&_button[role=combobox]]:w-full [&_button[role=combobox]]:h-9 [&_button[role=combobox]]:bg-card [&_button[role=combobox]]:text-[12px] [&_button[role=combobox]]:shadow-none [&_>_[data-slot=button]]:h-9 max-[650.01px]:[&_label]:min-w-[125px] max-[650.01px]:[&_label]:max-w-none max-[650.01px]:[&_>_svg]:hidden flex-wrap [&&_>_label]:min-w-[100px] [&&_>_label]:flex-1 [&_input]:w-full max-[960.01px]:[&&_>_label]:min-w-[130px]"
+      data-ui="analysis-filters"
+      className="grid min-w-0 grid-cols-2 items-end gap-3 rounded-lg border border-border bg-card p-4 sm:grid-cols-3 xl:grid-cols-5 [&_label]:grid [&_label]:min-w-0 [&_label]:gap-2 [&_label]:text-xs [&_label]:text-muted-foreground [&_input]:w-full [&_button[role=combobox]]:w-full [&_button[role=combobox]]:min-w-0"
       onSubmit={(e) => {
         e.preventDefault();
         onChange(draft);
@@ -127,19 +128,21 @@ export function AnalysisFilters({
           onChange={(e) => setDraft({ ...draft, to: e.target.value || undefined })}
         />
       </Label>
-      <Button type="submit" variant="outline">
-        {t('matches.filter')}
-      </Button>
-      <Button
-        type="button"
-        variant="ghost"
-        onClick={() => {
-          setDraft({});
-          onChange({});
-        }}
-      >
-        {t('common.reset')}
-      </Button>
+      <div className="col-span-2 flex flex-wrap items-center gap-2 self-end">
+        <Button type="submit" variant="outline">
+          {t('matches.filter')}
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={() => {
+            setDraft({});
+            onChange({});
+          }}
+        >
+          {t('common.reset')}
+        </Button>
+      </div>
     </form>
   );
 }

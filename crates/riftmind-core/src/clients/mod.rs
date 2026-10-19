@@ -637,12 +637,46 @@ pub fn synthetic_page(p: &Player, offset: u32) -> Value {
     let games:Vec<_>=(offset..(offset+50).min(125)).map(|i|json!({"json":{"gameId":format!("900719925474{}",100+i),"gameCreation":1792108800000_i64-i as i64*3600000,"gameVersion":"16.20.1","queueId":if i%3==0{450}else{420},"gameDuration":1500+i*3,"participants":[{"puuid":p.puuid,"championId":if i%2==0{103}else{64},"kills":8+i%6,"deaths":3+i%4,"assists":12,"totalMinionsKilled":180,"teamPosition":"MIDDLE","win":i%3!=0,"item0":3089,"item1":3020}]}})).collect();
     json!({"games":games})
 }
+pub fn player_from_summoner(raw: &Value, server: &str, fallback_name: &str) -> Result<Player> {
+    let puuid = raw["puuid"]
+        .as_str()
+        .filter(|value| !value.is_empty())
+        .ok_or(AppError::new(ErrorCode::NotFound))?;
+    domain::validate_key(puuid)?;
+    if raw["serverId"].as_str().is_some_and(|id| id != server) {
+        return Err(AppError::new(ErrorCode::RegionConflict));
+    }
+    let name = ["gameName", "displayName", "summonerName"]
+        .iter()
+        .find_map(|key| raw[key].as_str().filter(|value| !value.is_empty()))
+        .unwrap_or(fallback_name);
+    let display_name = match raw["tagLine"].as_str().filter(|value| !value.is_empty()) {
+        Some(tag) => format!("{name}#{tag}"),
+        None => name.into(),
+    };
+    Ok(Player {
+        player_key: format!("{server}:{puuid}"),
+        server_id: server.into(),
+        puuid: puuid.into(),
+        display_name,
+        profile_icon_id: raw["profileIconId"]
+            .as_u64()
+            .and_then(|value| value.try_into().ok()),
+        summoner_level: raw["summonerLevel"]
+            .as_u64()
+            .and_then(|value| value.try_into().ok())
+            .filter(|value| *value > 0),
+        updated_at: storage::now(),
+    })
+}
 pub fn synthetic_player(server: &str) -> Player {
     Player {
         player_key: format!("{server}:synthetic-player"),
         server_id: server.into(),
         puuid: "synthetic-player".into(),
         display_name: "Rift Walker #DEMO".into(),
+        profile_icon_id: None,
+        summoner_level: None,
         updated_at: storage::now(),
     }
 }

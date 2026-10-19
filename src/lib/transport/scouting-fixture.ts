@@ -58,6 +58,8 @@ export function scoutingFixture(
                 serverId: logged.serverId,
                 puuid: p.puuid,
                 displayName: `${p.gameName}#${p.tagLine}`,
+                profileIconId: null,
+                summonerLevel: null,
                 updatedAt: c.now.toISOString(),
               },
               championId: p.championId,

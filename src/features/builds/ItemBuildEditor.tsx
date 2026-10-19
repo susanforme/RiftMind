@@ -12,14 +12,14 @@ import { ErrorNotice } from '../../components/ErrorNotice';
 export function BuildGroups({ groups, version }: { groups: BuildGroup[]; version: string | null }) {
   const { t } = useTranslation();
   return (
-    <div className="flex flex-wrap gap-4 [&_>_div]:grid [&_>_div]:gap-2">
+    <div className="flex flex-wrap gap-4 [&_>_div]:grid [&_>_div]:gap-3 [&_>_div]:rounded-lg [&_>_div]:border [&_>_div]:border-border [&_>_div]:bg-muted/20 [&_>_div]:p-3">
       {groups.map((group, index) => (
         <div key={index}>
           <strong>{group.name}</strong>
           <div data-ui="actions" className="flex items-center gap-2">
             {group.items.map((equipment, position) => (
               <span
-                className="inline-flex items-center gap-1.5 me-2.5 align-middle [&_[data-slot='avatar']]:w-6 [&_[data-slot='avatar']]:h-6"
+                className="inline-flex items-center gap-1.5 align-middle text-xs tabular-nums"
                 key={position}
               >
                 <GameEntityIcon
@@ -27,6 +27,7 @@ export function BuildGroups({ groups, version }: { groups: BuildGroup[]; version
                   id={equipment.id}
                   version={version}
                   label={t('notebooks.equipment', { id: equipment.id })}
+                  className="size-10 border border-border"
                 />
                 <span>×{equipment.count}</span>
               </span>

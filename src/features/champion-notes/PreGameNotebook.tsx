@@ -1,3 +1,9 @@
+import { ChevronRight } from 'lucide-react';
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from '../../components/ui/collapsible';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
@@ -104,21 +110,37 @@ export function PreGameNotebook({ snapshot, epoch }: { snapshot?: LiveSnapshot; 
           <ErrorNotice error={entries.error} />
           {!visible.length && <p>{t('notebooks.empty')}</p>}
           {visible.map((entry) => (
-            <details key={entry.id} open={entry.content.pinned || undefined}>
-              <summary>{entry.content.title}</summary>
-              <NotebookEntryView entry={entry} />
-              <Button
-                variant="outline"
-                onClick={() =>
-                  void navigate({
-                    to: '/notebooks',
-                    search: { champion: championId, entry: entry.id },
-                  })
-                }
+            <Collapsible key={entry.id} defaultOpen={entry.content.pinned}>
+              <CollapsibleTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="group h-auto min-h-9 w-full justify-start gap-2 px-0 py-2 text-left text-sm font-normal whitespace-normal text-muted-foreground"
+                >
+                  <ChevronRight
+                    aria-hidden="true"
+                    className="size-4 shrink-0 transition-transform group-data-[state=open]:rotate-90 motion-reduce:transition-none"
+                  />
+                  {entry.content.title}
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent
+                forceMount
+                className="hidden min-w-0 pb-2 data-[state=open]:block"
               >
-                {t('notebooks.openContent')}
-              </Button>
-            </details>
+                <NotebookEntryView entry={entry} />
+                <Button
+                  variant="outline"
+                  onClick={() =>
+                    void navigate({
+                      to: '/notebooks',
+                      search: { champion: championId, entry: entry.id },
+                    })
+                  }
+                >
+                  {t('notebooks.openContent')}
+                </Button>
+              </CollapsibleContent>
+            </Collapsible>
           ))}
         </CardContent>
       )}

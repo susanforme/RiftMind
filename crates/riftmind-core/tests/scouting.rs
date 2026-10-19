@@ -634,7 +634,14 @@ async fn v2_migration_and_backup_upgrade() {
         .execute(&pool)
         .await
         .unwrap();
-    storage::save_player(&pool, &clients::synthetic_player("TENCENT_HN1"))
+    let player = clients::synthetic_player("TENCENT_HN1");
+    sqlx::query("INSERT INTO players VALUES(?,?,?,?,?)")
+        .bind(&player.player_key)
+        .bind(&player.server_id)
+        .bind(&player.puuid)
+        .bind(&player.display_name)
+        .bind(&player.updated_at)
+        .execute(&pool)
         .await
         .unwrap();
     pool.close().await;
@@ -644,7 +651,7 @@ async fn v2_migration_and_backup_upgrade() {
             .fetch_one(&pool)
             .await
             .unwrap(),
-        5
+        i64::from(storage::DATABASE_VERSION)
     );
     assert!(
         sqlx::query("SELECT * FROM favorites")

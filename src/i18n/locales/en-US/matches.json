@@ -48,5 +48,15 @@
   "position_JUNGLE": "Jungle",
   "position_MIDDLE": "Mid",
   "position_BOTTOM": "Bot",
-  "position_UTILITY": "Support"
+  "position_UTILITY": "Support",
+  "details": "Match details",
+  "gold": "Gold",
+  "damage": "Damage",
+  "pageSummary": "{{count}} matches on this page",
+  "winRate": "Win rate",
+  "playerIcon": "{{name}} profile icon",
+  "playerLevel": "Level {{level}}",
+  "artwork": "Banner artwork / skin",
+  "artworkLabel": "{{name}} artwork",
+  "findPlayer": "Find player"
 }

@@ -1,3 +1,4 @@
+import { matchOutcomeClasses } from '../../lib/match-outcome';
 import { GameEntityIcon, skillResourceId } from '../../components/GameEntityIcon';
 import { codeName, queueName, matchName, championName, skillName } from '../../lib/display-names';
 import { lazy, Suspense, useEffect, useState } from 'react';
@@ -145,13 +146,10 @@ export function ComparisonPage() {
   return (
     <div
       data-ui="page"
-      className="max-w-[1400px] pt-[30px] px-9 pb-[26px] m-auto max-[1150.01px]:p-[26px] max-[900.01px]:p-[22px] max-[650.01px]:py-[18px] max-[650.01px]:px-4 grid gap-5 [&_table_small]:block"
+      className="mx-auto grid w-full max-w-[1600px] gap-6 p-4 md:p-6 [&_table_small]:block"
     >
-      <div
-        data-ui="page-heading"
-        className="flex items-center justify-between gap-6 mb-7 max-[650.01px]:mb-[22px] max-[650.01px]:gap-2.5"
-      >
-        <h1>{t('scouting.compare')}</h1>
+      <div data-ui="page-heading" className="flex items-center justify-between gap-4">
+        <h1 className="text-2xl font-semibold tracking-tight">{t('scouting.compare')}</h1>
         <Button variant="outline" onClick={swap} disabled={!data}>
           {t('scouting.swap')}
         </Button>
@@ -159,7 +157,7 @@ export function ComparisonPage() {
       <ErrorNotice error={comparison.error || leftChart.error || rightChart.error} />
       {!search.left || !search.right ? (
         <Card>
-          <CardContent>
+          <CardContent className="pt-5">
             <Button
               variant="link"
               onClick={() => void navigate({ to: '/matches', search: { player: search.player } })}
@@ -171,7 +169,7 @@ export function ComparisonPage() {
       ) : (
         data && (
           <>
-            <div data-ui="actions" className="flex items-center gap-2">
+            <div data-ui="actions" className="flex flex-wrap items-center gap-2">
               {data.differences.map((d) => (
                 <Badge variant="outline" key={d}>
                   {t(`scouting.different_${d}`)}
@@ -180,7 +178,7 @@ export function ComparisonPage() {
             </div>
             <div
               data-ui="compare-sides"
-              className="grid grid-cols-2 gap-5 items-start [&_[data-slot='card-content']]:min-w-0 [&_[data-slot='select-trigger']]:max-w-full max-[960.01px]:grid-cols-1"
+              className="grid min-w-0 items-start gap-6 lg:grid-cols-2 [&_[data-slot='select-trigger']]:max-w-full"
             >
               {(['left', 'right'] as const).map((side) => (
                 <CompareSide
@@ -198,8 +196,8 @@ export function ComparisonPage() {
                 <CardTitle>{t('scouting.metrics')}</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="max-h-[330px] overflow-auto">
-                  <Table>
+                <div className="min-w-0 overflow-x-auto">
+                  <Table className="tabular-nums [&_td:not(:first-child)]:text-right [&_th:not(:first-child)]:text-right">
                     <TableHeader>
                       <TableRow>
                         {['metric', 'left', 'right', 'delta'].map((k) => (
@@ -232,14 +230,15 @@ export function ComparisonPage() {
               </CardContent>
             </Card>
             <Card>
-              <CardHeader>
+              <CardHeader className="flex-row flex-wrap items-center justify-between gap-3">
                 <CardTitle>{t('scouting.elapsed')}</CardTitle>
-                <div data-ui="actions" className="flex items-center gap-2">
+                <div data-ui="actions" className="flex flex-wrap items-center gap-2">
                   {(['gold', 'cs'] as const).map((m) => (
                     <Button
                       key={m}
                       size="sm"
                       variant={metric === m ? 'default' : 'outline'}
+                      aria-pressed={metric === m}
                       onClick={() => setMetric(m)}
                     >
                       {t(`review.${m === 'gold' ? 'gold' : 'cs'}`)}
@@ -398,31 +397,70 @@ function CompareSide({
     });
   }
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle data-ui="actions" className="flex items-center gap-2">
+    <Card data-ui="comparison-side" className={matchOutcomeClasses[m.outcome]}>
+      <CardHeader className="gap-4 border-b border-border bg-muted/20">
+        <div className="flex min-w-0 items-center gap-3">
           <GameEntityIcon
             kind="champion"
             id={m.championId}
             version={m.version}
             label={championName(t, m.championId)}
+            className="size-16 rounded-lg"
           />
-          {t(`scouting.${side}`)} · {matchName(t, m.matchKey)}
-        </CardTitle>
-        <div className="flex items-center gap-2.5 text-[12px] text-muted-foreground mt-[5px]">
-          {t(`matches.${m.outcome}`)} · {m.kills ?? '—'}/{m.deaths ?? '—'}/{m.assists ?? '—'} ·{' '}
-          {matchTime((m.duration || 0) * 1000)} · {m.version} · {queueName(t, m.queueId)} ·{' '}
-          {assets.data?.find((a) => a.resourceId === `champion:${m.championId}`)?.name ||
-            championName(t, m.championId)}
+          <div className="min-w-0 flex-1">
+            <div className="mb-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <span>{t(`scouting.${side}`)}</span>
+              <span>{matchName(t, m.matchKey)}</span>
+            </div>
+            <CardTitle className="text-lg">
+              {assets.data?.find((asset) => asset.resourceId === `champion:${m.championId}`)
+                ?.name || championName(t, m.championId)}
+            </CardTitle>
+            <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+              <span>{queueName(t, m.queueId)}</span>
+              <span>{matchTime((m.duration || 0) * 1000)}</span>
+              <span>{m.version}</span>
+            </div>
+          </div>
+          <Badge variant="outline" className="border-transparent bg-(--row-bg) text-(--outcome)">
+            {t(`matches.${m.outcome}`)}
+          </Badge>
         </div>
-        <span className="text-muted-foreground text-[12px]">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-baseline gap-2 tabular-nums">
+            <span className="text-2xl font-semibold">
+              {m.kills ?? '—'} / {m.deaths ?? '—'} / {m.assists ?? '—'}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {t('scouting.kills')} / {t('scouting.deaths')} / {t('scouting.assists')}
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {(m.items || [])
+              .filter((id) => id > 0)
+              .map((id, index) => (
+                <GameEntityIcon
+                  key={`${id}:${index}`}
+                  kind="item"
+                  id={id}
+                  version={m.version}
+                  label={
+                    assets.data?.find((asset) => asset.resourceId === `item:${id}`)?.name ||
+                    t('labels.item', { id })
+                  }
+                  className="size-7"
+                />
+              ))}
+          </div>
+        </div>
+        <span className="text-xs text-muted-foreground">
           {t('scouting.fixedRevision')}: {i?.revision ?? '—'} /{' '}
           {data.report ? t('labels.reportRevision', { n: data.report.revision }) : '—'}
         </span>
       </CardHeader>
-      <CardContent data-ui="review-stack" className="grid grid-cols-1 gap-4 min-w-0">
+      <CardContent data-ui="review-stack" className="grid min-w-0 gap-4 pt-4">
         <ErrorNotice error={events.error || fetch.error || candidates.error} />
-        <div data-ui="actions" className="flex items-center gap-2">
+        <div data-ui="actions" className="flex flex-wrap items-center gap-2">
           <Button variant="outline" onClick={() => open()}>
             {t('review.open')}
           </Button>
@@ -443,7 +481,7 @@ function CompareSide({
             </Button>
           )}
         </div>
-        <Label>
+        <Label className="grid min-w-0 gap-2 text-xs text-muted-foreground">
           {t('scouting.replace')}
           <Select value="" onValueChange={onReplace}>
             <SelectTrigger>

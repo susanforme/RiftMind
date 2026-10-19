@@ -56,63 +56,65 @@ export default function ReviewChart({
         try {
           const styles = getComputedStyle(ref.current!);
           const color = (token: string) => styles.getPropertyValue(token).trim();
-          chart.setOption(
-            {
-              animation: false,
-              color: [color('--primary'), color('--muted-foreground')],
-              grid: { left: 55, right: 20, top: 42, bottom: 30 },
-              legend: { textStyle: { color: color('--foreground') } },
-              textStyle: { color: color('--foreground') },
-              tooltip: {
-                trigger: 'axis',
-                renderMode: 'richText',
-                valueFormatter: (value: unknown) =>
-                  typeof value === 'number' ? numberText(value) : '—',
-              },
-              xAxis: {
-                type: 'value',
-                axisLabel: { formatter: matchTime, color: color('--muted-foreground') },
-                axisLine: { lineStyle: { color: color('--border') } },
-                min: minTime || 0,
-                max: maxTime,
-              },
-              yAxis: {
-                type: 'value',
-                axisLabel: { color: color('--muted-foreground') },
-                splitLine: { lineStyle: { color: color('--border') } },
-              },
-              series: [
-                {
-                  markArea: highlight
-                    ? {
-                        silent: true,
-                        itemStyle: { color: color('--accent'), opacity: 0.35 },
-                        data: [[{ xAxis: highlight[0] }, { xAxis: highlight[1] }]],
-                      }
-                    : undefined,
-                  name: t(comparison ? 'scouting.left' : 'review.personal'),
-                  type: 'line',
-                  showSymbol: false,
-                  connectNulls: false,
-                  data: data.points.map((p) => [p.timestampMs, p[metric]]),
-                },
-                {
-                  name: t(comparison ? 'scouting.right' : 'review.opponent'),
-                  type: 'line',
-                  showSymbol: false,
-                  connectNulls: false,
-                  lineStyle: { type: 'dashed' },
-                  data: comparison
-                    ? comparison.points.map((p) => [p.timestampMs, p[metric]])
-                    : data.points.map((p) => [
-                        p.timestampMs,
-                        metric === 'gold' ? p.opponentGold : p.opponentCs,
-                      ]),
-                },
-              ],
+          chart.setOption({
+            animation: false,
+            color: [color('--chart-self'), color('--chart-opponent')],
+            grid: { left: 55, right: 20, top: 42, bottom: 30 },
+            legend: { textStyle: { color: color('--foreground') } },
+            textStyle: { color: color('--foreground') },
+            tooltip: {
+              trigger: 'axis',
+              renderMode: 'richText',
+              backgroundColor: color('--popover'),
+              borderColor: color('--border'),
+              textStyle: { color: color('--popover-foreground') },
+              valueFormatter: (value: unknown) =>
+                typeof value === 'number' ? numberText(value) : '—',
             },
-            true,
-          );
+            xAxis: {
+              type: 'value',
+              axisLabel: { formatter: matchTime, color: color('--chart-axis') },
+              axisLine: { lineStyle: { color: color('--chart-axis') } },
+              min: minTime || 0,
+              max: maxTime,
+            },
+            yAxis: {
+              type: 'value',
+              axisLabel: { color: color('--chart-axis') },
+              splitLine: { lineStyle: { color: color('--chart-grid') } },
+            },
+            series: [
+              {
+                markArea: highlight
+                  ? {
+                      silent: true,
+                      itemStyle: { color: color('--accent'), opacity: 0.35 },
+                      data: [[{ xAxis: highlight[0] }, { xAxis: highlight[1] }]],
+                    }
+                  : undefined,
+                id: 'personal',
+                name: t(comparison ? 'scouting.left' : 'review.personal'),
+                type: 'line',
+                showSymbol: false,
+                connectNulls: false,
+                data: data.points.map((p) => [p.timestampMs, p[metric]]),
+              },
+              {
+                id: 'opponent',
+                name: t(comparison ? 'scouting.right' : 'review.opponent'),
+                type: 'line',
+                showSymbol: false,
+                connectNulls: false,
+                lineStyle: { type: 'dashed' },
+                data: comparison
+                  ? comparison.points.map((p) => [p.timestampMs, p[metric]])
+                  : data.points.map((p) => [
+                      p.timestampMs,
+                      metric === 'gold' ? p.opponentGold : p.opponentCs,
+                    ]),
+              },
+            ],
+          });
         } catch {
           setFailed(true);
         }
@@ -133,7 +135,7 @@ export default function ReviewChart({
       themeObserver = new MutationObserver(draw);
       themeObserver.observe(document.documentElement, {
         attributes: true,
-        attributeFilter: ['data-mode'],
+        attributeFilter: ['data-theme', 'data-mode'],
       });
     } catch {
       setFailed(true);
@@ -152,7 +154,7 @@ export default function ReviewChart({
   ) : (
     <div
       data-ui="review-chart"
-      className="w-full h-[280px] min-w-0 overflow-hidden"
+      className="w-full h-[320px] min-w-0 overflow-hidden"
       ref={ref}
       role="img"
       aria-label={label || t(comparison ? 'scouting.comparisonChart' : `review.${metric}Chart`)}

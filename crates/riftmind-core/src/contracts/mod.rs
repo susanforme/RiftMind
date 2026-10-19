@@ -175,6 +175,8 @@ dto!(Player {
     server_id: String,
     puuid: String,
     display_name: String,
+    profile_icon_id: Option<u32>,
+    summoner_level: Option<u32>,
     updated_at: String
 });
 dto!(ConnectionState {phase:ConnectionPhase, session_epoch:String, instance:Option<ClientInstance>, player:Option<Player>, identification:Option<Identification>, sgp_ready:bool, lcu_ready:bool, retry_at:Option<String>});
@@ -239,7 +241,9 @@ enumeration!(ResourceKind {
     Item,
     Rune,
     Spell,
-    Skill
+    Skill,
+    ProfileIcon,
+    ChampionSplash
 });
 dto!(ResourceId {
     kind: ResourceKind,
@@ -247,6 +251,17 @@ dto!(ResourceId {
 });
 dto!(AssetRequest {version:String,locale:String,champion_ids:Vec<u32>,resource_ids:Option<Vec<ResourceId>>});
 dto!(Asset {resource_id:String,requested_version:String,actual_version:Option<String>,locale:String,name:Option<String>,reference:Option<String>,hash:Option<String>,availability:String});
+dto!(ChampionSkinsQuery {
+    champion_id: u32,
+    version: String,
+    locale: String
+});
+dto!(ChampionSkin {
+    id: u32,
+    name: String,
+    is_base: bool
+});
+dto!(ChampionSkinCatalogue {champion_id:u32,skins:Vec<ChampionSkin>});
 dto!(StorageUsage {
     database_bytes: f64,
     asset_bytes: f64,
@@ -315,6 +330,7 @@ registry! {
  get_task_status:IdInput=>Task,
  cancel_task:IdInput=>Task,
  resolve_assets:AssetRequest=>Vec<Asset>,
+ get_champion_skins:ChampionSkinsQuery=>ChampionSkinCatalogue,
  get_storage_usage:Empty=>StorageUsage,
  clear_asset_cache:Empty=>StorageUsage,
  create_backup:Empty=>Task,
@@ -376,6 +392,9 @@ pub fn generate_types() -> String {
         ResourceId,
         AssetRequest,
         Asset,
+        ChampionSkinsQuery,
+        ChampionSkin,
+        ChampionSkinCatalogue,
         StorageUsage,
         MaintenanceResult,
         UpdateStatus,

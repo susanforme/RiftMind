@@ -1,5 +1,5 @@
 {
-  "source": "Riot Data Dragon 16.20.1; UI preview only; no live client data",
+  "source": "Riot Data Dragon 16.20.1 and CommunityDragon 16.20; UI preview only; no live client data",
   "entries": [
     {
       "path": "tests/fixtures/ui-art/skill-1031.png",
@@ -52,6 +52,45 @@
     {
       "path": "tests/fixtures/ui-art/item-1052.png",
       "url": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/item/1052.png"
+    },
+    {
+      "path": "tests/fixtures/ui-art/champion_splash-103000.jpg",
+      "url": "https://raw.communitydragon.org/16.20/plugins/rcp-be-lol-game-data/global/default/assets/characters/ahri/skins/base/images/ahri_splash_uncentered_0.jpg",
+      "metadata": "https://raw.communitydragon.org/16.20/plugins/rcp-be-lol-game-data/global/default/v1/champions/103.json"
+    },
+    {
+      "path": "tests/fixtures/ui-art/champion_splash-103001.jpg",
+      "url": "https://raw.communitydragon.org/16.20/plugins/rcp-be-lol-game-data/global/default/assets/characters/ahri/skins/skin01/images/ahri_splash_uncentered_1.jpg",
+      "metadata": "https://raw.communitydragon.org/16.20/plugins/rcp-be-lol-game-data/global/default/v1/champions/103.json"
+    },
+    {
+      "path": "tests/fixtures/ui-art/champion_splash-64000.jpg",
+      "url": "https://raw.communitydragon.org/16.20/plugins/rcp-be-lol-game-data/global/default/assets/characters/leesin/skins/base/images/leesin_splash_uncentered_0.jpg",
+      "metadata": "https://raw.communitydragon.org/16.20/plugins/rcp-be-lol-game-data/global/default/v1/champions/64.json"
+    },
+    {
+      "path": "tests/fixtures/ui-art/champion_splash-222000.jpg",
+      "url": "https://raw.communitydragon.org/16.20/plugins/rcp-be-lol-game-data/global/default/assets/characters/jinx/skins/base/images/jinx_splash_uncentered_0.jpg",
+      "metadata": "https://raw.communitydragon.org/16.20/plugins/rcp-be-lol-game-data/global/default/v1/champions/222.json"
+    },
+    {
+      "path": "tests/fixtures/ui-art/champion_splash-157000.jpg",
+      "url": "https://raw.communitydragon.org/16.20/plugins/rcp-be-lol-game-data/global/default/assets/characters/yasuo/skins/base/images/yasuo_splash_uncentered_0.jpg",
+      "metadata": "https://raw.communitydragon.org/16.20/plugins/rcp-be-lol-game-data/global/default/v1/champions/157.json"
+    },
+    {
+      "path": "tests/fixtures/ui-art/champion_splash-99000.jpg",
+      "url": "https://raw.communitydragon.org/16.20/plugins/rcp-be-lol-game-data/global/default/assets/characters/lux/skins/base/images/lux_splash_uncentered_0.jpg",
+      "metadata": "https://raw.communitydragon.org/16.20/plugins/rcp-be-lol-game-data/global/default/v1/champions/99.json"
+    },
+    {
+      "path": "tests/fixtures/ui-art/champion_splash-51000.jpg",
+      "url": "https://raw.communitydragon.org/16.20/plugins/rcp-be-lol-game-data/global/default/assets/characters/caitlyn/skins/base/images/caitlyn_splash_uncentered_0.jpg",
+      "metadata": "https://raw.communitydragon.org/16.20/plugins/rcp-be-lol-game-data/global/default/v1/champions/51.json"
+    },
+    {
+      "path": "tests/fixtures/ui-art/profile_icon-0.jpg",
+      "url": "https://raw.communitydragon.org/16.20/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/0.jpg"
     }
   ]
 }

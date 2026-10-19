@@ -23,3 +23,5 @@ They do not represent captured player or match data.
 | item-4645.png | https://ddragon.leagueoflegends.com/cdn/16.20.1/img/item/4645.png | f03fb411e12c597bfb88a747a00e9f47ae39019eee398833ee933c51f47fb597 |
 
 Additional champion, item, spell and champion-skill preview images are pinned to Riot Data Dragon 16.20.1. Exact URLs are recorded in `entity-sources.json`; hashes are in `../manifest.json`. These preview files are excluded from production bundles.
+
+Player profile icon 0 and champion splash/skin JPEGs use CommunityDragon 16.20. Skin IDs and names in `champion-skins.json` are from each champion metadata response; `entity-sources.json` records exact metadata and image URLs. Only Ahri has two fixture skins; other preview champions include the base skin. These are preview resources, not evidence of a player’s owned or match-selected skins.

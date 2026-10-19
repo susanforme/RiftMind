@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "source": "synthetic generators, source-referenced server mappings, Riot Data Dragon 16.20.1 UI preview art; no captured credentials",
+  "source": "synthetic generators, source-referenced server mappings, Riot Data Dragon 16.20.1 / CommunityDragon 16.20 UI preview art; no captured credentials",
   "entries": [
     {
       "path": "crates/riftmind-core/src/clients/mod.rs",
-      "sha256": "43f203d2500175ee4faed08411191056080328cb95136f13b9d6d922efb30fe2"
+      "sha256": "a0d170db421195f8dff6c43788d3aa2fc2a9caf78b5ab00638ad8f33db45dc4c"
     },
     {
       "path": "crates/riftmind-core/src/domain/servers.json",
@@ -12,7 +12,7 @@
     },
     {
       "path": "src/lib/transport/fixture.ts",
-      "sha256": "bfbb9c0c4d55ce790b8ece5770ff24818b66e31e4cb5fc5af79c6bcc08b8cfd3"
+      "sha256": "36488a893d7ae410e379c1c444d9d7e82aa9729c4d6eeb64cb9e6d886dc9ebeb"
     },
     {
       "path": "tests/fixtures/icon.png",
@@ -59,8 +59,40 @@
       "sha256": "64639bea2aa7d622dd07287de7a7820950e567f0993c7dcc422e1e699fd743fd"
     },
     {
+      "path": "tests/fixtures/ui-art/champion-skins.json",
+      "sha256": "ed58a0734e89314eeb0962dea1d1ee43885c0cab6ebf2a5bb267070cdc390480"
+    },
+    {
+      "path": "tests/fixtures/ui-art/champion_splash-103000.jpg",
+      "sha256": "6bb52e127c364ee58c6beae41bc07142f32b153fd5d959a0d50e9c2952ec6ab1"
+    },
+    {
+      "path": "tests/fixtures/ui-art/champion_splash-103001.jpg",
+      "sha256": "992d6674c43a78cb308f4484eac317679d3a02f89e804c6a1b8d6e49a8292f70"
+    },
+    {
+      "path": "tests/fixtures/ui-art/champion_splash-157000.jpg",
+      "sha256": "e740bcf40fc0db60782fb7b8222f4e24b1b19334caf50bc33157fb55fffe71fb"
+    },
+    {
+      "path": "tests/fixtures/ui-art/champion_splash-222000.jpg",
+      "sha256": "2f80e05c6d96c135c960081113d7158294b6ee3b3892d7482477e3a844b4f302"
+    },
+    {
+      "path": "tests/fixtures/ui-art/champion_splash-51000.jpg",
+      "sha256": "2288f3855e554bc9d65ec68631604a4358d878f2bfc9486ce851de61f0d4f355"
+    },
+    {
+      "path": "tests/fixtures/ui-art/champion_splash-64000.jpg",
+      "sha256": "1d8791661319393c97b07cd81cb8b5b5f1365dbd1e9185fbae8f538b1cc00f2a"
+    },
+    {
+      "path": "tests/fixtures/ui-art/champion_splash-99000.jpg",
+      "sha256": "4fe6a1633be98c014e2d5ebe445722b68f083333410b08698d648f9d2d249da4"
+    },
+    {
       "path": "tests/fixtures/ui-art/entity-sources.json",
-      "sha256": "523005da1cd1ea7d78efa8c094946d3fa3a1d92a4478afea1a2a870c8c3048d5"
+      "sha256": "d512c995413f5f1f3ab9f72551a9517e75e0b596ca7f8ef998712d9561f96249"
     },
     {
       "path": "tests/fixtures/ui-art/item-1001.png",
@@ -93,6 +125,10 @@
     {
       "path": "tests/fixtures/ui-art/item-4645.png",
       "sha256": "f03fb411e12c597bfb88a747a00e9f47ae39019eee398833ee933c51f47fb597"
+    },
+    {
+      "path": "tests/fixtures/ui-art/profile_icon-0.jpg",
+      "sha256": "f0d09ee31aa7e4476b08f6e10e9e80e5915cb99b3a4bb63781b6e22f5b2c7413"
     },
     {
       "path": "tests/fixtures/ui-art/skill-1031.png",

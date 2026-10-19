@@ -1,4 +1,10 @@
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from '../../components/ui/collapsible';
 import { useState } from 'react';
+import { ChevronRight, BookOpen, MoreHorizontal, Play, Plus, Upload } from 'lucide-react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
@@ -15,7 +21,14 @@ import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { ChampionSelect } from '../../components/ChampionSelect';
-import { GameEntityIcon } from '../../components/GameEntityIcon';
+import { GameEntityIcon, portraitCatalogueVersion } from '../../components/GameEntityIcon';
+import { ChampionArtwork, selectedChampionSkin } from '../../components/ChampionArtwork';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../../components/ui/dropdown-menu';
 import { ErrorNotice } from '../../components/ErrorNotice';
 import { SearchSelect } from '../../components/SearchSelect';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
@@ -26,10 +39,22 @@ import { NotebookTransferDialog } from './NotebookTransferDialog';
 import { PracticeChecklist } from './PracticeChecklist';
 import { blankNotebook, useNotebookDrafts, downloadJson } from './notebook-drafts';
 export function ChampionNotebookPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const search = notebookRoute.useSearch();
   const championId = search.champion || 64;
+  const artworkLocale = i18n.language === 'zh-CN' ? 'zh-CN' : 'en-US';
+  const skins = useQuery({
+    queryKey: ['champion-skins', portraitCatalogueVersion, artworkLocale, championId],
+    queryFn: () =>
+      transport.call('get_champion_skins', {
+        championId,
+        version: portraitCatalogueVersion,
+        locale: artworkLocale,
+      }),
+    staleTime: Infinity,
+    retry: false,
+  });
   const [kind, setKind] = useState<NotebookKind>('note');
   const [text, setText] = useState('');
   const [trash, setTrash] = useState(false);
@@ -138,70 +163,82 @@ export function ChampionNotebookPage() {
   return (
     <div
       data-ui="page"
-      className="max-w-[1400px] pt-[30px] px-9 pb-[26px] m-auto max-[1150.01px]:p-[26px] max-[900.01px]:p-[22px] max-[650.01px]:py-[18px] max-[650.01px]:px-4 [&_details_>_summary]:cursor-pointer [&_details_>_summary]:py-2 [&_details_>_summary]:px-0 [&_details_>_summary]:wrap-anywhere [&_details_>_summary:focus-visible]:[outline:2px_solid_var(--ring)]"
+      className="mx-auto grid w-full max-w-[1600px] min-w-0 gap-5 p-6 max-[900px]:p-4 [&_[data-ui~=actions]]:flex-wrap [&_label]:grid [&_label]:gap-1.5 [&_label]:text-xs"
     >
-      <div
-        data-ui="page-heading"
-        className="flex items-center justify-between gap-6 mb-7 max-[650.01px]:mb-[22px] max-[650.01px]:gap-2.5"
-      >
-        <h1>{t('notebooks.titlePage')}</h1>
+      <div data-ui="page-heading" className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-xl font-semibold">{t('notebooks.titlePage')}</h1>
         <div data-ui="actions" className="flex items-center gap-2">
           <Button variant="outline" onClick={() => setTransfer(true)} disabled={!epoch}>
+            <Upload aria-hidden="true" className="size-4" />
             {t('notebooks.exchange')}
           </Button>
           <Button disabled={!epoch || trash} onClick={() => edit(null)}>
+            <Plus aria-hidden="true" className="size-4" />
             {t('notebooks.create')}
           </Button>
         </div>
       </div>
-      <Card>
-        <CardContent className="flex items-end gap-4 flex-wrap pt-5 [&_>_[data-slot=input-group]]:flex-1 [&_>_[data-slot=input-group]]:min-w-[180px] [&_>_[data-slot=input-group]]:max-w-60">
-          <div className="flex items-center gap-3 min-w-[220px]">
+      <Card
+        data-ui="notebook-identity"
+        className="relative isolate overflow-hidden border-primary/20"
+      >
+        <ChampionArtwork
+          skin={selectedChampionSkin(skins.data?.skins || [], undefined)}
+          version={portraitCatalogueVersion}
+          banner
+        />
+        <CardContent className="relative flex flex-wrap items-center gap-6 pt-5">
+          <div className="flex min-w-0 flex-1 items-center gap-4">
             <GameEntityIcon
               kind="champion"
               id={championId}
               label={championName(t, championId)}
-              className="size-14"
+              className="size-20 rounded-xl border border-primary/40"
             />
-            <ChampionSelect
-              value={championId}
-              onValueChange={(champion) => {
-                if (champion) void navigate({ to: '/notebooks', search: { champion } });
-              }}
-            />
+            <div className="grid min-w-0 gap-2">
+              <h2 className="text-2xl font-semibold">{championName(t, championId)}</h2>
+              <ChampionSelect
+                value={championId}
+                onValueChange={(champion) => {
+                  if (champion) void navigate({ to: '/notebooks', search: { champion } });
+                }}
+              />
+            </div>
           </div>
-          <Label>
-            {t('notebooks.search')}
-            <Input
-              aria-label={t('notebooks.search')}
-              value={text}
-              onChange={(event) => setText(event.target.value)}
+          <div className="flex min-w-0 flex-wrap items-end gap-3">
+            <Label>
+              {t('notebooks.search')}
+              <Input
+                aria-label={t('notebooks.search')}
+                value={text}
+                onChange={(event) => setText(event.target.value)}
+              />
+            </Label>
+            <Label>
+              {t('notebooks.targetPatch')}
+              <Input
+                aria-label={t('notebooks.targetPatch')}
+                value={patch}
+                onChange={(event) => setPatch(event.target.value)}
+              />
+            </Label>
+            <SearchSelect
+              label={t('notebooks.reviewStatus')}
+              value={reviewFilter}
+              options={['all', 'unmarked', 'needs_review', 'confirmed'].map((status) => ({
+                value: status,
+                label: t(`notebooks.review_${status}`),
+              }))}
+              onValueChange={setReviewFilter}
             />
-          </Label>
-          <Label>
-            {t('notebooks.targetPatch')}
-            <Input
-              aria-label={t('notebooks.targetPatch')}
-              value={patch}
-              onChange={(event) => setPatch(event.target.value)}
-            />
-          </Label>
-          <SearchSelect
-            label={t('notebooks.reviewStatus')}
-            value={reviewFilter}
-            options={['all', 'unmarked', 'needs_review', 'confirmed'].map((status) => ({
-              value: status,
-              label: t(`notebooks.review_${status}`),
-            }))}
-            onValueChange={setReviewFilter}
-          />
-          <Button
-            variant={trash ? 'secondary' : 'outline'}
-            aria-pressed={trash}
-            onClick={() => setTrash(!trash)}
-          >
-            {t('notebooks.trash')}
-          </Button>
+            <Button
+              variant={trash ? 'secondary' : 'outline'}
+              aria-pressed={trash}
+              onClick={() => setTrash(!trash)}
+            >
+              {t('notebooks.trash')}
+            </Button>
+          </div>
         </CardContent>
       </Card>
       <ErrorNotice error={notebooks.error || change.error || practice.error} />
@@ -222,9 +259,16 @@ export function ChampionNotebookPage() {
         </Card>
       )}
       <Tabs value={kind} onValueChange={(kind) => setKind(kind as NotebookKind)}>
-        <TabsList aria-label={t('notebooks.categories')}>
+        <TabsList
+          aria-label={t('notebooks.categories')}
+          className="h-11 w-full justify-start rounded-none border-b border-border bg-transparent p-0"
+        >
           {(['note', 'combo', 'matchup', 'build'] as NotebookKind[]).map((kind) => (
-            <TabsTrigger key={kind} value={kind}>
+            <TabsTrigger
+              key={kind}
+              value={kind}
+              className="h-11 rounded-none border-b-2 border-transparent px-5 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+            >
               {t(`notebooks.kind_${kind}`)}
             </TabsTrigger>
           ))}
@@ -238,9 +282,12 @@ export function ChampionNotebookPage() {
       )}
       <div
         data-ui="notebook-layout"
-        className="grid grid-cols-[minmax(0,2fr)_minmax(260px,1fr)] gap-5 items-start max-[1000.01px]:grid-cols-1 [&_>_[data-ui~=review-stack]_>_[data-slot='card']_>_[data-slot='card-content']]:pt-5"
+        className="grid min-w-0 items-start gap-5 min-[1120px]:grid-cols-[minmax(0,1fr)_320px]"
       >
-        <div data-ui="review-stack" className="grid grid-cols-1 gap-4 min-w-0">
+        <div
+          data-ui="review-stack"
+          className="grid min-w-0 grid-cols-1 overflow-hidden rounded-xl border border-border bg-card"
+        >
           {!visible.length && (
             <Card>
               <CardContent>
@@ -249,8 +296,11 @@ export function ChampionNotebookPage() {
             </Card>
           )}
           {visible.map((entry) => (
-            <Card key={entry.id}>
-              <CardContent data-ui="review-stack" className="grid grid-cols-1 gap-4 min-w-0">
+            <Card
+              key={entry.id}
+              className="rounded-none border-0 border-b border-border bg-transparent last:border-b-0"
+            >
+              <CardContent data-ui="review-stack" className="grid min-w-0 grid-cols-1 gap-4 pt-5">
                 <NotebookEntryView entry={entry} patch={patch} />
                 <div data-ui="actions" className="flex items-center gap-2">
                   {trash ? (
@@ -271,26 +321,39 @@ export function ChampionNotebookPage() {
                       <Button variant="outline" onClick={() => edit(entry)}>
                         {t('notebooks.edit')}
                       </Button>
-                      <Button variant="ghost" onClick={() => setHistoryEntry(entry)}>
-                        {t('notebooks.history')}
-                      </Button>
-                      <Button variant="ghost" onClick={() => edit(entry, true)}>
-                        {t('notebooks.copy')}
-                      </Button>
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         disabled={practice.isPending}
                         onClick={() => practice.mutate(entry)}
                       >
+                        <Play aria-hidden="true" className="size-4" />
                         {t('notebooks.addPractice')}
                       </Button>
-                      <Button
-                        variant="ghost"
-                        disabled={change.isPending}
-                        onClick={() => change.mutate({ entry, action: 'trash' })}
-                      >
-                        {t('review.delete')}
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label={`${t('notebooks.edit')}: ${entry.content.title}`}
+                          >
+                            <MoreHorizontal aria-hidden="true" className="size-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onSelect={() => setHistoryEntry(entry)}>
+                            {t('notebooks.history')}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => edit(entry, true)}>
+                            {t('notebooks.copy')}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            disabled={change.isPending}
+                            onSelect={() => change.mutate({ entry, action: 'trash' })}
+                          >
+                            {t('review.delete')}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </>
                   )}
                 </div>
@@ -402,8 +465,13 @@ export function NotebookEntryView({
   return (
     <div data-ui="review-stack" className="grid grid-cols-1 gap-4 min-w-0">
       <div data-ui="actions" className="flex items-center gap-2">
-        <h3>{content.title}</h3>
-        {content.pinned && <Badge>{t('notebooks.pinned')}</Badge>}
+        <h3 className="min-w-0 flex-1 text-lg font-semibold wrap-anywhere">{content.title}</h3>
+        {content.pinned && (
+          <Badge variant="secondary">
+            <BookOpen aria-hidden="true" className="mr-1 size-3" />
+            {t('notebooks.pinned')}
+          </Badge>
+        )}
         <Badge variant="outline">{t(`notebooks.review_${reviewStatus(entry, patch)}`)}</Badge>
         {content.confirmedPatch && <span>{content.confirmedPatch}</span>}
       </div>
@@ -437,12 +505,25 @@ export function NotebookEntryView({
         <BuildGroups groups={content.groups} version={content.resourceVersion} />
       )}
       {content.text.length > 200 ? (
-        <details>
-          <summary>{t('notebooks.readContent')}</summary>
-          <p className="whitespace-pre-wrap wrap-anywhere leading-[1.65] max-w-[78ch]">
-            {content.text}
-          </p>
-        </details>
+        <Collapsible>
+          <CollapsibleTrigger asChild>
+            <Button
+              variant="ghost"
+              className="group h-auto min-h-9 w-full justify-start gap-2 px-0 py-2 text-left text-sm font-normal whitespace-normal text-muted-foreground"
+            >
+              <ChevronRight
+                aria-hidden="true"
+                className="size-4 shrink-0 transition-transform group-data-[state=open]:rotate-90 motion-reduce:transition-none"
+              />
+              {t('notebooks.readContent')}
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent forceMount className="hidden min-w-0 pb-2 data-[state=open]:block">
+            <p className="whitespace-pre-wrap wrap-anywhere leading-[1.65] max-w-[78ch]">
+              {content.text}
+            </p>
+          </CollapsibleContent>
+        </Collapsible>
       ) : (
         content.text && (
           <p className="whitespace-pre-wrap wrap-anywhere leading-[1.65] max-w-[78ch]">

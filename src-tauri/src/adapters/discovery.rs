@@ -3,7 +3,6 @@ use riftmind_core::{
     contracts::*,
     domain,
     services::Service,
-    storage,
 };
 use std::{sync::Arc, time::Duration};
 use sysinfo::System;
@@ -129,25 +128,14 @@ pub async fn monitor(service: Arc<Service>) {
                         .filter(|v| *v != "TENCENT"),
                 );
                 c.identification = Some(ident.clone());
-                if let (Some(server), Some(puuid)) = (
+                if let (Some(server), Some(_)) = (
                     ident.server_id.as_ref(),
                     s.get("puuid")
                         .and_then(|v| v.as_str())
                         .filter(|s| !s.is_empty()),
                 ) {
-                    if domain::validate_key(puuid).is_ok() {
-                        let player = Player {
-                            player_key: format!("{server}:{puuid}"),
-                            puuid: puuid.into(),
-                            server_id: server.clone(),
-                            display_name: s
-                                .get("gameName")
-                                .or_else(|| s.get("displayName"))
-                                .and_then(|v| v.as_str())
-                                .unwrap_or("Unknown")
-                                .into(),
-                            updated_at: storage::now(),
-                        };
+                    if let Ok(player) = riftmind_core::clients::player_from_summoner(&s, server, "")
+                    {
                         let tokens = lcu.tokens().await.unwrap_or_default();
                         c.sgp_ready = tokens.rso.is_some();
                         c.lcu_ready = true;

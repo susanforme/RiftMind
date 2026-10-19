@@ -1,3 +1,9 @@
+import { ChevronRight } from 'lucide-react';
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from '../../components/ui/collapsible';
 import { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -111,40 +117,54 @@ export function MatchPreparationPanel({
         {batches.data
           ?.filter((batch) => batch.playerKey === player)
           .map((batch) => (
-            <details key={batch.id}>
-              <summary>
-                {t(`training.batch_${batch.state}`)} · {new Date(batch.updatedAt).toLocaleString()}{' '}
-                ·{' '}
-                {
-                  batch.members.filter((member) =>
-                    ['completed', 'existing'].includes(member.report),
-                  ).length
-                }
-                /{batch.members.length}
-              </summary>
-              <div data-ui="actions" className="flex items-center gap-2">
-                {['running', 'queued'].includes(batch.state) ? (
-                  <Button
-                    variant="outline"
-                    disabled={batch.cancelRequested || change.isPending}
-                    onClick={() => change.mutate({ id: batch.id, action: 'cancel' })}
-                  >
-                    {t('common.cancel')}
-                  </Button>
-                ) : (
-                  batch.state !== 'completed' && (
+            <Collapsible key={batch.id}>
+              <CollapsibleTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="group h-auto min-h-9 w-full justify-start gap-2 px-0 py-2 text-left text-sm font-normal whitespace-normal text-muted-foreground"
+                >
+                  <ChevronRight
+                    aria-hidden="true"
+                    className="size-4 shrink-0 transition-transform group-data-[state=open]:rotate-90 motion-reduce:transition-none"
+                  />
+                  {t(`training.batch_${batch.state}`)} ·{' '}
+                  {new Date(batch.updatedAt).toLocaleString()} ·{' '}
+                  {
+                    batch.members.filter((member) =>
+                      ['completed', 'existing'].includes(member.report),
+                    ).length
+                  }
+                  /{batch.members.length}
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent
+                forceMount
+                className="hidden min-w-0 pb-2 data-[state=open]:block"
+              >
+                <div data-ui="actions" className="flex items-center gap-2">
+                  {['running', 'queued'].includes(batch.state) ? (
                     <Button
                       variant="outline"
-                      disabled={change.isPending}
-                      onClick={() => change.mutate({ id: batch.id, action: 'resume' })}
+                      disabled={batch.cancelRequested || change.isPending}
+                      onClick={() => change.mutate({ id: batch.id, action: 'cancel' })}
                     >
-                      {t('training.resumeBatch')}
+                      {t('common.cancel')}
                     </Button>
-                  )
-                )}
-              </div>
-              <BatchMembers batch={batch} />
-            </details>
+                  ) : (
+                    batch.state !== 'completed' && (
+                      <Button
+                        variant="outline"
+                        disabled={change.isPending}
+                        onClick={() => change.mutate({ id: batch.id, action: 'resume' })}
+                      >
+                        {t('training.resumeBatch')}
+                      </Button>
+                    )
+                  )}
+                </div>
+                <BatchMembers batch={batch} />
+              </CollapsibleContent>
+            </Collapsible>
           ))}
       </CardContent>
     </Card>

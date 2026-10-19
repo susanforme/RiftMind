@@ -18,12 +18,16 @@ pub const MIGRATION_NOTEBOOKS: &str =
     include_str!("../../../../src-tauri/migrations/0004_champion_notebooks.sql");
 pub const MIGRATION_REVIEW_INSIGHTS: &str =
     include_str!("../../../../src-tauri/migrations/0005_review_training_insights.sql");
+pub const DATABASE_VERSION: u32 = 6;
+pub const MIGRATION_PLAYER_IDENTITY: &str =
+    include_str!("../../../../src-tauri/migrations/0006_player_identity.sql");
 pub const SCHEMA_MIGRATIONS: &[(i64, &str, &str)] = &[
     (1, "workspace", MIGRATION),
     (2, "review_training", MIGRATION2),
     (3, "players_insights", MIGRATION_PLAYERS_INSIGHTS),
     (4, "champion_notebooks", MIGRATION_NOTEBOOKS),
     (5, "review_training_insights", MIGRATION_REVIEW_INSIGHTS),
+    (6, "player_identity", MIGRATION_PLAYER_IDENTITY),
 ];
 #[derive(Debug)]
 struct WorkspaceMigrations;
@@ -120,11 +124,11 @@ pub async fn preflight(path: &Path) -> Result<()> {
     let integrity: String = sqlx::query_scalar("PRAGMA quick_check")
         .fetch_one(&pool)
         .await?;
-    if version > 5 || integrity != "ok" {
+    if version > i64::from(DATABASE_VERSION) || integrity != "ok" {
         pool.close().await;
         return Err(AppError::new(ErrorCode::BackupInvalid));
     }
-    if version < 5 {
+    if version < i64::from(DATABASE_VERSION) {
         let backup = path.with_extension(format!("pre-migration-{}.db", uuid::Uuid::new_v4()));
         vacuum_backup(&pool, &backup).await?;
         if let Some(root) = path.parent() {
@@ -178,24 +182,43 @@ pub async fn vacuum_backup(pool: &SqlitePool, path: &Path) -> Result<()> {
         .await?;
     Ok(())
 }
-pub async fn save_player(pool: &SqlitePool, p: &Player) -> Result<()> {
-    sqlx::query("INSERT INTO players VALUES(?,?,?,?,?) ON CONFLICT(player_key) DO UPDATE SET display_name=excluded.display_name,updated_at=excluded.updated_at").bind(&p.player_key).bind(&p.server_id).bind(&p.puuid).bind(&p.display_name).bind(&p.updated_at).execute(pool).await?;
-    Ok(())
+pub async fn save_player(pool: &SqlitePool, player: &Player) -> Result<Player> {
+    let row = sqlx::query(
+        "INSERT INTO players (player_key,server_id,puuid,display_name,updated_at,profile_icon_id,summoner_level) \
+         VALUES(?,?,?,?,?,?,?) ON CONFLICT(player_key) DO UPDATE SET \
+         display_name=COALESCE(NULLIF(excluded.display_name,''),players.display_name),\
+         updated_at=excluded.updated_at,\
+         profile_icon_id=COALESCE(excluded.profile_icon_id,players.profile_icon_id),\
+         summoner_level=COALESCE(excluded.summoner_level,players.summoner_level) \
+         RETURNING player_key,server_id,puuid,display_name,updated_at,profile_icon_id,summoner_level",
+    )
+    .bind(&player.player_key)
+    .bind(&player.server_id)
+    .bind(&player.puuid)
+    .bind(&player.display_name)
+    .bind(&player.updated_at)
+    .bind(player.profile_icon_id)
+    .bind(player.summoner_level)
+    .fetch_one(pool)
+    .await?;
+    Ok(player_from_row(&row))
+}
+fn player_from_row(row: &sqlx::sqlite::SqliteRow) -> Player {
+    Player {
+        player_key: row.get("player_key"),
+        server_id: row.get("server_id"),
+        puuid: row.get("puuid"),
+        display_name: row.get("display_name"),
+        profile_icon_id: row.get("profile_icon_id"),
+        summoner_level: row.get("summoner_level"),
+        updated_at: row.get("updated_at"),
+    }
 }
 pub async fn players(pool: &SqlitePool) -> Result<Vec<Player>> {
-    let rows = sqlx::query("SELECT * FROM players ORDER BY updated_at DESC,player_key")
+    let rows = sqlx::query("SELECT player_key,server_id,puuid,display_name,updated_at,profile_icon_id,summoner_level FROM players ORDER BY updated_at DESC,player_key")
         .fetch_all(pool)
         .await?;
-    Ok(rows
-        .iter()
-        .map(|r| Player {
-            player_key: r.get("player_key"),
-            server_id: r.get("server_id"),
-            puuid: r.get("puuid"),
-            display_name: r.get("display_name"),
-            updated_at: r.get("updated_at"),
-        })
-        .collect())
+    Ok(rows.iter().map(player_from_row).collect())
 }
 pub async fn list(pool: &SqlitePool, mut q: MatchQuery) -> Result<MatchPage> {
     crate::domain::validate_key(&q.player_key)?;

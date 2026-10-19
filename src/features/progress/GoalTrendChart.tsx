@@ -46,51 +46,67 @@ export default function GoalTrendChart({
     const draw = () => {
       const styles = getComputedStyle(ref.current!);
       const token = (name: string) => styles.getPropertyValue(name).trim();
-      chart.setOption(
-        {
-          animation: false,
-          color: [token('--muted-foreground'), token('--primary')],
-          grid: { left: 55, right: 24, top: 45, bottom: 70 },
-          legend: { textStyle: { color: token('--foreground') } },
-          tooltip: { trigger: 'axis', renderMode: 'richText' },
-          xAxis: {
-            type: 'category',
-            data: all.map((member) => member.matchKey),
-            axisLabel: { color: token('--muted-foreground'), rotate: 25 },
-          },
-          yAxis: {
-            type: 'value',
-            axisLabel: { color: token('--muted-foreground') },
-            splitLine: { lineStyle: { color: token('--border') } },
-          },
-          series: [
-            {
-              name: t('review.baseline'),
-              type: 'line',
-              connectNulls: false,
-              data: all.map((member, index) => (index < baseline.length ? member.value : null)),
-              lineStyle: { type: 'dashed' },
-            },
-            {
-              name: t('review.current'),
-              type: 'line',
-              connectNulls: false,
-              data: all.map((member, index) => (index >= baseline.length ? member.value : null)),
-              markLine: {
-                symbol: 'none',
-                label: { color: token('--foreground') },
-                data: [
-                  { name: t('training.target'), yAxis: goal.scope.target },
-                  ...(evaluation?.baseline == null
-                    ? []
-                    : [{ name: t('review.baseline'), yAxis: evaluation.baseline }]),
-                ],
-              },
-            },
-          ],
+      chart.setOption({
+        animation: false,
+        color: [token('--chart-opponent'), token('--chart-self')],
+        grid: { left: 55, right: 24, top: 45, bottom: 70 },
+        legend: { textStyle: { color: token('--foreground') } },
+        tooltip: {
+          trigger: 'axis',
+          renderMode: 'richText',
+          backgroundColor: token('--popover'),
+          borderColor: token('--border'),
+          textStyle: { color: token('--popover-foreground') },
         },
-        true,
-      );
+        xAxis: {
+          type: 'category',
+          data: all.map((member) => member.startedAt.slice(5, 10)),
+          axisLabel: { color: token('--chart-axis') },
+          axisLine: { lineStyle: { color: token('--chart-axis') } },
+        },
+        yAxis: {
+          type: 'value',
+          axisLabel: { color: token('--chart-axis') },
+          splitLine: { lineStyle: { color: token('--chart-grid') } },
+        },
+        series: [
+          {
+            id: 'baseline',
+            name: t('review.baseline'),
+            type: 'line',
+            connectNulls: false,
+            data: all.map((member, index) => (index < baseline.length ? member.value : null)),
+            lineStyle: { type: 'dashed' },
+          },
+          {
+            id: 'current',
+            name: t('review.current'),
+            type: 'line',
+            connectNulls: false,
+            data: all.map((member, index) => (index >= baseline.length ? member.value : null)),
+            markLine: {
+              symbol: 'none',
+              label: { color: token('--foreground') },
+              data: [
+                {
+                  name: t('training.target'),
+                  yAxis: goal.scope.target,
+                  lineStyle: { color: token('--chart-positive') },
+                },
+                ...(evaluation?.baseline == null
+                  ? []
+                  : [
+                      {
+                        name: t('review.baseline'),
+                        yAxis: evaluation.baseline,
+                        lineStyle: { color: token('--chart-axis') },
+                      },
+                    ]),
+              ],
+            },
+          },
+        ],
+      });
     };
     draw();
     chart.on('click', (event) => {
@@ -99,7 +115,10 @@ export default function GoalTrendChart({
     const observer = new ResizeObserver(() => chart.resize());
     observer.observe(ref.current);
     const theme = new MutationObserver(draw);
-    theme.observe(document.documentElement, { attributes: true, attributeFilter: ['data-mode'] });
+    theme.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme', 'data-mode'],
+    });
     return () => {
       observer.disconnect();
       theme.disconnect();
@@ -110,7 +129,7 @@ export default function GoalTrendChart({
     <div
       ref={ref}
       data-ui="review-chart"
-      className="w-full h-[280px] min-w-0 overflow-hidden"
+      className="w-full h-[320px] min-w-0 overflow-hidden"
       role="img"
       aria-label={t('training.goalTrend')}
     />

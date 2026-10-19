@@ -20,7 +20,7 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--background);
+  --color-destructive-foreground: var(--destructive-foreground);
 }
 
 @layer base {

@@ -1,3 +1,9 @@
+import { ChevronRight } from 'lucide-react';
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from '../../components/ui/collapsible';
 import { lazy, Suspense, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
@@ -49,7 +55,7 @@ export function PersonalBaselinePanel({
         <CardTitle>{t('training.personalBaseline')}</CardTitle>
       </CardHeader>
       <CardContent data-ui="review-stack" className="grid grid-cols-1 gap-4 min-w-0">
-        <div data-ui="actions" className="flex items-center gap-2">
+        <div data-ui="actions" className="flex flex-wrap items-center gap-2">
           <Button
             variant={allChampions ? 'outline' : 'default'}
             aria-pressed={!allChampions}
@@ -97,14 +103,14 @@ export function PersonalBaselinePanel({
               {t('training.scanned', { count: baseline.data.scanned })}
               {baseline.data.truncated ? ` · ${t('training.truncated')}` : ''}
             </p>
-            <div className="grid grid-cols-2 gap-6 max-[1000.01px]:grid-cols-1">
+            <div className="grid min-w-0 gap-6 xl:grid-cols-2">
               {baseline.data.metrics.map((metric) => (
                 <div
                   key={metric.id}
                   data-ui="review-stack"
-                  className="grid grid-cols-1 gap-4 min-w-0"
+                  className="grid min-w-0 gap-4 rounded-lg border border-border p-4"
                 >
-                  <h3>
+                  <h3 className="text-sm font-semibold">
                     {t(`review.metric_${metric.id}`)} · {metric.unit} · n={metric.count}
                   </h3>
                   {metric.median === null ? (
@@ -116,7 +122,7 @@ export function PersonalBaselinePanel({
                       </Suspense>
                     </ChartBoundary>
                   )}
-                  <Table>
+                  <Table className="tabular-nums [&_td]:text-right [&_th]:text-right">
                     <TableHeader>
                       <TableRow>
                         {['current', 'median', 'q1', 'q3', 'delta'].map((key) => (
@@ -138,47 +144,63 @@ export function PersonalBaselinePanel({
                       </TableRow>
                     </TableBody>
                   </Table>
-                  <details>
-                    <summary>{t('training.samples')}</summary>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>{t('review.match')}</TableHead>
-                          <TableHead>{t('review.current')}</TableHead>
-                          <TableHead>{t('training.selection')}</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {metric.samples.map((sample) => (
-                          <TableRow key={sample.matchKey}>
-                            <TableCell>
-                              <Button
-                                variant="link"
-                                disabled={!sample.reportId}
-                                onClick={() =>
-                                  void navigate({
-                                    to: '/matches/$matchKey/review',
-                                    params: { matchKey: sample.matchKey },
-                                    search: { player, report: sample.reportId || undefined },
-                                  })
-                                }
-                              >
-                                {sample.matchKey}
-                              </Button>
-                            </TableCell>
-                            <TableCell>{numberText(sample.value)}</TableCell>
-                            <TableCell>
-                              {sample.reason
-                                ? t(`training.reason_${sample.reason}`, {
-                                    defaultValue: t('training.excluded'),
-                                  })
-                                : t('training.included')}
-                            </TableCell>
+                  <Collapsible>
+                    <CollapsibleTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        className="group h-auto min-h-9 w-full justify-start gap-2 px-0 py-2 text-left text-sm font-normal whitespace-normal text-muted-foreground"
+                      >
+                        <ChevronRight
+                          aria-hidden="true"
+                          className="size-4 shrink-0 transition-transform group-data-[state=open]:rotate-90 motion-reduce:transition-none"
+                        />
+                        {t('training.samples')}
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent
+                      forceMount
+                      className="hidden min-w-0 pb-2 data-[state=open]:block"
+                    >
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>{t('review.match')}</TableHead>
+                            <TableHead>{t('review.current')}</TableHead>
+                            <TableHead>{t('training.selection')}</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </details>
+                        </TableHeader>
+                        <TableBody>
+                          {metric.samples.map((sample) => (
+                            <TableRow key={sample.matchKey}>
+                              <TableCell>
+                                <Button
+                                  variant="link"
+                                  disabled={!sample.reportId}
+                                  onClick={() =>
+                                    void navigate({
+                                      to: '/matches/$matchKey/review',
+                                      params: { matchKey: sample.matchKey },
+                                      search: { player, report: sample.reportId || undefined },
+                                    })
+                                  }
+                                >
+                                  {sample.matchKey}
+                                </Button>
+                              </TableCell>
+                              <TableCell>{numberText(sample.value)}</TableCell>
+                              <TableCell>
+                                {sample.reason
+                                  ? t(`training.reason_${sample.reason}`, {
+                                      defaultValue: t('training.excluded'),
+                                    })
+                                  : t('training.included')}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </CollapsibleContent>
+                  </Collapsible>
                 </div>
               ))}
             </div>

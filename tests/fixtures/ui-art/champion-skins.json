@@ -1,0 +1,49 @@
+{
+  "103": [
+    {
+      "id": 103000,
+      "name": "Ahri",
+      "isBase": true
+    },
+    {
+      "id": 103001,
+      "name": "Dynasty Ahri",
+      "isBase": false
+    }
+  ],
+  "64": [
+    {
+      "id": 64000,
+      "name": "Lee Sin",
+      "isBase": true
+    }
+  ],
+  "222": [
+    {
+      "id": 222000,
+      "name": "Jinx",
+      "isBase": true
+    }
+  ],
+  "157": [
+    {
+      "id": 157000,
+      "name": "Yasuo",
+      "isBase": true
+    }
+  ],
+  "99": [
+    {
+      "id": 99000,
+      "name": "Lux",
+      "isBase": true
+    }
+  ],
+  "51": [
+    {
+      "id": 51000,
+      "name": "Caitlyn",
+      "isBase": true
+    }
+  ]
+}

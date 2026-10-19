@@ -537,7 +537,14 @@ async fn real_v1_migration_and_v1_backup_upgrade_preserve_data_and_mark_missing(
         .execute(&pool)
         .await
         .unwrap();
-    storage::save_player(&pool, &clients::synthetic_player("TENCENT_HN1"))
+    let player = clients::synthetic_player("TENCENT_HN1");
+    sqlx::query("INSERT INTO players VALUES(?,?,?,?,?)")
+        .bind(&player.player_key)
+        .bind(&player.server_id)
+        .bind(&player.puuid)
+        .bind(&player.display_name)
+        .bind(&player.updated_at)
+        .execute(&pool)
         .await
         .unwrap();
     let dbpath = root.path().join("old.db");
@@ -549,7 +556,7 @@ async fn real_v1_migration_and_v1_backup_upgrade_preserve_data_and_mark_missing(
             .fetch_one(&s.pool)
             .await
             .unwrap(),
-        5
+        i64::from(storage::DATABASE_VERSION)
     );
     assert_eq!(storage::players(&s.pool).await.unwrap().len(), 1);
     assert_eq!(
@@ -570,7 +577,10 @@ async fn real_v1_migration_and_v1_backup_upgrade_preserve_data_and_mark_missing(
     .unwrap();
     s.restore(&id).await.unwrap();
     assert_eq!(storage::players(&s.pool).await.unwrap().len(), 1);
-    assert_eq!(s.state.read().await.database_version, 5);
+    assert_eq!(
+        s.state.read().await.database_version,
+        storage::DATABASE_VERSION
+    );
     s.shutdown().await.unwrap();
 }
 #[tokio::test]

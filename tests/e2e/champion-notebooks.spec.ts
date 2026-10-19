@@ -86,7 +86,8 @@ test('create a champion combo without matches, keep drafts, practice, history, t
     'Unsaved across navigation',
   );
   await dialog.getByRole('button', { name: 'Save changes', exact: true }).click();
-  await page.getByRole('button', { name: 'Revision history', exact: true }).click();
+  await page.getByRole('button', { name: 'Edit: Q1 ward hop Q2', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Revision history', exact: true }).click();
   await page
     .getByRole('dialog')
     .getByRole('button', { name: 'Restore this revision', exact: true })
@@ -94,11 +95,8 @@ test('create a champion combo without matches, keep drafts, practice, history, t
     .click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   expect((await entries())[0].content.text).toContain('Use a ward');
-  await page
-    .locator('[data-ui~=notebook-layout]')
-    .getByRole('button', { name: 'Delete', exact: true })
-    .first()
-    .click();
+  await page.getByRole('button', { name: 'Edit: Q1 ward hop Q2', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Delete', exact: true }).click();
   await page.getByRole('button', { name: 'Trash', exact: true }).click();
   await page.getByRole('button', { name: 'Recover', exact: true }).click();
   await page.getByRole('button', { name: 'Trash', exact: true }).click();
@@ -223,7 +221,7 @@ test('two builds export safe JSON and simulated client merges; quick reference a
   expect(stats.itemSets.unknown).toBe('preserve');
   await page.goto('/#/live');
   await page.getByRole('button', { name: 'Pre-game reference', exact: true }).click();
-  await expect(page.locator('summary').filter({ hasText: /^Ward hop$/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Ward hop', exact: true })).toBeVisible();
   await harness.scenario({ scenario: 'tencent', livePhase: 'ChampSelect', championId: 103 });
   await expect(page.locator('[data-current=true]')).toContainText('Ahri');
   await expect(
@@ -320,7 +318,9 @@ test('selected preparation, cancellation, permission failures, progress and offl
   await page.goto(
     `/#/matches/${encodeURIComponent(target.matchKey)}/review?player=${encodeURIComponent(playerKey)}&report=${target.reportId}`,
   );
+  await page.getByRole('tab', { name: 'Timeline & evidence', exact: true }).click();
   await expect(page.getByText('Event context', { exact: true })).toBeVisible();
+  await page.getByRole('tab', { name: 'Review overview', exact: true }).click();
   await expect(page.getByText('Personal history baseline', { exact: true })).toBeVisible();
   await page.setViewportSize({ width: 800, height: 600 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);

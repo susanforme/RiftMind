@@ -1,3 +1,9 @@
+import { ChevronRight } from 'lucide-react';
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from '../../components/ui/collapsible';
 import { SearchSelect } from '../../components/SearchSelect';
 import { MatchPreparationPanel } from '../matches/MatchPreparationPanel';
 import { PracticeChecklist } from '../champion-notes/PracticeChecklist';
@@ -112,14 +118,11 @@ export function ProgressPage() {
   return (
     <div
       data-ui="page"
-      className="max-w-[1400px] pt-[30px] px-9 pb-[26px] m-auto max-[1150.01px]:p-[26px] max-[900.01px]:p-[22px] max-[650.01px]:py-[18px] max-[650.01px]:px-4 grid grid-cols-1 gap-6 min-w-0 [&_[data-ui~=page-heading]]:mb-0 [&_[data-ui~=page-heading]_p]:text-muted-foreground [&_[data-ui~=page-heading]_p]:text-[12px] [&_[data-ui~=page-heading]_p]:mt-1 [&_[data-ui~=page-heading]_p]:wrap-anywhere [&_[data-ui~=actions]]:flex-wrap [&_label]:grid [&_label]:gap-1.5 [&_label]:text-[12px] [&_[data-slot='card-description']]:max-w-[80ch]"
+      className="mx-auto grid w-full max-w-[1600px] min-w-0 grid-cols-1 gap-5 p-6 max-[900px]:p-4 [&_[data-ui~=actions]]:flex-wrap [&_label]:grid [&_label]:gap-1.5 [&_label]:text-xs"
     >
-      <div
-        data-ui="page-heading"
-        className="flex items-center justify-between gap-6 mb-7 max-[650.01px]:mb-[22px] max-[650.01px]:gap-2.5"
-      >
+      <div data-ui="page-heading" className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1>{t('review.progress')}</h1>
+          <h1 className="text-xl font-semibold">{t('review.progress')}</h1>
         </div>
         <Button
           variant="outline"
@@ -210,107 +213,117 @@ export function ProgressPage() {
           </Label>
         </CardContent>
       </Card>
+      <ErrorNotice error={goals.error || progress.error || players.error} />
+      <div
+        data-ui="progress-layout"
+        className="grid min-w-0 items-start gap-5 min-[1280px]:grid-cols-[minmax(0,1fr)_320px]"
+      >
+        <div className="grid min-w-0 gap-5">
+          <Card className="border-0 bg-transparent">
+            <CardHeader className="flex-row flex-wrap items-center justify-between gap-3 px-0 pt-0">
+              <CardTitle>{t('review.goals')}</CardTitle>
+              <ChampionSelect value={champion} onValueChange={setChampion} />
+            </CardHeader>
+            <CardContent data-ui="review-stack" className="grid grid-cols-1 gap-4 min-w-0 p-0">
+              {!goals.data?.items.length && <p>{t('review.noGoals')}</p>}
+              {goals.data?.items
+                .filter(
+                  (goal) =>
+                    !champion || !goal.scope.championId || goal.scope.championId === champion,
+                )
+                .map((goal) => (
+                  <GoalCard
+                    key={`${goal.id}:${goal.revision}`}
+                    goal={goal}
+                    epoch={epoch}
+                    open={open}
+                  />
+                ))}
+              {!!goals.data?.items.length && (
+                <div data-ui="actions" className="flex items-center gap-2">
+                  {cursor != null && (
+                    <Button variant="outline" onClick={() => setCursor(null)}>
+                      {t('matches.first')}
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    disabled={goals.data?.nextCursor == null}
+                    onClick={() => setCursor(goals.data!.nextCursor)}
+                  >
+                    {t('matches.next')}
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('review.trends')}</CardTitle>
+              {progress.data && (
+                <CardDescription>
+                  {t('review.sampleCount', {
+                    count: progress.data?.points.length || 0,
+                    cached: progress.data?.cachedMatches || 0,
+                  })}{' '}
+                  · {progress.data?.from?.slice(0, 10) || '—'} –{' '}
+                  {progress.data?.to?.slice(0, 10) || '—'}
+                </CardDescription>
+              )}
+            </CardHeader>
+            <CardContent data-ui="review-stack" className="grid grid-cols-1 gap-4 min-w-0">
+              {!!groups.length && (
+                <p className="text-muted-foreground text-[12px]">{t('review.comparability')}</p>
+              )}
+              {Object.entries(progress.data?.excluded || {}).map(([reason, count]) => (
+                <p key={reason}>
+                  {t(`review.reason_${reason}`, { defaultValue: t('labels.unknownReason') })}:{' '}
+                  {count}
+                </p>
+              ))}
+              {groups.map((group) => (
+                <div key={group}>
+                  <h3>{groupName(t, group)}</h3>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>{t('review.match')}</TableHead>
+                        <TableHead>{t('review.metric_cs_10')}</TableHead>
+                        <TableHead>{t('review.metric_deaths_per_10')}</TableHead>
+                        <TableHead>{t('review.metric_cs_per_min')}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {progress.data?.points
+                        .filter((p) => p.group === group)
+                        .map((p) => (
+                          <TableRow key={p.matchKey}>
+                            <TableCell>
+                              <Button variant="link" onClick={() => open(p)}>
+                                {p.startedAt.slice(0, 16).replace('T', ' ')} ·{' '}
+                                {matchName(t, p.matchKey)}
+                              </Button>
+                            </TableCell>
+                            {['cs_10', 'deaths_per_10', 'cs_per_min'].map((id) => (
+                              <TableCell key={id} className="tabular-nums">
+                                {numberText(p.metrics.find((m) => m.id === id)?.value)}
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                        ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ))}
+              {!groups.length && <p>{t('review.waitingSamples')}</p>}
+            </CardContent>
+          </Card>
+        </div>
+        {epoch && <PracticeChecklist championId={champion} epoch={epoch} entries={[]} />}
+      </div>
       {player && epoch && (
         <RecurringIssuesPanel key={`${epoch}:${player}`} player={player} epoch={epoch} />
       )}
-      {epoch && (
-        <>
-          <ChampionSelect value={champion} onValueChange={setChampion} />
-          <PracticeChecklist championId={champion} epoch={epoch} entries={[]} />
-        </>
-      )}
-      <ErrorNotice error={goals.error || progress.error || players.error} />
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('review.goals')}</CardTitle>
-        </CardHeader>
-        <CardContent data-ui="review-stack" className="grid grid-cols-1 gap-4 min-w-0">
-          {!goals.data?.items.length && <p>{t('review.noGoals')}</p>}
-          {goals.data?.items
-            .filter(
-              (goal) => !champion || !goal.scope.championId || goal.scope.championId === champion,
-            )
-            .map((goal) => (
-              <GoalCard key={`${goal.id}:${goal.revision}`} goal={goal} epoch={epoch} open={open} />
-            ))}
-          {!!goals.data?.items.length && (
-            <div data-ui="actions" className="flex items-center gap-2">
-              {cursor != null && (
-                <Button variant="outline" onClick={() => setCursor(null)}>
-                  {t('matches.first')}
-                </Button>
-              )}
-              <Button
-                variant="outline"
-                disabled={goals.data?.nextCursor == null}
-                onClick={() => setCursor(goals.data!.nextCursor)}
-              >
-                {t('matches.next')}
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('review.trends')}</CardTitle>
-          {progress.data && (
-            <CardDescription>
-              {t('review.sampleCount', {
-                count: progress.data?.points.length || 0,
-                cached: progress.data?.cachedMatches || 0,
-              })}{' '}
-              · {progress.data?.from?.slice(0, 10) || '—'} –{' '}
-              {progress.data?.to?.slice(0, 10) || '—'}
-            </CardDescription>
-          )}
-        </CardHeader>
-        <CardContent data-ui="review-stack" className="grid grid-cols-1 gap-4 min-w-0">
-          {!!groups.length && (
-            <p className="text-muted-foreground text-[12px]">{t('review.comparability')}</p>
-          )}
-          {Object.entries(progress.data?.excluded || {}).map(([reason, count]) => (
-            <p key={reason}>
-              {t(`review.reason_${reason}`, { defaultValue: t('labels.unknownReason') })}: {count}
-            </p>
-          ))}
-          {groups.map((group) => (
-            <div key={group}>
-              <h3>{groupName(t, group)}</h3>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t('review.match')}</TableHead>
-                    <TableHead>{t('review.metric_cs_10')}</TableHead>
-                    <TableHead>{t('review.metric_deaths_per_10')}</TableHead>
-                    <TableHead>{t('review.metric_cs_per_min')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {progress.data?.points
-                    .filter((p) => p.group === group)
-                    .map((p) => (
-                      <TableRow key={p.matchKey}>
-                        <TableCell>
-                          <Button variant="link" onClick={() => open(p)}>
-                            {p.startedAt.slice(0, 16).replace('T', ' ')} ·{' '}
-                            {matchName(t, p.matchKey)}
-                          </Button>
-                        </TableCell>
-                        {['cs_10', 'deaths_per_10', 'cs_per_min'].map((id) => (
-                          <TableCell key={id}>
-                            {numberText(p.metrics.find((m) => m.id === id)?.value)}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    ))}
-                </TableBody>
-              </Table>
-            </div>
-          ))}
-          {!groups.length && <p>{t('review.waitingSamples')}</p>}
-        </CardContent>
-      </Card>
     </div>
   );
 }
@@ -366,46 +379,69 @@ function GoalCard({
   return (
     <Card
       data-ui="goal-card"
-      className="bg-background border-0 [&_[data-slot='card-content']_>_p]:text-[13px] [&_[data-slot='card-content']_>_p]:leading-[1.8] [&_[data-ui~=actions]_[data-slot=button]]:whitespace-normal [&_[data-ui~=actions]_[data-slot=button]]:h-auto [&_[data-ui~=actions]_[data-slot=button]]:min-h-7 [&_[data-ui~=actions]_[data-slot=button]]:max-w-full [&_[data-ui~=actions]_[data-slot=button]]:wrap-anywhere [&_[data-ui~=actions]_[data-slot=button]]:text-left"
+      className="overflow-hidden border-border bg-card [&_[data-ui~=actions]_[data-slot=button]]:whitespace-normal [&_[data-ui~=actions]_[data-slot=button]]:h-auto [&_[data-ui~=actions]_[data-slot=button]]:min-h-8 [&_[data-ui~=actions]_[data-slot=button]]:max-w-full [&_[data-ui~=actions]_[data-slot=button]]:text-left"
     >
-      <CardHeader>
-        <CardTitle>
-          {t(`review.metric_${goal.scope.metricId}`)}{' '}
-          <Badge variant="secondary">{t(`review.goal_${goal.state}`)}</Badge>
-        </CardTitle>
-        <CardDescription>
-          {queueName(t, goal.scope.queueId)} · {positionName(t, goal.scope.position)} ·{' '}
-          {goal.scope.patch} · v{goal.version} · {goal.scope.direction === 'increase' ? '≥' : '≤'}{' '}
-          {goal.scope.target}
-        </CardDescription>
-      </CardHeader>
-      <CardContent data-ui="review-stack" className="grid grid-cols-1 gap-4 min-w-0">
-        <ErrorNotice error={progress.error || save.error || evaluate.error} />
+      <CardHeader className="flex-row items-center gap-4 border-b border-border bg-muted/30">
         {goal.scope.championId && (
-          <span className="inline-flex items-center gap-1.5 me-2.5 align-middle [&_[data-slot='avatar']]:w-6 [&_[data-slot='avatar']]:h-6">
-            <GameEntityIcon
-              kind="champion"
-              id={goal.scope.championId}
-              label={championName(t, goal.scope.championId)}
-            />
-            {championName(t, goal.scope.championId)}
-          </span>
+          <GameEntityIcon
+            kind="champion"
+            id={goal.scope.championId}
+            label={championName(t, goal.scope.championId)}
+            className="size-14 rounded-xl border border-primary/30"
+          />
         )}
+        <div className="min-w-0 flex-1 space-y-1.5">
+          <CardTitle className="flex flex-wrap items-center gap-2 text-base">
+            {t(`review.metric_${goal.scope.metricId}`)}
+            <Badge variant="outline">{t(`review.goal_${goal.state}`)}</Badge>
+          </CardTitle>
+          <CardDescription>
+            {goal.scope.championId && `${championName(t, goal.scope.championId)} · `}
+            {queueName(t, goal.scope.queueId)} · {positionName(t, goal.scope.position)} ·{' '}
+            {goal.scope.patch} · v{goal.version}
+          </CardDescription>
+        </div>
+        <strong className="shrink-0 text-2xl font-semibold tabular-nums text-primary">
+          {goal.scope.direction === 'increase' ? '≥' : '≤'} {goal.scope.target}
+        </strong>
+      </CardHeader>
+      <CardContent data-ui="review-stack" className="grid min-w-0 grid-cols-1 gap-4 pt-5">
+        <ErrorNotice error={progress.error || save.error || evaluate.error} />
+        <div
+          data-ui="goal-summary"
+          className="grid grid-cols-2 gap-4 rounded-lg border border-border bg-muted/20 p-4 lg:grid-cols-4"
+        >
+          <div className="space-y-1">
+            <span className="text-xs text-muted-foreground">
+              {t('review.baseline')} ({goal.baseline.length}/10)
+            </span>
+            <strong className="block text-2xl font-semibold tabular-nums">{numberText(avg)}</strong>
+          </div>
+          <div className="space-y-1">
+            <span className="text-xs text-muted-foreground">
+              {t('review.current')} ({e?.members.length || 0}/10)
+            </span>
+            <strong className="block text-2xl font-semibold tabular-nums">
+              {numberText(e?.current)}
+            </strong>
+          </div>
+          <div className="space-y-1">
+            <span className="text-xs text-muted-foreground">Δ</span>
+            <strong className="block text-2xl font-semibold tabular-nums">
+              {numberText(e?.delta)}
+            </strong>
+          </div>
+          <p className="self-center text-sm font-medium" role="status">
+            {e?.achieved == null
+              ? t('review.waitingSamples')
+              : t(e.achieved ? 'review.achieved' : 'review.notAchieved')}
+          </p>
+        </div>
         <ChartBoundary fallback={t('review.chartFailed')}>
           <Suspense fallback={null}>
             <GoalTrendChart goal={goal} evaluation={e} onOpen={open} />
           </Suspense>
         </ChartBoundary>
-        <p>
-          {t('review.baseline')}: {numberText(avg)} ({goal.baseline.length}/10) ·{' '}
-          {t('review.current')}: {numberText(e?.current)} ({e?.members.length || 0}/10) · Δ{' '}
-          {numberText(e?.delta)}
-        </p>
-        <p>
-          {e?.achieved == null
-            ? t('review.waitingSamples')
-            : t(e.achieved ? 'review.achieved' : 'review.notAchieved')}
-        </p>
         {goal.scope.origin && (
           <p className="text-muted-foreground text-[12px]">
             {t(`scouting.${goal.scope.origin.ruleId}`)} · {t('matches.champion')}{' '}
@@ -450,156 +486,210 @@ function GoalCard({
             {t('review.evaluate')}
           </Button>
         </div>
-        <div data-ui="actions" className="flex items-center gap-2">
-          <ChampionSelect
-            value={scope.championId}
-            onValueChange={(championId) => updateScope({ championId })}
-          />
-          <SearchSelect
-            label={t('review.position')}
-            value={scope.position}
-            options={['TOP', 'JUNGLE', 'MIDDLE', 'BOTTOM', 'UTILITY'].map((position) => ({
-              value: position,
-              label: positionName(t, position),
-            }))}
-            onValueChange={(position) => updateScope({ position })}
-          />
-          <Label>
-            {t('matches.version')}
-            <Input
-              aria-label={t('training.goalPatch')}
-              value={scope.patch}
-              onChange={(event) => updateScope({ patch: event.target.value })}
-            />
-          </Label>
-          <SearchSelect
-            label={t('training.direction')}
-            value={scope.direction}
-            options={['increase', 'decrease'].map((direction) => ({
-              value: direction,
-              label: t(`training.${direction}`),
-            }))}
-            onValueChange={(direction) => updateScope({ direction })}
-          />
-        </div>
-        <Label>
-          {t('review.changeTarget')}
-          <Input
-            type="number"
-            min={0}
-            max={1000}
-            step="0.1"
-            value={newTarget}
-            onChange={(e) => setNewTarget(e.target.value)}
-          />
-        </Label>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={
-            (!scopeChanged && newTarget === String(goal.scope.target)) ||
-            !newTarget ||
-            !Number.isFinite(Number(newTarget)) ||
-            Number(newTarget) < 0
-          }
-          onClick={() => setConfirm('active')}
-        >
-          {t('review.newGoalVersion')}
-        </Button>
-        <div data-ui="actions" className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            disabled={revision == null && !e}
-            onClick={() => setRevision(null)}
-          >
-            {t('review.latestEvaluation')}
-          </Button>
-          {e && e.revision > 1 && (
-            <Button variant="ghost" onClick={() => setRevision(e.revision - 1)}>
-              {t('review.previousEvaluation')}
-            </Button>
-          )}
-          {e && <Badge variant="outline">{t('review.revision', { n: e.revision })}</Badge>}
-        </div>
-        <details>
-          <summary>{t('training.numericTable')}</summary>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t('review.match')}</TableHead>
-                <TableHead>{t('training.selection')}</TableHead>
-                <TableHead>{t(`review.metric_${goal.scope.metricId}`)}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {[
-                ...goal.baseline.map((member) => ({ member, group: 'baseline' })),
-                ...(e?.members || []).map((member) => ({ member, group: 'current' })),
-              ].map(({ member, group }) => (
-                <TableRow key={`${group}:${member.matchKey}`}>
-                  <TableCell>
-                    <Button variant="link" onClick={() => open(member)}>
-                      {matchName(t, member.matchKey)}
-                    </Button>
-                  </TableCell>
-                  <TableCell>{t(`review.${group}`)}</TableCell>
-                  <TableCell>{numberText(member.value)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </details>
-        <p className="text-muted-foreground text-[12px]">{t('review.baselineMembers')}</p>
-        <div data-ui="actions" className="flex items-center gap-2">
-          {goal.baseline.map((m) => (
-            <Button variant="link" size="sm" key={m.matchKey} onClick={() => open(m)}>
-              {matchName(t, m.matchKey)} · {numberText(m.value)}
-            </Button>
-          ))}
-        </div>
-        {Object.entries(goal.baselineExcluded || {}).map(([reason, count]) => (
-          <small key={`baseline:${reason}`}>
-            {t('review.baseline')} ·{' '}
-            {t(`review.reason_${reason}`, { defaultValue: t('labels.unknownReason') })}: {count}
-          </small>
-        ))}
-        {progress.data?.availability && (
-          <>
-            <p>
-              {t('training.availableSamples', {
-                details: progress.data.availability.missingDetails.length,
-                reports: progress.data.availability.missingReports.length,
-                excluded: progress.data.availability.notApplicable,
-                mismatch: progress.data.availability.versionMismatch,
-              })}
-            </p>
-            {epoch && (
-              <MatchPreparationPanel
-                epoch={epoch}
-                player={goal.scope.playerKey}
-                selected={[
-                  ...progress.data.availability.missingDetails,
-                  ...progress.data.availability.missingReports,
-                ]
-                  .slice(0, 20)
-                  .map((match) => match.matchKey)}
+        <Collapsible className="rounded-lg border border-border px-4">
+          <CollapsibleTrigger asChild>
+            <Button
+              variant="ghost"
+              className="group h-auto min-h-9 w-full justify-start gap-2 px-0 py-2 text-left text-sm font-normal whitespace-normal text-muted-foreground"
+            >
+              <ChevronRight
+                aria-hidden="true"
+                className="size-4 shrink-0 transition-transform group-data-[state=open]:rotate-90 motion-reduce:transition-none"
               />
-            )}
-          </>
-        )}
-        <p className="text-muted-foreground text-[12px]">{t('review.currentMembers')}</p>
-        <div data-ui="actions" className="flex items-center gap-2">
-          {e?.members.map((m) => (
-            <Button variant="link" size="sm" key={m.matchKey} onClick={() => open(m)}>
-              {matchName(t, m.matchKey)} · {numberText(m.value)}
+              {t('review.newGoalVersion')}
             </Button>
-          ))}
-        </div>
-        {Object.entries(e?.excluded || {}).map(([reason, count]) => (
-          <small key={reason}>
-            {t(`review.reason_${reason}`, { defaultValue: t('labels.unknownReason') })}: {count}
-          </small>
-        ))}
+          </CollapsibleTrigger>
+          <CollapsibleContent forceMount className="hidden min-w-0 pb-2 data-[state=open]:block">
+            <div className="grid gap-4 pb-4">
+              <div data-ui="actions" className="flex items-center gap-2">
+                <ChampionSelect
+                  value={scope.championId}
+                  onValueChange={(championId) => updateScope({ championId })}
+                />
+                <SearchSelect
+                  label={t('review.position')}
+                  value={scope.position}
+                  options={['TOP', 'JUNGLE', 'MIDDLE', 'BOTTOM', 'UTILITY'].map((position) => ({
+                    value: position,
+                    label: positionName(t, position),
+                  }))}
+                  onValueChange={(position) => updateScope({ position })}
+                />
+                <Label>
+                  {t('matches.version')}
+                  <Input
+                    aria-label={t('training.goalPatch')}
+                    value={scope.patch}
+                    onChange={(event) => updateScope({ patch: event.target.value })}
+                  />
+                </Label>
+                <SearchSelect
+                  label={t('training.direction')}
+                  value={scope.direction}
+                  options={['increase', 'decrease'].map((direction) => ({
+                    value: direction,
+                    label: t(`training.${direction}`),
+                  }))}
+                  onValueChange={(direction) => updateScope({ direction })}
+                />
+              </div>
+              <Label>
+                {t('review.changeTarget')}
+                <Input
+                  type="number"
+                  min={0}
+                  max={1000}
+                  step="0.1"
+                  value={newTarget}
+                  onChange={(e) => setNewTarget(e.target.value)}
+                />
+              </Label>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={
+                  (!scopeChanged && newTarget === String(goal.scope.target)) ||
+                  !newTarget ||
+                  !Number.isFinite(Number(newTarget)) ||
+                  Number(newTarget) < 0
+                }
+                onClick={() => setConfirm('active')}
+              >
+                {t('review.newGoalVersion')}
+              </Button>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+        <Collapsible className="rounded-lg border border-border px-4">
+          <CollapsibleTrigger asChild>
+            <Button
+              variant="ghost"
+              className="group h-auto min-h-9 w-full justify-start gap-2 px-0 py-2 text-left text-sm font-normal whitespace-normal text-muted-foreground"
+            >
+              <ChevronRight
+                aria-hidden="true"
+                className="size-4 shrink-0 transition-transform group-data-[state=open]:rotate-90 motion-reduce:transition-none"
+              />
+              {t('review.baselineMembers')} · {t('review.currentMembers')}
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent forceMount className="hidden min-w-0 pb-2 data-[state=open]:block">
+            <div className="grid gap-3 pb-4">
+              <div data-ui="actions" className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  disabled={revision == null && !e}
+                  onClick={() => setRevision(null)}
+                >
+                  {t('review.latestEvaluation')}
+                </Button>
+                {e && e.revision > 1 && (
+                  <Button variant="ghost" onClick={() => setRevision(e.revision - 1)}>
+                    {t('review.previousEvaluation')}
+                  </Button>
+                )}
+                {e && <Badge variant="outline">{t('review.revision', { n: e.revision })}</Badge>}
+              </div>
+              <Collapsible>
+                <CollapsibleTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="group h-auto min-h-9 w-full justify-start gap-2 px-0 py-2 text-left text-sm font-normal whitespace-normal text-muted-foreground"
+                  >
+                    <ChevronRight
+                      aria-hidden="true"
+                      className="size-4 shrink-0 transition-transform group-data-[state=open]:rotate-90 motion-reduce:transition-none"
+                    />
+                    {t('training.numericTable')}
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent
+                  forceMount
+                  className="hidden min-w-0 pb-2 data-[state=open]:block"
+                >
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>{t('review.match')}</TableHead>
+                        <TableHead>{t('training.selection')}</TableHead>
+                        <TableHead>{t(`review.metric_${goal.scope.metricId}`)}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {[
+                        ...goal.baseline.map((member) => ({ member, group: 'baseline' })),
+                        ...(e?.members || []).map((member) => ({ member, group: 'current' })),
+                      ].map(({ member, group }) => (
+                        <TableRow key={`${group}:${member.matchKey}`}>
+                          <TableCell>
+                            <Button variant="link" onClick={() => open(member)}>
+                              {matchName(t, member.matchKey)}
+                            </Button>
+                          </TableCell>
+                          <TableCell>{t(`review.${group}`)}</TableCell>
+                          <TableCell>{numberText(member.value)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CollapsibleContent>
+              </Collapsible>
+              <p className="text-muted-foreground text-[12px]">{t('review.baselineMembers')}</p>
+              <div data-ui="actions" className="flex items-center gap-2">
+                {goal.baseline.map((m) => (
+                  <Button variant="link" size="sm" key={m.matchKey} onClick={() => open(m)}>
+                    {matchName(t, m.matchKey)} · {numberText(m.value)}
+                  </Button>
+                ))}
+              </div>
+              {Object.entries(goal.baselineExcluded || {}).map(([reason, count]) => (
+                <small key={`baseline:${reason}`}>
+                  {t('review.baseline')} ·{' '}
+                  {t(`review.reason_${reason}`, { defaultValue: t('labels.unknownReason') })}:{' '}
+                  {count}
+                </small>
+              ))}
+              {progress.data?.availability && (
+                <>
+                  <p>
+                    {t('training.availableSamples', {
+                      details: progress.data.availability.missingDetails.length,
+                      reports: progress.data.availability.missingReports.length,
+                      excluded: progress.data.availability.notApplicable,
+                      mismatch: progress.data.availability.versionMismatch,
+                    })}
+                  </p>
+                  {epoch && (
+                    <MatchPreparationPanel
+                      epoch={epoch}
+                      player={goal.scope.playerKey}
+                      selected={[
+                        ...progress.data.availability.missingDetails,
+                        ...progress.data.availability.missingReports,
+                      ]
+                        .slice(0, 20)
+                        .map((match) => match.matchKey)}
+                    />
+                  )}
+                </>
+              )}
+              <p className="text-muted-foreground text-[12px]">{t('review.currentMembers')}</p>
+              <div data-ui="actions" className="flex items-center gap-2">
+                {e?.members.map((m) => (
+                  <Button variant="link" size="sm" key={m.matchKey} onClick={() => open(m)}>
+                    {matchName(t, m.matchKey)} · {numberText(m.value)}
+                  </Button>
+                ))}
+              </div>
+              {Object.entries(e?.excluded || {}).map(([reason, count]) => (
+                <small key={reason}>
+                  {t(`review.reason_${reason}`, { defaultValue: t('labels.unknownReason') })}:{' '}
+                  {count}
+                </small>
+              ))}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
       </CardContent>
       <Dialog
         open={!!confirm}

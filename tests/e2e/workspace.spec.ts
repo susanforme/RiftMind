@@ -87,8 +87,9 @@ test('no-client startup, navigation and settings persistence through a real proc
   page,
 }) => {
   await start('no-client');
-  await page.goto('/');
+  await page.goto('/#/matches?tab=matches:NA1:missing&player=NA1:missing');
   await expect(page.getByRole('heading', { name: 'Match history' })).toBeVisible();
+  await expect(page.getByRole('tablist').getByRole('tab')).toHaveCount(1);
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await choose(page, page.getByLabel('Display language'), 'English');
   await page.getByRole('radio', { name: 'Dark', exact: true }).check();
@@ -110,6 +111,18 @@ test('HTTP sync, filters, pagination, backup restore, offline process restart an
   await expect(page.locator('[data-ui~=match-row]')).toHaveCount(50);
   await page.getByRole('button', { name: 'Sync matches', exact: true }).click();
   await expect(page.getByText('125 saved matches')).toBeVisible();
+  const inspectedMatch = page
+    .locator('[data-ui~=match-row]')
+    .nth(2)
+    .getByRole('button', { name: /^Match details / });
+  const inspectedName = (await inspectedMatch.getAttribute('aria-label'))!;
+  await inspectedMatch.click();
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByRole('button', { name: 'Matches', exact: true }).click();
+  await expect(page.getByRole('button', { name: inspectedName, exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
   await page.getByRole('button', { name: 'Next page', exact: true }).click();
   await expect(page.locator('[data-ui~=match-row]')).toHaveCount(50);
   await page.getByRole('button', { name: 'Back to latest', exact: true }).click();
@@ -304,7 +317,7 @@ test('window controls stay at the upper right and compact navigation keeps acces
   ).toBe(true);
 });
 
-test('sidebar theme cycles with keyboard and keeps the collapse control anchored', async ({
+test('sidebar theme cycles with keyboard and keeps the collapse control inside the aligned brand area', async ({
   page,
 }, info) => {
   await start('no-client', false);
@@ -334,7 +347,14 @@ test('sidebar theme cycles with keyboard and keeps the collapse control anchored
   const expand = page.getByRole('button', { name: 'Expand sidebar', exact: true });
   await expect(expand).toHaveAttribute('aria-expanded', 'false');
   const collapsedBounds = (await expand.boundingBox())!;
-  expect(collapsedBounds.x).toBe(expandedBounds.x);
+  const brand = page.locator('[data-ui~=titlebar-brand]');
+  const brandBounds = (await brand.boundingBox())!;
+  expect(collapsedBounds.x).toBeGreaterThanOrEqual(brandBounds.x);
+  expect(collapsedBounds.x + collapsedBounds.width).toBeLessThanOrEqual(
+    brandBounds.x + brandBounds.width,
+  );
+  const sidebarBounds = (await page.locator('#app-sidebar').boundingBox())!;
+  expect(brandBounds.width).toBe(sidebarBounds.width);
   expect(collapsedBounds.y).toBe(expandedBounds.y);
   await theme.click();
   await expect(theme).toHaveAccessibleName('Appearance: Light. Switch to Dark');
@@ -347,6 +367,13 @@ test('sidebar theme cycles with keyboard and keeps the collapse control anchored
   await expect(page.locator('[data-ui~=sidebar-actions]')).toBeInViewport();
   const actionsBounds = (await page.locator('[data-ui~=sidebar-actions]').boundingBox())!;
   expect(actionsBounds.y + actionsBounds.height).toBeLessThanOrEqual(600);
+  const sidebarBoundsAtNarrowWidth = (await page.locator('#app-sidebar').boundingBox())!;
+  for (const action of await page.locator('[data-ui~=sidebar-actions] > button').all()) {
+    const actionBounds = (await action.boundingBox())!;
+    expect(actionBounds.x + actionBounds.width).toBeLessThanOrEqual(
+      sidebarBoundsAtNarrowWidth.x + sidebarBoundsAtNarrowWidth.width,
+    );
+  }
   await page.evaluate(
     () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
   );

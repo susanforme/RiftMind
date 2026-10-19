@@ -11,7 +11,7 @@ const files = [
 ];
 files.push(
   ...(await readdir('tests/fixtures/ui-art'))
-    .filter((file) => file.endsWith('.png') || file.endsWith('.json'))
+    .filter((file) => file.endsWith('.png') || file.endsWith('.jpg') || file.endsWith('.json'))
     .sort()
     .map((file) => `tests/fixtures/ui-art/${file}`),
 );
@@ -44,7 +44,7 @@ for (const path of files)
 const manifest = {
   schemaVersion: 1,
   source:
-    'synthetic generators, source-referenced server mappings, Riot Data Dragon 16.20.1 UI preview art; no captured credentials',
+    'synthetic generators, source-referenced server mappings, Riot Data Dragon 16.20.1 / CommunityDragon 16.20 UI preview art; no captured credentials',
   entries,
 };
 if (process.argv.includes('--check')) {

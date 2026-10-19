@@ -134,6 +134,8 @@ fn validate_path(path: &str) -> Result<&'static str> {
     }
     if path.ends_with(".png") {
         Ok("image/png")
+    } else if path.ends_with(".jpg") || path.ends_with(".jpeg") {
+        Ok("image/jpeg")
     } else if path.ends_with(".json") {
         Ok("application/json")
     } else {
@@ -147,6 +149,24 @@ fn validate_bytes(bytes: &[u8], content_type: &str) -> Result<()> {
     }
     if content_type == "application/json" {
         serde_json::from_slice::<Value>(bytes)?;
+    } else if content_type == "image/jpeg" {
+        if !bytes.starts_with(&[0xff, 0xd8]) || !bytes.ends_with(&[0xff, 0xd9]) {
+            return Err(AppError::new(ErrorCode::InvalidInput));
+        }
+        let mut decoder = jpeg_decoder::Decoder::new(std::io::Cursor::new(bytes));
+        decoder.set_max_decoding_buffer_size(32 * 1024 * 1024);
+        decoder
+            .read_info()
+            .map_err(|_| AppError::new(ErrorCode::InvalidInput))?;
+        let image = decoder
+            .info()
+            .ok_or_else(|| AppError::new(ErrorCode::InvalidInput))?;
+        if image.width == 0 || image.height == 0 || image.width > 8192 || image.height > 8192 {
+            return Err(AppError::new(ErrorCode::InvalidInput));
+        }
+        decoder
+            .decode()
+            .map_err(|_| AppError::new(ErrorCode::InvalidInput))?;
     } else {
         let mut decoder = png::Decoder::new(std::io::Cursor::new(bytes));
         decoder.set_limits(png::Limits {
@@ -501,6 +521,70 @@ impl ResourceClient {
         })
     }
 
+    pub async fn champion_skins(
+        &self,
+        root: &Path,
+        query: ChampionSkinsQuery,
+    ) -> Result<ChampionSkinCatalogue> {
+        if query.champion_id == 0 || !["zh-CN", "en-US"].contains(&query.locale.as_str()) {
+            return Err(AppError::new(ErrorCode::InvalidInput));
+        }
+        let version = patch(&query.version)?;
+        let language = if query.locale == "zh-CN" {
+            "zh_cn"
+        } else {
+            "default"
+        };
+        let path = format!(
+            "/{version}/{PREFIX}{language}/v1/champions/{}.json",
+            query.champion_id
+        );
+        let metadata = match self.metadata(root, &path).await {
+            Ok(metadata) => metadata,
+            Err(_) if language != "default" => {
+                self.metadata(
+                    root,
+                    &format!(
+                        "/{version}/{PREFIX}default/v1/champions/{}.json",
+                        query.champion_id
+                    ),
+                )
+                .await?
+            }
+            Err(error) => return Err(error),
+        };
+        if metadata["id"].as_u64() != Some(u64::from(query.champion_id)) {
+            return Err(AppError::new(ErrorCode::DataIncomplete));
+        }
+        let skins = metadata["skins"]
+            .as_array()
+            .ok_or_else(|| AppError::new(ErrorCode::DataIncomplete))?
+            .iter()
+            .filter_map(|skin| {
+                let id = u32::try_from(skin["id"].as_u64()?).ok()?;
+                if id / 1000 != query.champion_id {
+                    return None;
+                }
+                let name = skin["name"].as_str()?.trim();
+                if name.is_empty() {
+                    return None;
+                }
+                Some(ChampionSkin {
+                    id,
+                    name: name.to_owned(),
+                    is_base: skin["isBase"].as_bool()?,
+                })
+            })
+            .collect::<Vec<_>>();
+        if skins.is_empty() {
+            return Err(AppError::new(ErrorCode::DataIncomplete));
+        }
+        Ok(ChampionSkinCatalogue {
+            champion_id: query.champion_id,
+            skins,
+        })
+    }
+
     pub async fn resolve(
         &self,
         pool: &SqlitePool,
@@ -534,11 +618,16 @@ impl ResourceClient {
                 ResourceKind::Rune => "rune",
                 ResourceKind::Spell => "spell",
                 ResourceKind::Skill => "skill",
+                ResourceKind::ProfileIcon => "profile_icon",
+                ResourceKind::ChampionSplash => "champion_splash",
             };
             // Skill IDs combine champion ID and the 1-based Q/W/E/R slot in one resource key.
             if resource.kind == ResourceKind::Skill
                 && (resource.id / 10 == 0 || !(1..=4).contains(&(resource.id % 10)))
             {
+                return Err(AppError::new(ErrorCode::InvalidInput));
+            }
+            if resource.kind == ResourceKind::ChampionSplash && resource.id / 1000 == 0 {
                 return Err(AppError::new(ErrorCode::InvalidInput));
             }
             let resource_id = format!("{kind}:{}", resource.id);
@@ -548,6 +637,8 @@ impl ResourceClient {
                 ResourceKind::Rune => "perks".into(),
                 ResourceKind::Spell => "summoner-spells".into(),
                 ResourceKind::Skill => format!("champions/{}", resource.id / 10),
+                ResourceKind::ProfileIcon => "profile-icons".into(),
+                ResourceKind::ChampionSplash => format!("champions/{}", resource.id / 1000),
             };
             let mut object = None;
             for language in if locale == "default" {
@@ -563,6 +654,15 @@ impl ResourceClient {
                         meta.get("spells")
                             .and_then(Value::as_array)
                             .and_then(|spells| spells.get((resource.id % 10 - 1) as usize))
+                            .cloned()
+                    } else if resource.kind == ResourceKind::ChampionSplash {
+                        meta.get("skins")
+                            .and_then(Value::as_array)
+                            .and_then(|skins| {
+                                skins.iter().find(|skin| {
+                                    skin["id"].as_u64() == Some(u64::from(resource.id))
+                                })
+                            })
                             .cloned()
                     } else if let Some(array) = meta.as_array() {
                         array
@@ -594,8 +694,16 @@ impl ResourceClient {
                         object
                             .get(if resource.kind == ResourceKind::Skill {
                                 "abilityIconPath"
+                            } else if resource.kind == ResourceKind::ChampionSplash {
+                                "uncenteredSplashPath"
                             } else {
                                 "iconPath"
+                            })
+                            .filter(|value| value.as_str().is_some_and(|path| !path.is_empty()))
+                            .or_else(|| {
+                                (resource.kind == ResourceKind::ChampionSplash)
+                                    .then(|| object.get("splashPath"))
+                                    .flatten()
                             })
                             .and_then(Value::as_str)
                             .and_then(|s| s.strip_prefix("/lol-game-data/assets/"))

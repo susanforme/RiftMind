@@ -48,11 +48,11 @@ export function PracticeChecklist({
       }),
   });
   return (
-    <Card>
-      <CardHeader>
+    <Card data-ui="practice-checklist" className="min-w-0 overflow-hidden">
+      <CardHeader className="border-b border-border bg-muted/20">
         <CardTitle>{t('notebooks.practice')}</CardTitle>
       </CardHeader>
-      <CardContent data-ui="review-stack" className="grid grid-cols-1 gap-4 min-w-0">
+      <CardContent data-ui="review-stack" className="grid min-w-0 grid-cols-1 gap-4 pt-5">
         <ErrorNotice error={practices.error} />
         {!practices.data?.length && <p>{t('notebooks.noPractice')}</p>}
         {practices.data?.map((practice) => (
@@ -105,15 +105,16 @@ function PracticeRow({
   return (
     <div
       data-ui="review-stack"
-      className="border-t border-t-border pt-4 grid grid-cols-1 gap-4 min-w-0"
+      className="grid min-w-0 grid-cols-1 gap-4 border-b border-border pb-5 pt-5 last:border-b-0 last:pb-0"
     >
       <div data-ui="actions" className="flex items-center gap-2">
         <GameEntityIcon
           kind="champion"
           id={practice.championId}
           label={championName(t, practice.championId)}
+          className="size-10 rounded-lg"
         />
-        <strong>{practice.title}</strong>
+        <strong className="min-w-0 flex-1 wrap-anywhere">{practice.title}</strong>
         <Badge variant="outline">{t(`notebooks.practice_${practice.state}`)}</Badge>
         {practice.sourceId && (!source || source.deleted) && (
           <Badge variant="outline">{t('notebooks.sourceUnavailable')}</Badge>
@@ -148,11 +149,12 @@ function PracticeRow({
         <Textarea
           aria-label={t('notebooks.practiceNotes')}
           value={notes}
+          className="min-h-24"
           onChange={(event) => setNotes(event.target.value)}
         />
       </Label>
       <div data-ui="actions" className="flex items-center gap-2">
-        <Button disabled={save.isPending} onClick={() => save.mutate(false)}>
+        <Button className="flex-1" disabled={save.isPending} onClick={() => save.mutate(false)}>
           {t('notebooks.save')}
         </Button>
         <Button variant="outline" disabled={save.isPending} onClick={() => save.mutate(true)}>

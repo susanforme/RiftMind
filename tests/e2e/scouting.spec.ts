@@ -114,10 +114,14 @@ test('search, favorites, champion filters, fixed comparison, issue draft, backup
   await harness.wait(await harness.call('sync_player_matches', { playerKey, pages: 1 }));
   const rows = await harness.seedReviews(playerKey);
   await page.goto('/#/matches');
+  await page.getByRole('button', { name: 'Find player', exact: true }).click();
   await page.getByRole('textbox', { name: 'Player Riot ID' }).fill('Alice#TEST');
   await page.getByRole('button', { name: 'Search', exact: true }).click();
   await expect(page.getByRole('button', { name: /Alice#TEST/ })).toBeVisible();
-  await page.getByRole('button', { name: 'Favorite player', exact: true }).first().click();
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: 'Favorite player', exact: true })
+    .click();
   await expect.poll(async () => (await harness.call('list_favorites', {})).length).toBe(1);
   await page
     .getByRole('button', { name: /Alice#TEST/ })
@@ -236,6 +240,7 @@ test('search, favorites, champion filters, fixed comparison, issue draft, backup
   await harness.start('offline');
   await page.reload();
   await page.goto('/#/matches');
+  await page.getByRole('button', { name: 'Find player', exact: true }).click();
   await expect(page.locator('[data-ui~=favorites]')).toContainText('Alice#TEST');
   await page
     .getByRole('button', { name: /Alice#TEST/ })

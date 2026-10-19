@@ -5,6 +5,7 @@ export function MetricValue({ metric, ratio = false }: { metric: SampleMetric; r
   const { t } = useTranslation();
   return (
     <span
+      className="inline-flex flex-wrap items-baseline gap-x-1.5 tabular-nums"
       title={Object.entries(metric.excluded)
         .map(
           ([reason, count]) =>
@@ -13,7 +14,7 @@ export function MetricValue({ metric, ratio = false }: { metric: SampleMetric; r
         .join(', ')}
     >
       {numberText(metric.value, ratio ? 'ratio' : undefined)}{' '}
-      <small className="text-muted-foreground text-[12px]">
+      <small className="text-muted-foreground text-xs font-normal">
         {t('scouting.n', { count: metric.samples })}
       </small>
     </span>

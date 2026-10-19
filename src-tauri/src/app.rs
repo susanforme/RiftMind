@@ -41,7 +41,7 @@ pub async fn dispatch(
                 runtime_id: "bootstrap".into(),
                 workspace_epoch: "bootstrap".into(),
                 app_version: env!("CARGO_PKG_VERSION").into(),
-                database_version: 5,
+                database_version: riftmind_core::storage::DATABASE_VERSION,
                 settings_version: 1,
                 update_status: UpdateStatus {
                     state: "unavailable".into(),

@@ -154,37 +154,14 @@ impl Service {
             Ok(v) => v,
             Err(e) => return Err(self.record_player_error(e, &c.session_epoch).await),
         };
-        let puuid = raw["puuid"]
-            .as_str()
-            .filter(|s| !s.is_empty())
-            .ok_or(AppError::new(ErrorCode::NotFound))?;
-        domain::validate_key(puuid)?;
-        if raw["serverId"].as_str().is_some_and(|id| id != server) {
-            return Err(AppError::new(ErrorCode::RegionConflict));
-        }
-        let name = raw["gameName"]
-            .as_str()
-            .or_else(|| raw["displayName"].as_str())
-            .filter(|s| !s.is_empty())
-            .unwrap_or(query);
-        let name = match raw["tagLine"].as_str().filter(|s| !s.is_empty()) {
-            Some(tag) => format!("{name}#{tag}"),
-            None => name.into(),
-        };
-        let p = Player {
-            player_key: format!("{server}:{puuid}"),
-            server_id: server.clone(),
-            puuid: puuid.into(),
-            display_name: name,
-            updated_at: storage::now(),
-        };
+        let p = clients::player_from_summoner(&raw, server, query)?;
         let _workspace = self.maintenance.read().await;
         self.check_workspace(&epoch).await?;
         let current = self.connection.read().await;
         if current.session_epoch != c.session_epoch {
             return Err(AppError::new(ErrorCode::SessionChanged));
         }
-        storage::save_player(&self.pool, &p).await?;
+        let p = storage::save_player(&self.pool, &p).await?;
         drop(current);
         self.emit("players-changed", Some(p.player_key.clone()), 0)
             .await;
@@ -260,10 +237,17 @@ impl Service {
         .fetch_optional(&self.pool)
         .await?;
         if let Some(payload) = cached {
-            let p: PlayerProfile = serde_json::from_str(&payload)?;
+            let mut p: PlayerProfile = serde_json::from_str(&payload)?;
             let fresh = chrono::DateTime::parse_from_rfc3339(&p.collected_at)
                 .is_ok_and(|t| chrono::Utc::now().signed_duration_since(t).num_seconds() < 60);
             if fresh || c.phase != ConnectionPhase::Connected {
+                if let Some(player) = storage::players(&self.pool)
+                    .await?
+                    .into_iter()
+                    .find(|player| player.player_key == q.player_key)
+                {
+                    p.player = player;
+                }
                 return Ok(profile_champion(p, q.champion_id));
             }
         }

@@ -92,7 +92,7 @@ impl Service {
                 runtime_id: uuid::Uuid::new_v4().to_string(),
                 workspace_epoch: uuid::Uuid::new_v4().to_string(),
                 app_version: env!("CARGO_PKG_VERSION").into(),
-                database_version: 5,
+                database_version: storage::DATABASE_VERSION,
                 settings_version: 1,
                 update_status: UpdateStatus {
                     state: "unavailable".into(),
@@ -164,7 +164,7 @@ impl Service {
             c.retry_at = old.retry_at.clone();
         }
         if let Some(p) = &c.player {
-            storage::save_player(&self.pool, p).await?;
+            c.player = Some(storage::save_player(&self.pool, p).await?);
         }
         *self.remote.write().await = remote;
         *self.connection.write().await = c.clone();
@@ -442,7 +442,7 @@ impl Service {
         storage::vacuum_backup(&self.pool, &db).await?;
         let bytes = tokio::fs::read(&db).await?;
         let settings = self.settings.lock().await.clone();
-        let data = json!({"schemaVersion":5,"database":STANDARD.encode(&bytes),"sha256":storage::hash(&bytes),"settings":settings});
+        let data = json!({"schemaVersion":storage::DATABASE_VERSION,"database":STANDARD.encode(&bytes),"sha256":storage::hash(&bytes),"settings":settings});
         let file = self.root.join("backups").join(format!("{id}.riftmind"));
         tokio::fs::write(&file, serde_json::to_vec(&data)?).await?;
         tokio::fs::remove_file(db).await?;
@@ -696,6 +696,13 @@ impl Service {
                     .read()
                     .await
                     .resolve(&self.pool, &self.asset_root, r)
+                    .await?
+            ),
+            Command::get_champion_skins(r) => out!(
+                self.resources
+                    .read()
+                    .await
+                    .champion_skins(&self.asset_root, r)
                     .await?
             ),
             Command::check_for_updates(_) | Command::install_update(_) => out!(UpdateStatus {

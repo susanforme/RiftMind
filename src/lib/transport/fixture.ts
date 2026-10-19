@@ -1,3 +1,4 @@
+import previewSkins from '../../../tests/fixtures/ui-art/champion-skins.json';
 import { notebookFixture, resetNotebookFixture } from './notebook-fixture';
 import type {
   AppState,
@@ -14,7 +15,7 @@ import type {
 import { scoutingFixture, resetScoutingFixture, scoutingPlayers } from './scouting-fixture';
 import { reviewFixture, resetReviewFixture } from './review-fixture';
 import type { CommandName, Transport } from './index';
-const previewArt = import.meta.glob<string>('../../../tests/fixtures/ui-art/*.png', {
+const previewArt = import.meta.glob<string>('../../../tests/fixtures/ui-art/*.{png,jpg}', {
   eager: true,
   query: '?url',
   import: 'default',
@@ -154,6 +155,8 @@ export function setScenario(name: string) {
       puuid: 'synthetic-player',
       serverId: server,
       displayName: 'Rift Walker #DEMO',
+      profileIconId: 0,
+      summonerLevel: 182,
       updatedAt: now.toISOString(),
     },
     instance: { id: 'synthetic', pid: '1000', startedAt: now.toISOString(), identification },
@@ -235,6 +238,8 @@ async function execute(command: CommandName, args: unknown): Promise<unknown> {
               serverId: m.serverId,
               puuid: 'synthetic-player',
               displayName: 'Rift Walker #DEMO',
+              profileIconId: connection.player?.profileIconId ?? null,
+              summonerLevel: connection.player?.summonerLevel ?? null,
               updatedAt: now.toISOString(),
             },
           ]),
@@ -287,6 +292,13 @@ async function execute(command: CommandName, args: unknown): Promise<unknown> {
     case 'get_task_status':
     case 'cancel_task':
       return tasks[(args as { id: string }).id] || fail('not_found');
+    case 'get_champion_skins': {
+      const query = args as CommandMap['get_champion_skins']['input'];
+      return {
+        championId: query.championId,
+        skins: previewSkins[String(query.championId) as keyof typeof previewSkins] || [],
+      };
+    }
     case 'resolve_assets': {
       const q = args as AssetRequest;
       const ids = [
@@ -294,7 +306,10 @@ async function execute(command: CommandName, args: unknown): Promise<unknown> {
         ...(q.resourceIds || []),
       ];
       return ids.map(({ kind, id }) => {
-        const reference = previewArt[`../../../tests/fixtures/ui-art/${kind}-${id}.png`] || null;
+        const reference =
+          previewArt[`../../../tests/fixtures/ui-art/${kind}-${id}.png`] ||
+          previewArt[`../../../tests/fixtures/ui-art/${kind}-${id}.jpg`] ||
+          null;
         return {
           resourceId: `${kind}:${id}`,
           requestedVersion: q.version,

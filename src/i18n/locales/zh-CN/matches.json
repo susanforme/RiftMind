@@ -48,5 +48,15 @@
   "position_JUNGLE": "打野",
   "position_MIDDLE": "中单",
   "position_BOTTOM": "下路",
-  "position_UTILITY": "辅助"
+  "position_UTILITY": "辅助",
+  "details": "对局详情",
+  "gold": "经济",
+  "damage": "伤害",
+  "pageSummary": "本页 {{count}} 场",
+  "winRate": "胜率",
+  "playerIcon": "{{name}} 的头像",
+  "playerLevel": "等级 {{level}}",
+  "artwork": "横幅原画 / 皮肤",
+  "artworkLabel": "{{name}} 原画",
+  "findPlayer": "查找玩家"
 }

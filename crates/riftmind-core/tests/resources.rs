@@ -5,6 +5,7 @@ use axum::{
     response::IntoResponse,
     routing::get,
 };
+use base64::Engine;
 use riftmind_core::{
     contracts::*,
     services::{
@@ -25,6 +26,13 @@ use std::{
 const ICON: &str = "/16.20/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/103.png";
 const META: &str = "/16.20/plugins/rcp-be-lol-game-data/global/default/v1/champions/103.json";
 const PNG: &[u8] = include_bytes!("../../../tests/fixtures/icon.png");
+// A generated one-pixel image keeps JPEG validation independent of upstream art.
+const JPEG_BASE64: &str = "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAf/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFAEBAAAAAAAAAAAAAAAAAAAAA//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhEDEQA/AI2AYT//2Q==";
+fn jpeg_fixture() -> Vec<u8> {
+    base64::engine::general_purpose::STANDARD
+        .decode(JPEG_BASE64)
+        .unwrap()
+}
 #[derive(Default)]
 struct Upstream {
     calls: AtomicUsize,
@@ -44,13 +52,33 @@ async fn server() -> (String, Arc<Upstream>, tokio::task::JoinHandle<()>) {
             3 => return ([("content-type", "application/json")], "{broken").into_response(),
             4 => return (StatusCode::FOUND, [("location", "https://example.com/steal")]).into_response(),
             5 => return vec![0_u8; 8 * 1024 * 1024 + 1].into_response(),
+            6 => return vec![0xff_u8, 0xd8, 0xff, 0xd9].into_response(),
+            7 | 8 => {
+                let mut image = jpeg_fixture();
+                let frame = image.windows(2).position(|bytes| bytes == [0xff, 0xc0]).unwrap();
+                let dimension = if state.mode.load(Ordering::SeqCst) == 7 { 0xffff_u16 } else { 4096_u16 };
+                image[frame + 5..frame + 7].copy_from_slice(&dimension.to_be_bytes());
+                image[frame + 7..frame + 9].copy_from_slice(&dimension.to_be_bytes());
+                return image.into_response();
+            },
             _ => {}
         }
         if uri.path().contains("/zh_cn/") { return StatusCode::NOT_FOUND.into_response(); }
         if uri.path().ends_with("items.json") {
             return axum::Json(serde_json::json!([{"id":3089,"name":"Hat","iconPath":"/lol-game-data/assets/ASSETS/Items/Hat.png"}])).into_response();
         }
-        if uri.path().ends_with(".json") { return axum::Json(serde_json::json!({"id":103,"name":"Ahri","spells":[{"name":"Orb of Deception","abilityIconPath":"/lol-game-data/assets/ASSETS/Abilities/AhriQ.png"}]})).into_response(); }
+        if uri.path().ends_with("profile-icons.json") {
+            return axum::Json(serde_json::json!([
+                {"id":0,"iconPath":"/lol-game-data/assets/v1/profile-icons/0.jpg"},
+                {"id":1,"iconPath":"https://example.com/external.jpg"}
+            ])).into_response();
+        }
+        if uri.path().ends_with(".json") { return axum::Json(serde_json::json!({"id":103,"name":"Ahri","spells":[{"name":"Orb of Deception","abilityIconPath":"/lol-game-data/assets/ASSETS/Abilities/AhriQ.png"}],"skins":[
+            {"id":103000,"name":"Ahri","isBase":true,"uncenteredSplashPath":"/lol-game-data/assets/ASSETS/Characters/Ahri/Skins/Base/Images/ahri_splash_uncentered_0.jpg"},
+            {"id":103001,"name":"Dynasty Ahri","isBase":false,"splashPath":"/lol-game-data/assets/ASSETS/Characters/Ahri/Skins/Skin01/Images/ahri_splash_centered_1.jpg"},
+            {"id":103999,"name":"Unsafe path","isBase":false,"splashPath":"/lol-game-data/assets/../outside.jpg"}
+        ]})).into_response(); }
+        if uri.path().ends_with(".jpg") { return ([("content-type", "image/jpeg")], jpeg_fixture()).into_response(); }
         ([("content-type", "image/png")], PNG).into_response()
     })).with_state(state.clone());
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
@@ -367,4 +395,169 @@ async fn champion_skill_art_resolves_by_champion_and_slot_with_typed_boundaries(
         ErrorCode::InvalidInput
     );
     upstream.abort();
+}
+
+#[tokio::test]
+async fn profile_icons_and_skin_splashes_resolve_real_metadata_and_stay_available_offline() {
+    let (base, upstream, server) = server().await;
+    let root =
+        tempfile::tempdir_in(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../.tmp")).unwrap();
+    let pool = storage::open(&root.path().join("riftmind.db"))
+        .await
+        .unwrap();
+    let client = ResourceClient::fixture(base.clone()).unwrap();
+    let catalogue_query = ChampionSkinsQuery {
+        champion_id: 103,
+        version: "16.20.1".into(),
+        locale: "zh-CN".into(),
+    };
+    let catalogue = client
+        .champion_skins(root.path(), catalogue_query.clone())
+        .await
+        .unwrap();
+    assert_eq!(catalogue.champion_id, 103);
+    assert_eq!(catalogue.skins[0].id, 103000);
+    assert!(catalogue.skins[0].is_base);
+    assert_eq!(catalogue.skins[1].name, "Dynasty Ahri");
+    let request = AssetRequest {
+        version: "16.20.1".into(),
+        locale: "zh-CN".into(),
+        champion_ids: vec![],
+        resource_ids: Some(vec![
+            ResourceId {
+                kind: ResourceKind::ProfileIcon,
+                id: 0,
+            },
+            ResourceId {
+                kind: ResourceKind::ChampionSplash,
+                id: 103000,
+            },
+            ResourceId {
+                kind: ResourceKind::ChampionSplash,
+                id: 103001,
+            },
+            ResourceId {
+                kind: ResourceKind::ChampionSplash,
+                id: 103999,
+            },
+            ResourceId {
+                kind: ResourceKind::ProfileIcon,
+                id: 1,
+            },
+            ResourceId {
+                kind: ResourceKind::ChampionSplash,
+                id: 103777,
+            },
+        ]),
+    };
+    let assets = client
+        .resolve(&pool, root.path(), request.clone())
+        .await
+        .unwrap();
+    assert_eq!(assets[0].resource_id, "profile_icon:0");
+    assert!(
+        assets[0]
+            .reference
+            .as_ref()
+            .unwrap()
+            .ends_with("/v1/profile-icons/0.jpg")
+    );
+    assert!(
+        assets[1]
+            .reference
+            .as_ref()
+            .unwrap()
+            .ends_with("/assets/characters/ahri/skins/base/images/ahri_splash_uncentered_0.jpg")
+    );
+    assert!(
+        assets[2]
+            .reference
+            .as_ref()
+            .unwrap()
+            .ends_with("/assets/characters/ahri/skins/skin01/images/ahri_splash_centered_1.jpg")
+    );
+    for unavailable in &assets[3..] {
+        assert_eq!(unavailable.availability, "missing");
+        assert!(unavailable.reference.is_none());
+    }
+    for asset in &assets[..3] {
+        let path = asset
+            .reference
+            .as_ref()
+            .unwrap()
+            .strip_prefix(resources::PROTOCOL_ORIGIN)
+            .unwrap();
+        let response = client.respond(root.path(), "GET", path).await;
+        assert_eq!(response.status, 200);
+        assert_eq!(response.content_type, "image/jpeg");
+        assert_eq!(response.body, jpeg_fixture());
+    }
+    let calls = upstream.calls.load(Ordering::SeqCst);
+    server.abort();
+    let restarted = ResourceClient::fixture(base).unwrap();
+    assert_eq!(
+        restarted
+            .champion_skins(root.path(), catalogue_query)
+            .await
+            .unwrap()
+            .skins
+            .len(),
+        catalogue.skins.len()
+    );
+    let cached = restarted
+        .resolve(&pool, root.path(), request)
+        .await
+        .unwrap();
+    for asset in &cached[..3] {
+        let path = asset
+            .reference
+            .as_ref()
+            .unwrap()
+            .strip_prefix(resources::PROTOCOL_ORIGIN)
+            .unwrap();
+        assert_eq!(
+            restarted.respond(root.path(), "GET", path).await.status,
+            200
+        );
+    }
+    assert_eq!(upstream.calls.load(Ordering::SeqCst), calls);
+}
+
+#[tokio::test]
+async fn jpeg_validation_rejects_malformed_pixels_oversized_dimensions_and_unsafe_catalogue_queries()
+ {
+    let (base, upstream, server) = server().await;
+    let root =
+        tempfile::tempdir_in(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../.tmp")).unwrap();
+    let path = "/16.20/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/0.jpg";
+    for mode in [6, 7, 8] {
+        upstream.mode.store(mode, Ordering::SeqCst);
+        let client = ResourceClient::fixture(base.clone()).unwrap();
+        assert!(
+            matches!(client.read(root.path(), path).await, Err(error) if error.code == ErrorCode::InvalidInput)
+        );
+        assert!(!root.path().join("cdragon").join(&path[1..]).exists());
+    }
+    let calls = upstream.calls.load(Ordering::SeqCst);
+    let client = ResourceClient::fixture(base).unwrap();
+    for (champion_id, version, locale) in [
+        (0, "16.20.1", "en-US"),
+        (103, "../../private", "en-US"),
+        (103, "16.20.1", "invalid"),
+    ] {
+        let error = client
+            .champion_skins(
+                root.path(),
+                ChampionSkinsQuery {
+                    champion_id,
+                    version: version.into(),
+                    locale: locale.into(),
+                },
+            )
+            .await
+            .unwrap_err();
+        assert_eq!(error.code, ErrorCode::InvalidInput);
+    }
+    assert_eq!(upstream.calls.load(Ordering::SeqCst), calls);
+    server.abort();
 }

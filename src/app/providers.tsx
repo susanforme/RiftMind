@@ -63,6 +63,10 @@ export function RuntimeEffects() {
             'personal-baseline',
             'event-context',
             'preparations',
+            'player-profile-icon',
+            'champion-splash',
+            'champion-skins',
+            'game-entity-art',
           ])
             queryClient.removeQueries({ queryKey: [key] });
           useWorkspace.getState().markWorkspaceChanged();
@@ -115,7 +119,13 @@ export function RuntimeEffects() {
           ],
           'annotations-changed': ['annotations'],
           'goals-changed': ['goals', 'goal-progress', 'player-progress'],
-          'assets-ready': ['assets'],
+          'assets-ready': [
+            'assets',
+            'player-profile-icon',
+            'champion-splash',
+            'champion-skins',
+            'game-entity-art',
+          ],
           'workspace-reset': ['settings', 'players', 'app', 'matches'],
         };
         for (const key of keys[e.kind] || [])
