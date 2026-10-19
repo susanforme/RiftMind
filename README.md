@@ -170,7 +170,7 @@ Windows 安装包统一使用 NSIS `currentUser`，无需管理员权限。新�
 正式发布还需要 updater 制品生成配置、更新托管、生产私钥与 Windows 代码签名证书。
 测试公钥与合成签名包仅供 `#[cfg(test)]` 的宿主测试，不安装或打包进正式应用。
 
-`.github/workflows/core.yml` 负责 Mac core/浏览器检查；`windows.yml` 编译宿主、执行 Store/签名测试，
+`.github/workflows/windows.yml` 统一执行代码检查、前端与 Rust 单测、宿主编译及 Store/签名测试，
 使用仓库 `rust-toolchain.toml`、Bun 1.3.14 和锁文件，在 Windows runner 上构建 x64 NSIS 安装版。
 
 - 自动构建：推送到 `master` 时执行；目标为 `master` 的 PR 执行 Windows 检查与构建，不上传分发产物。

@@ -227,3 +227,22 @@
 - 对 Windows 标题栏拖动、窗口控制和系统缩放进行原生验证，浏览器截图不能代替该验收。
 
 本文件及配图记录设计方向和实施约束；新增主题、浅色设计与实际重构仍需按以上规则实现并验证。
+
+## 8. 页面设计图索引
+
+当前路由共有 8 个主要页面，已各保存一张设计图。全部沿用本规范的沉浸主题暗色状态、左侧菜单与顶部多标签；这些是不同业务页面的设计延展，不是不同主题。
+
+| 页面 | 路由 | 设计图 | 本图重点 |
+| --- | --- | --- | --- |
+| 战绩 | `/matches` | [immersive-client.png](design/immersive-client.png) | 已确认的主视觉；对局列表与选中详情 |
+| 比赛 | `/live` | [live-match.png](design/live-match.png) | 双方阵容、公开玩家概况与赛前速查 |
+| 英雄池 | `/champions` | [champion-pool.png](design/champion-pool.png) | 英雄列表、场次分布与英雄相关入口 |
+| 对局复盘 | `/matches/$matchKey/review` | [match-review.png](design/match-review.png) | 时间曲线、事件上下文、笔记与训练目标 |
+| 两场对比 | `/compare` | [match-comparison.png](design/match-comparison.png) | 双局概况、时间对齐曲线与具体指标差值 |
+| 进展 | `/progress` | [training-progress.png](design/training-progress.png) | 目标列表、固定基线、后续样本与训练趋势 |
+| 英雄笔记 | `/notebooks` | [champion-notebook.png](design/champion-notebook.png) | 连招图片序列、笔记与手动练习 |
+| 设置 | `/settings` | [settings.png](design/settings.png) | 分组设置、独立的主题与明暗模式选择 |
+
+这批图片使用内置图像生成工具，以 `design/immersive-client.png` 为共同视觉参考，并结合现有页面职责生成。生成简报统一要求深蓝与金色、相同侧栏和工作标签、对应游戏实体图片、简洁内容、shadcn/ui 兼容控件和 ECharts 风格图表。截图内统计、文案、实体图标与曲线仅用于表达设计，实施时须核对真实契约、资源和计算，不从位图提取业务规则。
+
+设置图中的“樱花”是未来主题入口的设计示例，不代表已实现，也不构成樱花主题完整的明暗视觉方案。图中的补充页面布局供后续评审与调整，不自动扩大已有功能范围；现有功能未画入首屏时仍应保留合适入口。
