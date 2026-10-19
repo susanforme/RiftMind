@@ -1,12 +1,11 @@
 {
-  "disconnected": "No client found",
-  "discovering": "Discovering clients",
-  "selecting": "Select a client instance",
-  "waiting_auth": "Waiting for client authorization",
+  "disconnected": "Client disconnected",
+  "discovering": "Looking for the client",
+  "selecting": "Choose a client",
+  "waiting_auth": "Sign in to the client",
   "resolving": "Identifying server",
   "connected": "Client connected",
-  "conflict": "Conflicting server evidence",
-  "unsupported": "Server or environment unsupported",
-  "cooling_down": "Rate limited; cooling down",
-  "referenceOnly": "Server mapping is source-referenced; live connectivity is unverified"
+  "conflict": "Could not confirm server",
+  "unsupported": "Server not supported yet",
+  "cooling_down": "Too many requests. Try again shortly."
 }

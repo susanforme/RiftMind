@@ -1,0 +1,23 @@
+{
+  "provenance": "Synthetic, independently constructed fixtures; no captured client data or credentials. No live endpoint verification.",
+  "manual": {
+    "durationMinutes": 30,
+    "kda": 6,
+    "totalCs": 180,
+    "csPerMin": 6,
+    "participation": 0.6,
+    "damageShare": 0.3333333333333333,
+    "goldShare": 0.23076923076923078,
+    "cs10": 70,
+    "gold10": 3500,
+    "goldDiff10": 200,
+    "deathsPer10": 0.6666666666666666,
+    "sameMillisecondEvents": 4,
+    "events": 8
+  },
+  "versions": {
+    "converter": "2.1",
+    "rules": "2.1",
+    "semantics": null
+  }
+}

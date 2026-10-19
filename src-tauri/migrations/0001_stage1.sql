@@ -28,7 +28,8 @@ CREATE TABLE IF NOT EXISTS match_revisions (
 CREATE TABLE IF NOT EXISTS jobs (
  id TEXT PRIMARY KEY, player_key TEXT, state TEXT NOT NULL, checkpoint INTEGER NOT NULL DEFAULT 0,
  budget INTEGER NOT NULL, session_epoch TEXT NOT NULL, updated_at TEXT NOT NULL, error TEXT,
- cancel_requested INTEGER NOT NULL DEFAULT 0
+ cancel_requested INTEGER NOT NULL DEFAULT 0,
+ kind TEXT NOT NULL DEFAULT 'sync', result TEXT
 );
 CREATE UNIQUE INDEX IF NOT EXISTS jobs_active ON jobs(player_key) WHERE state IN ('queued','running');
 CREATE TABLE IF NOT EXISTS sync_state (

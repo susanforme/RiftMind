@@ -5,7 +5,62 @@ src-tauri/target/
 .playwright/
 test-results/
 playwright-report/
-.riftmind-dev/
+# Persistent development downloads and workspaces (never bundle or commit).
+/.riftmind-dev/
 .stage1-report.json
 *.log
 .DS_Store
+
+.stage2-report.json
+
+# Personal agent state and editor settings (shared skills are committed).
+/.codex/
+/.idea/
+/.vscode/*
+!/.vscode/extensions.json
+*.code-workspace
+*.swp
+*.swo
+*~
+
+# Shared mode defaults are safe to commit; local credentials are not.
+.env
+.env.*
+!/.env.development
+!/.env.production
+!/.env.example
+!/.env.*.example
+*.key
+*.pem
+*.p12
+*.pfx
+*.jks
+*.keystore
+
+# Local runtime state, downloads and exported backups/diagnostics.
+*.db
+*.db-shm
+*.db-wal
+*.db-journal
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.sqlite-journal
+*.sqlite3
+*.sqlite3-shm
+*.sqlite3-wal
+*.sqlite3-journal
+/assets/cdragon/
+/backups/
+/diagnostics/
+
+# Tool caches and generated verification output (keep fixtures and docs).
+/coverage/
+/artifacts/
+/.cache/
+/.vite/
+/.vitest/
+.eslintcache
+*.tsbuildinfo
+__pycache__/
+*.py[cod]

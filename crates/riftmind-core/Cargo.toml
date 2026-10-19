@@ -15,6 +15,11 @@ sha2 = "0.10.9"
 async-trait = "0.1.89"
 chrono = { version = "0.4.42", features = ["serde"] }
 base64 = "0.22.1"
+png = "=0.18.1"
+
+tokio-tungstenite = { version = "0.28", features = ["native-tls"] }
+native-tls = "0.2.14"
+futures-util = "0.3"
 
 [dev-dependencies]
 tempfile = "3.23"

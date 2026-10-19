@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "source": "synthetic generators, source-referenced server mappings, Riot Data Dragon 16.20.1 UI preview art; no captured credentials",
+  "entries": [
+    {
+      "path": "crates/riftmind-core/src/clients/mod.rs",
+      "sha256": "cf64fadab21b4a67f037968a6b9a2ba59b9fcf8f357c98e7ef4c4a59bc693da1"
+    },
+    {
+      "path": "crates/riftmind-core/src/domain/servers.json",
+      "sha256": "a579b32175b39a36a7ac263c301ec24e920f5ec6eceb5336cd80f12d86250720"
+    },
+    {
+      "path": "src/lib/transport/fixture.ts",
+      "sha256": "bb7396f5d3e419deedb6a7e6c3d4e7f7e879357716c03c0dc9970b67f21bc266"
+    },
+    {
+      "path": "tests/fixtures/icon.png",
+      "sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+    },
+    {
+      "path": "tests/fixtures/update-test.pub",
+      "sha256": "1e87514483ef081cf6b384f3eedb66366b2d6aa9d901a83742b8aead941a9d9a"
+    },
+    {
+      "path": "tests/fixtures/update-artifact.bin",
+      "sha256": "20a2de29a8f8f044b26e31c049cdba5311296f3886224f2eff7d27b2972ed83d"
+    },
+    {
+      "path": "tests/fixtures/update-artifact.bin.sig",
+      "sha256": "c4cbb57b91612714056e7c105688bf7a4b7e5933dd84734dc34a293e0d5fb8ad"
+    },
+    {
+      "path": "tests/fixtures/ui-art/champion-103.png",
+      "sha256": "8e93368d97e3d302463c4e83ac5980d1f0a3a0aaf92ac44435730fecbd55b565"
+    },
+    {
+      "path": "tests/fixtures/ui-art/champion-157.png",
+      "sha256": "25a7597bfbd3198740b56d369734542f9e7b2100645d9f1199d969c7e1538ffb"
+    },
+    {
+      "path": "tests/fixtures/ui-art/champion-222.png",
+      "sha256": "2777d44345974b93f8af378430811670566d0451b6410b2caff2984e93797357"
+    },
+    {
+      "path": "tests/fixtures/ui-art/champion-51.png",
+      "sha256": "f7a515360f30f33dfe5ab4e8886ce59a70c2d333f924252f48f5f9a2fbc6edf4"
+    },
+    {
+      "path": "tests/fixtures/ui-art/champion-64.png",
+      "sha256": "890f439dd16bfa686b3c6f06f9749eb5477e5b706a8ff85cb8161f91adcff9a8"
+    },
+    {
+      "path": "tests/fixtures/ui-art/champion-99.png",
+      "sha256": "64639bea2aa7d622dd07287de7a7820950e567f0993c7dcc422e1e699fd743fd"
+    },
+    {
+      "path": "tests/fixtures/ui-art/item-3020.png",
+      "sha256": "0204f61a81aa9c3ef318dd27ed272e8c83e12009ce37a23d7c6193f9d991261b"
+    },
+    {
+      "path": "tests/fixtures/ui-art/item-3089.png",
+      "sha256": "ad77331bb9a325db9536f5614f3ca3516e24279406123f2892eb33ee419d369b"
+    },
+    {
+      "path": "tests/fixtures/ui-art/item-3118.png",
+      "sha256": "df7498e07b347ac1a3256bbba5ba0d4ee1cd25ae6e405bf41403564250844e90"
+    },
+    {
+      "path": "tests/fixtures/ui-art/item-3135.png",
+      "sha256": "86f541cb0cbbca43574e9f79119e8d958ab225201c64a59cb95f8e3652de2688"
+    },
+    {
+      "path": "tests/fixtures/ui-art/item-3157.png",
+      "sha256": "fc0908ad8621e96ad635b5bac67e09f663ec80735efd732b10f07d8c498443aa"
+    },
+    {
+      "path": "tests/fixtures/ui-art/item-4645.png",
+      "sha256": "f03fb411e12c597bfb88a747a00e9f47ae39019eee398833ee933c51f47fb597"
+    },
+    {
+      "path": "tests/fixtures/review/expected.json",
+      "sha256": "76b12d85409c95f1425574239cb794558dca5cbe5ec82615b03e9afc79ff0e62"
+    },
+    {
+      "path": "tests/fixtures/review/lcu.json",
+      "sha256": "fe9772464eb691ec5b1d33b6d054b3889b7000b4a8b302ba136984a30c2a96cb"
+    },
+    {
+      "path": "tests/fixtures/review/normalized.json",
+      "sha256": "bd8b40ab9f755eca51bf5261fc529c546ae1389e8026513eec96ba2ad29a7997"
+    },
+    {
+      "path": "tests/fixtures/review/sgp.json",
+      "sha256": "3b1aa83398d54572a7a130efe919607cdc34e5c17c7871ecf29702da47e81951"
+    }
+  ]
+}

@@ -1,7 +1,12 @@
 import { create } from 'zustand';
-import type { Settings, WorkspaceTab } from '../generated/contracts';
+import type { Settings, WorkspaceTab, ReviewNote } from '../generated/contracts';
 export const defaultTab: WorkspaceTab = { id: 'matches', kind: 'matches', playerKey: null, search: '{}' };
+export interface ReviewDraft {text: string; note: ReviewNote | null; reportId: string | null; evidenceId: string | null; matchKey: string; playerKey: string; epoch: string}
 interface Workspace {
+  workspaceChanged: boolean;
+  markWorkspaceChanged: () => void;
+  reviewDrafts: Record<string, ReviewDraft>;
+  setReviewDraft: (key: string, draft: ReviewDraft | null) => void;
   tabs: WorkspaceTab[];
   draft: Settings | null;
   dirty: boolean;
@@ -13,6 +18,9 @@ interface Workspace {
   rememberScroll: (id: string, top: number) => void;
 }
 export const useWorkspace = create<Workspace>(set => ({
+  workspaceChanged: false, markWorkspaceChanged: () => set({ workspaceChanged: true }),
+  reviewDrafts: {},
+  setReviewDraft: (key, draft) => set(s => { const reviewDrafts = { ...s.reviewDrafts }; if (draft) reviewDrafts[key] = draft; else delete reviewDrafts[key]; return { reviewDrafts }; }),
   tabs: [defaultTab], draft: null, dirty: false, scroll: {},
   setDraft: (draft, dirty = true) => set({ draft, dirty }),
   setTabs: tabs => set({ tabs: tabs.length ? tabs : [defaultTab] }),

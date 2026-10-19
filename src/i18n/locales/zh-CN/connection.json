@@ -1,12 +1,11 @@
 {
-  "disconnected": "未发现客户端",
-  "discovering": "正在发现客户端",
-  "selecting": "请选择客户端实例",
-  "waiting_auth": "等待客户端授权",
+  "disconnected": "客户端未连接",
+  "discovering": "正在查找客户端",
+  "selecting": "选择要连接的客户端",
+  "waiting_auth": "请先登录客户端",
   "resolving": "正在识别区服",
   "connected": "客户端已连接",
-  "conflict": "区服识别证据冲突",
-  "unsupported": "区服或环境尚不支持",
-  "cooling_down": "请求受限，等待冷却",
-  "referenceOnly": "区服映射来自参考源码，尚未实机验证"
+  "conflict": "无法确认区服",
+  "unsupported": "暂不支持此区服",
+  "cooling_down": "请求过于频繁，请稍后再试"
 }

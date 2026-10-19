@@ -1,0 +1,3313 @@
+{
+  "input": {
+    "capabilities": {
+      "cs_frames": {
+        "fromMs": 0,
+        "reason": null,
+        "status": "ready",
+        "toMs": 1800000
+      },
+      "gold_frames": {
+        "fromMs": 0,
+        "reason": null,
+        "status": "ready",
+        "toMs": 1800000
+      },
+      "items": {
+        "fromMs": 0,
+        "reason": null,
+        "status": "ready",
+        "toMs": 1800000
+      },
+      "kills": {
+        "fromMs": 0,
+        "reason": null,
+        "status": "ready",
+        "toMs": 1800000
+      },
+      "objectives": {
+        "fromMs": 0,
+        "reason": null,
+        "status": "ready",
+        "toMs": 1800000
+      },
+      "positions": {
+        "fromMs": 0,
+        "reason": null,
+        "status": "ready",
+        "toMs": 1800000
+      },
+      "skills": {
+        "fromMs": 0,
+        "reason": null,
+        "status": "ready",
+        "toMs": 1800000
+      },
+      "summary": {
+        "fromMs": null,
+        "reason": null,
+        "status": "ready",
+        "toMs": null
+      },
+      "timeline": {
+        "fromMs": 0,
+        "reason": null,
+        "status": "ready",
+        "toMs": 1800000
+      }
+    },
+    "context": {
+      "durationMs": 1800000,
+      "mapId": 11,
+      "matchKey": "TENCENT_HN1:900719925474101",
+      "mode": "CLASSIC",
+      "participants": [
+        {
+          "assists": 4,
+          "championId": 64,
+          "damage": 10000,
+          "deaths": 4,
+          "gold": 10000,
+          "id": 1,
+          "jungleCs": 10,
+          "kills": 3,
+          "laneCs": 150,
+          "position": "TOP",
+          "puuid": "other-1",
+          "teamId": 100
+        },
+        {
+          "assists": 4,
+          "championId": 64,
+          "damage": 10000,
+          "deaths": 4,
+          "gold": 10000,
+          "id": 2,
+          "jungleCs": 10,
+          "kills": 3,
+          "laneCs": 150,
+          "position": "JUNGLE",
+          "puuid": "other-2",
+          "teamId": 100
+        },
+        {
+          "assists": 4,
+          "championId": 103,
+          "damage": 20000,
+          "deaths": 2,
+          "gold": 12000,
+          "id": 3,
+          "jungleCs": 20,
+          "kills": 8,
+          "laneCs": 160,
+          "position": "MIDDLE",
+          "puuid": "synthetic-player",
+          "teamId": 100
+        },
+        {
+          "assists": 4,
+          "championId": 64,
+          "damage": 10000,
+          "deaths": 4,
+          "gold": 10000,
+          "id": 4,
+          "jungleCs": 10,
+          "kills": 3,
+          "laneCs": 150,
+          "position": "BOTTOM",
+          "puuid": "other-4",
+          "teamId": 100
+        },
+        {
+          "assists": 4,
+          "championId": 64,
+          "damage": 10000,
+          "deaths": 4,
+          "gold": 10000,
+          "id": 5,
+          "jungleCs": 10,
+          "kills": 3,
+          "laneCs": 150,
+          "position": "UTILITY",
+          "puuid": "other-5",
+          "teamId": 100
+        },
+        {
+          "assists": 4,
+          "championId": 64,
+          "damage": 10000,
+          "deaths": 4,
+          "gold": 10000,
+          "id": 6,
+          "jungleCs": 10,
+          "kills": 3,
+          "laneCs": 150,
+          "position": "TOP",
+          "puuid": "other-6",
+          "teamId": 200
+        },
+        {
+          "assists": 4,
+          "championId": 64,
+          "damage": 10000,
+          "deaths": 4,
+          "gold": 10000,
+          "id": 7,
+          "jungleCs": 10,
+          "kills": 3,
+          "laneCs": 150,
+          "position": "JUNGLE",
+          "puuid": "other-7",
+          "teamId": 200
+        },
+        {
+          "assists": 4,
+          "championId": 64,
+          "damage": 10000,
+          "deaths": 4,
+          "gold": 10000,
+          "id": 8,
+          "jungleCs": 10,
+          "kills": 3,
+          "laneCs": 150,
+          "position": "MIDDLE",
+          "puuid": "other-8",
+          "teamId": 200
+        },
+        {
+          "assists": 4,
+          "championId": 64,
+          "damage": 10000,
+          "deaths": 4,
+          "gold": 10000,
+          "id": 9,
+          "jungleCs": 10,
+          "kills": 3,
+          "laneCs": 150,
+          "position": "BOTTOM",
+          "puuid": "other-9",
+          "teamId": 200
+        },
+        {
+          "assists": 4,
+          "championId": 64,
+          "damage": 10000,
+          "deaths": 4,
+          "gold": 10000,
+          "id": 10,
+          "jungleCs": 10,
+          "kills": 3,
+          "laneCs": 150,
+          "position": "UTILITY",
+          "puuid": "other-10",
+          "teamId": 200
+        }
+      ],
+      "playerKey": "TENCENT_HN1:synthetic-player",
+      "queueId": 420,
+      "remake": false,
+      "source": "sgp",
+      "startedAt": "2026-10-15T23:00:00.000Z",
+      "targetId": 3,
+      "teamKills": {
+        "100": 20,
+        "200": 15
+      },
+      "version": "16.20.1"
+    },
+    "converterVersion": "2.1",
+    "events": [
+      {
+        "assistingIds": [],
+        "id": "event-2-0",
+        "itemId": 1001,
+        "killerId": null,
+        "kind": "ITEM_PURCHASED",
+        "monster": null,
+        "participantId": 3,
+        "path": "/json/frames/2/events/0",
+        "raw": {
+          "itemId": 1001,
+          "participantId": 3,
+          "timestamp": 120000,
+          "type": "ITEM_PURCHASED"
+        },
+        "skillSlot": null,
+        "timestampMs": 120000,
+        "undoOf": null,
+        "victimId": null
+      },
+      {
+        "assistingIds": [],
+        "id": "event-2-1",
+        "itemId": null,
+        "killerId": null,
+        "kind": "ITEM_UNDO",
+        "monster": null,
+        "participantId": 3,
+        "path": "/json/frames/2/events/1",
+        "raw": {
+          "afterId": 0,
+          "beforeId": 1001,
+          "participantId": 3,
+          "timestamp": 120000,
+          "type": "ITEM_UNDO"
+        },
+        "skillSlot": null,
+        "timestampMs": 120000,
+        "undoOf": "event-2-0",
+        "victimId": null
+      },
+      {
+        "assistingIds": [],
+        "id": "event-2-2",
+        "itemId": 1052,
+        "killerId": null,
+        "kind": "ITEM_PURCHASED",
+        "monster": null,
+        "participantId": 3,
+        "path": "/json/frames/2/events/2",
+        "raw": {
+          "itemId": 1052,
+          "participantId": 3,
+          "timestamp": 120000,
+          "type": "ITEM_PURCHASED"
+        },
+        "skillSlot": null,
+        "timestampMs": 120000,
+        "undoOf": null,
+        "victimId": null
+      },
+      {
+        "assistingIds": [],
+        "id": "event-2-3",
+        "itemId": 1052,
+        "killerId": null,
+        "kind": "ITEM_SOLD",
+        "monster": null,
+        "participantId": 3,
+        "path": "/json/frames/2/events/3",
+        "raw": {
+          "itemId": 1052,
+          "participantId": 3,
+          "timestamp": 120000,
+          "type": "ITEM_SOLD"
+        },
+        "skillSlot": null,
+        "timestampMs": 120000,
+        "undoOf": null,
+        "victimId": null
+      },
+      {
+        "assistingIds": [],
+        "id": "event-4-0",
+        "itemId": null,
+        "killerId": null,
+        "kind": "SKILL_LEVEL_UP",
+        "monster": null,
+        "participantId": 3,
+        "path": "/json/frames/4/events/0",
+        "raw": {
+          "participantId": 3,
+          "skillSlot": 1,
+          "timestamp": 240000,
+          "type": "SKILL_LEVEL_UP"
+        },
+        "skillSlot": 1,
+        "timestampMs": 240000,
+        "undoOf": null,
+        "victimId": null
+      },
+      {
+        "assistingIds": [
+          8
+        ],
+        "id": "event-8-0",
+        "itemId": null,
+        "killerId": 7,
+        "kind": "CHAMPION_KILL",
+        "monster": null,
+        "participantId": null,
+        "path": "/json/frames/8/events/0",
+        "raw": {
+          "assistingParticipantIds": [
+            8
+          ],
+          "killerId": 7,
+          "timestamp": 480000,
+          "type": "CHAMPION_KILL",
+          "victimId": 3
+        },
+        "skillSlot": null,
+        "timestampMs": 480000,
+        "undoOf": null,
+        "victimId": 3
+      },
+      {
+        "assistingIds": [
+          8
+        ],
+        "id": "event-9-0",
+        "itemId": null,
+        "killerId": 7,
+        "kind": "ELITE_MONSTER_KILL",
+        "monster": "DRAGON",
+        "participantId": null,
+        "path": "/json/frames/9/events/0",
+        "raw": {
+          "assistingParticipantIds": [
+            8
+          ],
+          "killerId": 7,
+          "monsterType": "DRAGON",
+          "timestamp": 540000,
+          "type": "ELITE_MONSTER_KILL"
+        },
+        "skillSlot": null,
+        "timestampMs": 540000,
+        "undoOf": null,
+        "victimId": null
+      },
+      {
+        "assistingIds": [],
+        "id": "event-10-0",
+        "itemId": null,
+        "killerId": null,
+        "kind": "FUTURE_EVENT",
+        "monster": null,
+        "participantId": 3,
+        "path": "/json/frames/10/events/0",
+        "raw": {
+          "participantId": 3,
+          "timestamp": 600000,
+          "type": "FUTURE_EVENT",
+          "unknown": {
+            "kept": true
+          }
+        },
+        "skillSlot": null,
+        "timestampMs": 600000,
+        "undoOf": null,
+        "victimId": null
+      }
+    ],
+    "fingerprint": "2d60b7778e559dbae2f5387f05f9355d4e0bacaa87aee41f58fb248ce9d5805a",
+    "frames": [
+      {
+        "cs": 0,
+        "gold": 500,
+        "participantId": 1,
+        "path": "/json/frames/0/participantFrames/1",
+        "timestampMs": 0,
+        "xp": 0
+      },
+      {
+        "cs": 0,
+        "gold": 500,
+        "participantId": 10,
+        "path": "/json/frames/0/participantFrames/10",
+        "timestampMs": 0,
+        "xp": 0
+      },
+      {
+        "cs": 0,
+        "gold": 500,
+        "participantId": 2,
+        "path": "/json/frames/0/participantFrames/2",
+        "timestampMs": 0,
+        "xp": 0
+      },
+      {
+        "cs": 0,
+        "gold": 500,
+        "participantId": 3,
+        "path": "/json/frames/0/participantFrames/3",
+        "timestampMs": 0,
+        "xp": 0
+      },
+      {
+        "cs": 0,
+        "gold": 500,
+        "participantId": 4,
+        "path": "/json/frames/0/participantFrames/4",
+        "timestampMs": 0,
+        "xp": 0
+      },
+      {
+        "cs": 0,
+        "gold": 500,
+        "participantId": 5,
+        "path": "/json/frames/0/participantFrames/5",
+        "timestampMs": 0,
+        "xp": 0
+      },
+      {
+        "cs": 0,
+        "gold": 500,
+        "participantId": 6,
+        "path": "/json/frames/0/participantFrames/6",
+        "timestampMs": 0,
+        "xp": 0
+      },
+      {
+        "cs": 0,
+        "gold": 500,
+        "participantId": 7,
+        "path": "/json/frames/0/participantFrames/7",
+        "timestampMs": 0,
+        "xp": 0
+      },
+      {
+        "cs": 0,
+        "gold": 500,
+        "participantId": 8,
+        "path": "/json/frames/0/participantFrames/8",
+        "timestampMs": 0,
+        "xp": 0
+      },
+      {
+        "cs": 0,
+        "gold": 500,
+        "participantId": 9,
+        "path": "/json/frames/0/participantFrames/9",
+        "timestampMs": 0,
+        "xp": 0
+      },
+      {
+        "cs": 6,
+        "gold": 780,
+        "participantId": 1,
+        "path": "/json/frames/1/participantFrames/1",
+        "timestampMs": 60000,
+        "xp": 400
+      },
+      {
+        "cs": 6,
+        "gold": 780,
+        "participantId": 10,
+        "path": "/json/frames/1/participantFrames/10",
+        "timestampMs": 60000,
+        "xp": 400
+      },
+      {
+        "cs": 6,
+        "gold": 780,
+        "participantId": 2,
+        "path": "/json/frames/1/participantFrames/2",
+        "timestampMs": 60000,
+        "xp": 400
+      },
+      {
+        "cs": 7,
+        "gold": 800,
+        "participantId": 3,
+        "path": "/json/frames/1/participantFrames/3",
+        "timestampMs": 60000,
+        "xp": 400
+      },
+      {
+        "cs": 6,
+        "gold": 780,
+        "participantId": 4,
+        "path": "/json/frames/1/participantFrames/4",
+        "timestampMs": 60000,
+        "xp": 400
+      },
+      {
+        "cs": 6,
+        "gold": 780,
+        "participantId": 5,
+        "path": "/json/frames/1/participantFrames/5",
+        "timestampMs": 60000,
+        "xp": 400
+      },
+      {
+        "cs": 6,
+        "gold": 780,
+        "participantId": 6,
+        "path": "/json/frames/1/participantFrames/6",
+        "timestampMs": 60000,
+        "xp": 400
+      },
+      {
+        "cs": 6,
+        "gold": 780,
+        "participantId": 7,
+        "path": "/json/frames/1/participantFrames/7",
+        "timestampMs": 60000,
+        "xp": 400
+      },
+      {
+        "cs": 6,
+        "gold": 780,
+        "participantId": 8,
+        "path": "/json/frames/1/participantFrames/8",
+        "timestampMs": 60000,
+        "xp": 400
+      },
+      {
+        "cs": 6,
+        "gold": 780,
+        "participantId": 9,
+        "path": "/json/frames/1/participantFrames/9",
+        "timestampMs": 60000,
+        "xp": 400
+      },
+      {
+        "cs": 12,
+        "gold": 1060,
+        "participantId": 1,
+        "path": "/json/frames/2/participantFrames/1",
+        "timestampMs": 120000,
+        "xp": 800
+      },
+      {
+        "cs": 12,
+        "gold": 1060,
+        "participantId": 10,
+        "path": "/json/frames/2/participantFrames/10",
+        "timestampMs": 120000,
+        "xp": 800
+      },
+      {
+        "cs": 12,
+        "gold": 1060,
+        "participantId": 2,
+        "path": "/json/frames/2/participantFrames/2",
+        "timestampMs": 120000,
+        "xp": 800
+      },
+      {
+        "cs": 14,
+        "gold": 1100,
+        "participantId": 3,
+        "path": "/json/frames/2/participantFrames/3",
+        "timestampMs": 120000,
+        "xp": 800
+      },
+      {
+        "cs": 12,
+        "gold": 1060,
+        "participantId": 4,
+        "path": "/json/frames/2/participantFrames/4",
+        "timestampMs": 120000,
+        "xp": 800
+      },
+      {
+        "cs": 12,
+        "gold": 1060,
+        "participantId": 5,
+        "path": "/json/frames/2/participantFrames/5",
+        "timestampMs": 120000,
+        "xp": 800
+      },
+      {
+        "cs": 12,
+        "gold": 1060,
+        "participantId": 6,
+        "path": "/json/frames/2/participantFrames/6",
+        "timestampMs": 120000,
+        "xp": 800
+      },
+      {
+        "cs": 12,
+        "gold": 1060,
+        "participantId": 7,
+        "path": "/json/frames/2/participantFrames/7",
+        "timestampMs": 120000,
+        "xp": 800
+      },
+      {
+        "cs": 12,
+        "gold": 1060,
+        "participantId": 8,
+        "path": "/json/frames/2/participantFrames/8",
+        "timestampMs": 120000,
+        "xp": 800
+      },
+      {
+        "cs": 12,
+        "gold": 1060,
+        "participantId": 9,
+        "path": "/json/frames/2/participantFrames/9",
+        "timestampMs": 120000,
+        "xp": 800
+      },
+      {
+        "cs": 18,
+        "gold": 1340,
+        "participantId": 1,
+        "path": "/json/frames/3/participantFrames/1",
+        "timestampMs": 180000,
+        "xp": 1200
+      },
+      {
+        "cs": 18,
+        "gold": 1340,
+        "participantId": 10,
+        "path": "/json/frames/3/participantFrames/10",
+        "timestampMs": 180000,
+        "xp": 1200
+      },
+      {
+        "cs": 18,
+        "gold": 1340,
+        "participantId": 2,
+        "path": "/json/frames/3/participantFrames/2",
+        "timestampMs": 180000,
+        "xp": 1200
+      },
+      {
+        "cs": 21,
+        "gold": 1400,
+        "participantId": 3,
+        "path": "/json/frames/3/participantFrames/3",
+        "timestampMs": 180000,
+        "xp": 1200
+      },
+      {
+        "cs": 18,
+        "gold": 1340,
+        "participantId": 4,
+        "path": "/json/frames/3/participantFrames/4",
+        "timestampMs": 180000,
+        "xp": 1200
+      },
+      {
+        "cs": 18,
+        "gold": 1340,
+        "participantId": 5,
+        "path": "/json/frames/3/participantFrames/5",
+        "timestampMs": 180000,
+        "xp": 1200
+      },
+      {
+        "cs": 18,
+        "gold": 1340,
+        "participantId": 6,
+        "path": "/json/frames/3/participantFrames/6",
+        "timestampMs": 180000,
+        "xp": 1200
+      },
+      {
+        "cs": 18,
+        "gold": 1340,
+        "participantId": 7,
+        "path": "/json/frames/3/participantFrames/7",
+        "timestampMs": 180000,
+        "xp": 1200
+      },
+      {
+        "cs": 18,
+        "gold": 1340,
+        "participantId": 8,
+        "path": "/json/frames/3/participantFrames/8",
+        "timestampMs": 180000,
+        "xp": 1200
+      },
+      {
+        "cs": 18,
+        "gold": 1340,
+        "participantId": 9,
+        "path": "/json/frames/3/participantFrames/9",
+        "timestampMs": 180000,
+        "xp": 1200
+      },
+      {
+        "cs": 24,
+        "gold": 1620,
+        "participantId": 1,
+        "path": "/json/frames/4/participantFrames/1",
+        "timestampMs": 240000,
+        "xp": 1600
+      },
+      {
+        "cs": 24,
+        "gold": 1620,
+        "participantId": 10,
+        "path": "/json/frames/4/participantFrames/10",
+        "timestampMs": 240000,
+        "xp": 1600
+      },
+      {
+        "cs": 24,
+        "gold": 1620,
+        "participantId": 2,
+        "path": "/json/frames/4/participantFrames/2",
+        "timestampMs": 240000,
+        "xp": 1600
+      },
+      {
+        "cs": 28,
+        "gold": 1700,
+        "participantId": 3,
+        "path": "/json/frames/4/participantFrames/3",
+        "timestampMs": 240000,
+        "xp": 1600
+      },
+      {
+        "cs": 24,
+        "gold": 1620,
+        "participantId": 4,
+        "path": "/json/frames/4/participantFrames/4",
+        "timestampMs": 240000,
+        "xp": 1600
+      },
+      {
+        "cs": 24,
+        "gold": 1620,
+        "participantId": 5,
+        "path": "/json/frames/4/participantFrames/5",
+        "timestampMs": 240000,
+        "xp": 1600
+      },
+      {
+        "cs": 24,
+        "gold": 1620,
+        "participantId": 6,
+        "path": "/json/frames/4/participantFrames/6",
+        "timestampMs": 240000,
+        "xp": 1600
+      },
+      {
+        "cs": 24,
+        "gold": 1620,
+        "participantId": 7,
+        "path": "/json/frames/4/participantFrames/7",
+        "timestampMs": 240000,
+        "xp": 1600
+      },
+      {
+        "cs": 24,
+        "gold": 1620,
+        "participantId": 8,
+        "path": "/json/frames/4/participantFrames/8",
+        "timestampMs": 240000,
+        "xp": 1600
+      },
+      {
+        "cs": 24,
+        "gold": 1620,
+        "participantId": 9,
+        "path": "/json/frames/4/participantFrames/9",
+        "timestampMs": 240000,
+        "xp": 1600
+      },
+      {
+        "cs": 30,
+        "gold": 1900,
+        "participantId": 1,
+        "path": "/json/frames/5/participantFrames/1",
+        "timestampMs": 300000,
+        "xp": 2000
+      },
+      {
+        "cs": 30,
+        "gold": 1900,
+        "participantId": 10,
+        "path": "/json/frames/5/participantFrames/10",
+        "timestampMs": 300000,
+        "xp": 2000
+      },
+      {
+        "cs": 30,
+        "gold": 1900,
+        "participantId": 2,
+        "path": "/json/frames/5/participantFrames/2",
+        "timestampMs": 300000,
+        "xp": 2000
+      },
+      {
+        "cs": 35,
+        "gold": 2000,
+        "participantId": 3,
+        "path": "/json/frames/5/participantFrames/3",
+        "timestampMs": 300000,
+        "xp": 2000
+      },
+      {
+        "cs": 30,
+        "gold": 1900,
+        "participantId": 4,
+        "path": "/json/frames/5/participantFrames/4",
+        "timestampMs": 300000,
+        "xp": 2000
+      },
+      {
+        "cs": 30,
+        "gold": 1900,
+        "participantId": 5,
+        "path": "/json/frames/5/participantFrames/5",
+        "timestampMs": 300000,
+        "xp": 2000
+      },
+      {
+        "cs": 30,
+        "gold": 1900,
+        "participantId": 6,
+        "path": "/json/frames/5/participantFrames/6",
+        "timestampMs": 300000,
+        "xp": 2000
+      },
+      {
+        "cs": 30,
+        "gold": 1900,
+        "participantId": 7,
+        "path": "/json/frames/5/participantFrames/7",
+        "timestampMs": 300000,
+        "xp": 2000
+      },
+      {
+        "cs": 30,
+        "gold": 1900,
+        "participantId": 8,
+        "path": "/json/frames/5/participantFrames/8",
+        "timestampMs": 300000,
+        "xp": 2000
+      },
+      {
+        "cs": 30,
+        "gold": 1900,
+        "participantId": 9,
+        "path": "/json/frames/5/participantFrames/9",
+        "timestampMs": 300000,
+        "xp": 2000
+      },
+      {
+        "cs": 36,
+        "gold": 2180,
+        "participantId": 1,
+        "path": "/json/frames/6/participantFrames/1",
+        "timestampMs": 360000,
+        "xp": 2400
+      },
+      {
+        "cs": 36,
+        "gold": 2180,
+        "participantId": 10,
+        "path": "/json/frames/6/participantFrames/10",
+        "timestampMs": 360000,
+        "xp": 2400
+      },
+      {
+        "cs": 36,
+        "gold": 2180,
+        "participantId": 2,
+        "path": "/json/frames/6/participantFrames/2",
+        "timestampMs": 360000,
+        "xp": 2400
+      },
+      {
+        "cs": 42,
+        "gold": 2300,
+        "participantId": 3,
+        "path": "/json/frames/6/participantFrames/3",
+        "timestampMs": 360000,
+        "xp": 2400
+      },
+      {
+        "cs": 36,
+        "gold": 2180,
+        "participantId": 4,
+        "path": "/json/frames/6/participantFrames/4",
+        "timestampMs": 360000,
+        "xp": 2400
+      },
+      {
+        "cs": 36,
+        "gold": 2180,
+        "participantId": 5,
+        "path": "/json/frames/6/participantFrames/5",
+        "timestampMs": 360000,
+        "xp": 2400
+      },
+      {
+        "cs": 36,
+        "gold": 2180,
+        "participantId": 6,
+        "path": "/json/frames/6/participantFrames/6",
+        "timestampMs": 360000,
+        "xp": 2400
+      },
+      {
+        "cs": 36,
+        "gold": 2180,
+        "participantId": 7,
+        "path": "/json/frames/6/participantFrames/7",
+        "timestampMs": 360000,
+        "xp": 2400
+      },
+      {
+        "cs": 36,
+        "gold": 2180,
+        "participantId": 8,
+        "path": "/json/frames/6/participantFrames/8",
+        "timestampMs": 360000,
+        "xp": 2400
+      },
+      {
+        "cs": 36,
+        "gold": 2180,
+        "participantId": 9,
+        "path": "/json/frames/6/participantFrames/9",
+        "timestampMs": 360000,
+        "xp": 2400
+      },
+      {
+        "cs": 42,
+        "gold": 2460,
+        "participantId": 1,
+        "path": "/json/frames/7/participantFrames/1",
+        "timestampMs": 420000,
+        "xp": 2800
+      },
+      {
+        "cs": 42,
+        "gold": 2460,
+        "participantId": 10,
+        "path": "/json/frames/7/participantFrames/10",
+        "timestampMs": 420000,
+        "xp": 2800
+      },
+      {
+        "cs": 42,
+        "gold": 2460,
+        "participantId": 2,
+        "path": "/json/frames/7/participantFrames/2",
+        "timestampMs": 420000,
+        "xp": 2800
+      },
+      {
+        "cs": 49,
+        "gold": 2600,
+        "participantId": 3,
+        "path": "/json/frames/7/participantFrames/3",
+        "timestampMs": 420000,
+        "xp": 2800
+      },
+      {
+        "cs": 42,
+        "gold": 2460,
+        "participantId": 4,
+        "path": "/json/frames/7/participantFrames/4",
+        "timestampMs": 420000,
+        "xp": 2800
+      },
+      {
+        "cs": 42,
+        "gold": 2460,
+        "participantId": 5,
+        "path": "/json/frames/7/participantFrames/5",
+        "timestampMs": 420000,
+        "xp": 2800
+      },
+      {
+        "cs": 42,
+        "gold": 2460,
+        "participantId": 6,
+        "path": "/json/frames/7/participantFrames/6",
+        "timestampMs": 420000,
+        "xp": 2800
+      },
+      {
+        "cs": 42,
+        "gold": 2460,
+        "participantId": 7,
+        "path": "/json/frames/7/participantFrames/7",
+        "timestampMs": 420000,
+        "xp": 2800
+      },
+      {
+        "cs": 42,
+        "gold": 2460,
+        "participantId": 8,
+        "path": "/json/frames/7/participantFrames/8",
+        "timestampMs": 420000,
+        "xp": 2800
+      },
+      {
+        "cs": 42,
+        "gold": 2460,
+        "participantId": 9,
+        "path": "/json/frames/7/participantFrames/9",
+        "timestampMs": 420000,
+        "xp": 2800
+      },
+      {
+        "cs": 48,
+        "gold": 2740,
+        "participantId": 1,
+        "path": "/json/frames/8/participantFrames/1",
+        "timestampMs": 480000,
+        "xp": 3200
+      },
+      {
+        "cs": 48,
+        "gold": 2740,
+        "participantId": 10,
+        "path": "/json/frames/8/participantFrames/10",
+        "timestampMs": 480000,
+        "xp": 3200
+      },
+      {
+        "cs": 48,
+        "gold": 2740,
+        "participantId": 2,
+        "path": "/json/frames/8/participantFrames/2",
+        "timestampMs": 480000,
+        "xp": 3200
+      },
+      {
+        "cs": 56,
+        "gold": 2900,
+        "participantId": 3,
+        "path": "/json/frames/8/participantFrames/3",
+        "timestampMs": 480000,
+        "xp": 3200
+      },
+      {
+        "cs": 48,
+        "gold": 2740,
+        "participantId": 4,
+        "path": "/json/frames/8/participantFrames/4",
+        "timestampMs": 480000,
+        "xp": 3200
+      },
+      {
+        "cs": 48,
+        "gold": 2740,
+        "participantId": 5,
+        "path": "/json/frames/8/participantFrames/5",
+        "timestampMs": 480000,
+        "xp": 3200
+      },
+      {
+        "cs": 48,
+        "gold": 2740,
+        "participantId": 6,
+        "path": "/json/frames/8/participantFrames/6",
+        "timestampMs": 480000,
+        "xp": 3200
+      },
+      {
+        "cs": 48,
+        "gold": 2740,
+        "participantId": 7,
+        "path": "/json/frames/8/participantFrames/7",
+        "timestampMs": 480000,
+        "xp": 3200
+      },
+      {
+        "cs": 48,
+        "gold": 2740,
+        "participantId": 8,
+        "path": "/json/frames/8/participantFrames/8",
+        "timestampMs": 480000,
+        "xp": 3200
+      },
+      {
+        "cs": 48,
+        "gold": 2740,
+        "participantId": 9,
+        "path": "/json/frames/8/participantFrames/9",
+        "timestampMs": 480000,
+        "xp": 3200
+      },
+      {
+        "cs": 54,
+        "gold": 3020,
+        "participantId": 1,
+        "path": "/json/frames/9/participantFrames/1",
+        "timestampMs": 540000,
+        "xp": 3600
+      },
+      {
+        "cs": 54,
+        "gold": 3020,
+        "participantId": 10,
+        "path": "/json/frames/9/participantFrames/10",
+        "timestampMs": 540000,
+        "xp": 3600
+      },
+      {
+        "cs": 54,
+        "gold": 3020,
+        "participantId": 2,
+        "path": "/json/frames/9/participantFrames/2",
+        "timestampMs": 540000,
+        "xp": 3600
+      },
+      {
+        "cs": 63,
+        "gold": 3200,
+        "participantId": 3,
+        "path": "/json/frames/9/participantFrames/3",
+        "timestampMs": 540000,
+        "xp": 3600
+      },
+      {
+        "cs": 54,
+        "gold": 3020,
+        "participantId": 4,
+        "path": "/json/frames/9/participantFrames/4",
+        "timestampMs": 540000,
+        "xp": 3600
+      },
+      {
+        "cs": 54,
+        "gold": 3020,
+        "participantId": 5,
+        "path": "/json/frames/9/participantFrames/5",
+        "timestampMs": 540000,
+        "xp": 3600
+      },
+      {
+        "cs": 54,
+        "gold": 3020,
+        "participantId": 6,
+        "path": "/json/frames/9/participantFrames/6",
+        "timestampMs": 540000,
+        "xp": 3600
+      },
+      {
+        "cs": 54,
+        "gold": 3020,
+        "participantId": 7,
+        "path": "/json/frames/9/participantFrames/7",
+        "timestampMs": 540000,
+        "xp": 3600
+      },
+      {
+        "cs": 54,
+        "gold": 3020,
+        "participantId": 8,
+        "path": "/json/frames/9/participantFrames/8",
+        "timestampMs": 540000,
+        "xp": 3600
+      },
+      {
+        "cs": 54,
+        "gold": 3020,
+        "participantId": 9,
+        "path": "/json/frames/9/participantFrames/9",
+        "timestampMs": 540000,
+        "xp": 3600
+      },
+      {
+        "cs": 60,
+        "gold": 3300,
+        "participantId": 1,
+        "path": "/json/frames/10/participantFrames/1",
+        "timestampMs": 600000,
+        "xp": 4000
+      },
+      {
+        "cs": 60,
+        "gold": 3300,
+        "participantId": 10,
+        "path": "/json/frames/10/participantFrames/10",
+        "timestampMs": 600000,
+        "xp": 4000
+      },
+      {
+        "cs": 60,
+        "gold": 3300,
+        "participantId": 2,
+        "path": "/json/frames/10/participantFrames/2",
+        "timestampMs": 600000,
+        "xp": 4000
+      },
+      {
+        "cs": 70,
+        "gold": 3500,
+        "participantId": 3,
+        "path": "/json/frames/10/participantFrames/3",
+        "timestampMs": 600000,
+        "xp": 4000
+      },
+      {
+        "cs": 60,
+        "gold": 3300,
+        "participantId": 4,
+        "path": "/json/frames/10/participantFrames/4",
+        "timestampMs": 600000,
+        "xp": 4000
+      },
+      {
+        "cs": 60,
+        "gold": 3300,
+        "participantId": 5,
+        "path": "/json/frames/10/participantFrames/5",
+        "timestampMs": 600000,
+        "xp": 4000
+      },
+      {
+        "cs": 60,
+        "gold": 3300,
+        "participantId": 6,
+        "path": "/json/frames/10/participantFrames/6",
+        "timestampMs": 600000,
+        "xp": 4000
+      },
+      {
+        "cs": 60,
+        "gold": 3300,
+        "participantId": 7,
+        "path": "/json/frames/10/participantFrames/7",
+        "timestampMs": 600000,
+        "xp": 4000
+      },
+      {
+        "cs": 60,
+        "gold": 3300,
+        "participantId": 8,
+        "path": "/json/frames/10/participantFrames/8",
+        "timestampMs": 600000,
+        "xp": 4000
+      },
+      {
+        "cs": 60,
+        "gold": 3300,
+        "participantId": 9,
+        "path": "/json/frames/10/participantFrames/9",
+        "timestampMs": 600000,
+        "xp": 4000
+      },
+      {
+        "cs": 66,
+        "gold": 3580,
+        "participantId": 1,
+        "path": "/json/frames/11/participantFrames/1",
+        "timestampMs": 660000,
+        "xp": 4400
+      },
+      {
+        "cs": 66,
+        "gold": 3580,
+        "participantId": 10,
+        "path": "/json/frames/11/participantFrames/10",
+        "timestampMs": 660000,
+        "xp": 4400
+      },
+      {
+        "cs": 66,
+        "gold": 3580,
+        "participantId": 2,
+        "path": "/json/frames/11/participantFrames/2",
+        "timestampMs": 660000,
+        "xp": 4400
+      },
+      {
+        "cs": 77,
+        "gold": 3800,
+        "participantId": 3,
+        "path": "/json/frames/11/participantFrames/3",
+        "timestampMs": 660000,
+        "xp": 4400
+      },
+      {
+        "cs": 66,
+        "gold": 3580,
+        "participantId": 4,
+        "path": "/json/frames/11/participantFrames/4",
+        "timestampMs": 660000,
+        "xp": 4400
+      },
+      {
+        "cs": 66,
+        "gold": 3580,
+        "participantId": 5,
+        "path": "/json/frames/11/participantFrames/5",
+        "timestampMs": 660000,
+        "xp": 4400
+      },
+      {
+        "cs": 66,
+        "gold": 3580,
+        "participantId": 6,
+        "path": "/json/frames/11/participantFrames/6",
+        "timestampMs": 660000,
+        "xp": 4400
+      },
+      {
+        "cs": 66,
+        "gold": 3580,
+        "participantId": 7,
+        "path": "/json/frames/11/participantFrames/7",
+        "timestampMs": 660000,
+        "xp": 4400
+      },
+      {
+        "cs": 66,
+        "gold": 3580,
+        "participantId": 8,
+        "path": "/json/frames/11/participantFrames/8",
+        "timestampMs": 660000,
+        "xp": 4400
+      },
+      {
+        "cs": 66,
+        "gold": 3580,
+        "participantId": 9,
+        "path": "/json/frames/11/participantFrames/9",
+        "timestampMs": 660000,
+        "xp": 4400
+      },
+      {
+        "cs": 72,
+        "gold": 3860,
+        "participantId": 1,
+        "path": "/json/frames/12/participantFrames/1",
+        "timestampMs": 720000,
+        "xp": 4800
+      },
+      {
+        "cs": 72,
+        "gold": 3860,
+        "participantId": 10,
+        "path": "/json/frames/12/participantFrames/10",
+        "timestampMs": 720000,
+        "xp": 4800
+      },
+      {
+        "cs": 72,
+        "gold": 3860,
+        "participantId": 2,
+        "path": "/json/frames/12/participantFrames/2",
+        "timestampMs": 720000,
+        "xp": 4800
+      },
+      {
+        "cs": 84,
+        "gold": 4100,
+        "participantId": 3,
+        "path": "/json/frames/12/participantFrames/3",
+        "timestampMs": 720000,
+        "xp": 4800
+      },
+      {
+        "cs": 72,
+        "gold": 3860,
+        "participantId": 4,
+        "path": "/json/frames/12/participantFrames/4",
+        "timestampMs": 720000,
+        "xp": 4800
+      },
+      {
+        "cs": 72,
+        "gold": 3860,
+        "participantId": 5,
+        "path": "/json/frames/12/participantFrames/5",
+        "timestampMs": 720000,
+        "xp": 4800
+      },
+      {
+        "cs": 72,
+        "gold": 3860,
+        "participantId": 6,
+        "path": "/json/frames/12/participantFrames/6",
+        "timestampMs": 720000,
+        "xp": 4800
+      },
+      {
+        "cs": 72,
+        "gold": 3860,
+        "participantId": 7,
+        "path": "/json/frames/12/participantFrames/7",
+        "timestampMs": 720000,
+        "xp": 4800
+      },
+      {
+        "cs": 72,
+        "gold": 3860,
+        "participantId": 8,
+        "path": "/json/frames/12/participantFrames/8",
+        "timestampMs": 720000,
+        "xp": 4800
+      },
+      {
+        "cs": 72,
+        "gold": 3860,
+        "participantId": 9,
+        "path": "/json/frames/12/participantFrames/9",
+        "timestampMs": 720000,
+        "xp": 4800
+      },
+      {
+        "cs": 78,
+        "gold": 4140,
+        "participantId": 1,
+        "path": "/json/frames/13/participantFrames/1",
+        "timestampMs": 780000,
+        "xp": 5200
+      },
+      {
+        "cs": 78,
+        "gold": 4140,
+        "participantId": 10,
+        "path": "/json/frames/13/participantFrames/10",
+        "timestampMs": 780000,
+        "xp": 5200
+      },
+      {
+        "cs": 78,
+        "gold": 4140,
+        "participantId": 2,
+        "path": "/json/frames/13/participantFrames/2",
+        "timestampMs": 780000,
+        "xp": 5200
+      },
+      {
+        "cs": 91,
+        "gold": 4400,
+        "participantId": 3,
+        "path": "/json/frames/13/participantFrames/3",
+        "timestampMs": 780000,
+        "xp": 5200
+      },
+      {
+        "cs": 78,
+        "gold": 4140,
+        "participantId": 4,
+        "path": "/json/frames/13/participantFrames/4",
+        "timestampMs": 780000,
+        "xp": 5200
+      },
+      {
+        "cs": 78,
+        "gold": 4140,
+        "participantId": 5,
+        "path": "/json/frames/13/participantFrames/5",
+        "timestampMs": 780000,
+        "xp": 5200
+      },
+      {
+        "cs": 78,
+        "gold": 4140,
+        "participantId": 6,
+        "path": "/json/frames/13/participantFrames/6",
+        "timestampMs": 780000,
+        "xp": 5200
+      },
+      {
+        "cs": 78,
+        "gold": 4140,
+        "participantId": 7,
+        "path": "/json/frames/13/participantFrames/7",
+        "timestampMs": 780000,
+        "xp": 5200
+      },
+      {
+        "cs": 78,
+        "gold": 4140,
+        "participantId": 8,
+        "path": "/json/frames/13/participantFrames/8",
+        "timestampMs": 780000,
+        "xp": 5200
+      },
+      {
+        "cs": 78,
+        "gold": 4140,
+        "participantId": 9,
+        "path": "/json/frames/13/participantFrames/9",
+        "timestampMs": 780000,
+        "xp": 5200
+      },
+      {
+        "cs": 84,
+        "gold": 4420,
+        "participantId": 1,
+        "path": "/json/frames/14/participantFrames/1",
+        "timestampMs": 840000,
+        "xp": 5600
+      },
+      {
+        "cs": 84,
+        "gold": 4420,
+        "participantId": 10,
+        "path": "/json/frames/14/participantFrames/10",
+        "timestampMs": 840000,
+        "xp": 5600
+      },
+      {
+        "cs": 84,
+        "gold": 4420,
+        "participantId": 2,
+        "path": "/json/frames/14/participantFrames/2",
+        "timestampMs": 840000,
+        "xp": 5600
+      },
+      {
+        "cs": 98,
+        "gold": 4700,
+        "participantId": 3,
+        "path": "/json/frames/14/participantFrames/3",
+        "timestampMs": 840000,
+        "xp": 5600
+      },
+      {
+        "cs": 84,
+        "gold": 4420,
+        "participantId": 4,
+        "path": "/json/frames/14/participantFrames/4",
+        "timestampMs": 840000,
+        "xp": 5600
+      },
+      {
+        "cs": 84,
+        "gold": 4420,
+        "participantId": 5,
+        "path": "/json/frames/14/participantFrames/5",
+        "timestampMs": 840000,
+        "xp": 5600
+      },
+      {
+        "cs": 84,
+        "gold": 4420,
+        "participantId": 6,
+        "path": "/json/frames/14/participantFrames/6",
+        "timestampMs": 840000,
+        "xp": 5600
+      },
+      {
+        "cs": 84,
+        "gold": 4420,
+        "participantId": 7,
+        "path": "/json/frames/14/participantFrames/7",
+        "timestampMs": 840000,
+        "xp": 5600
+      },
+      {
+        "cs": 84,
+        "gold": 4420,
+        "participantId": 8,
+        "path": "/json/frames/14/participantFrames/8",
+        "timestampMs": 840000,
+        "xp": 5600
+      },
+      {
+        "cs": 84,
+        "gold": 4420,
+        "participantId": 9,
+        "path": "/json/frames/14/participantFrames/9",
+        "timestampMs": 840000,
+        "xp": 5600
+      },
+      {
+        "cs": 90,
+        "gold": 4700,
+        "participantId": 1,
+        "path": "/json/frames/15/participantFrames/1",
+        "timestampMs": 900000,
+        "xp": 6000
+      },
+      {
+        "cs": 90,
+        "gold": 4700,
+        "participantId": 10,
+        "path": "/json/frames/15/participantFrames/10",
+        "timestampMs": 900000,
+        "xp": 6000
+      },
+      {
+        "cs": 90,
+        "gold": 4700,
+        "participantId": 2,
+        "path": "/json/frames/15/participantFrames/2",
+        "timestampMs": 900000,
+        "xp": 6000
+      },
+      {
+        "cs": 105,
+        "gold": 5000,
+        "participantId": 3,
+        "path": "/json/frames/15/participantFrames/3",
+        "timestampMs": 900000,
+        "xp": 6000
+      },
+      {
+        "cs": 90,
+        "gold": 4700,
+        "participantId": 4,
+        "path": "/json/frames/15/participantFrames/4",
+        "timestampMs": 900000,
+        "xp": 6000
+      },
+      {
+        "cs": 90,
+        "gold": 4700,
+        "participantId": 5,
+        "path": "/json/frames/15/participantFrames/5",
+        "timestampMs": 900000,
+        "xp": 6000
+      },
+      {
+        "cs": 90,
+        "gold": 4700,
+        "participantId": 6,
+        "path": "/json/frames/15/participantFrames/6",
+        "timestampMs": 900000,
+        "xp": 6000
+      },
+      {
+        "cs": 90,
+        "gold": 4700,
+        "participantId": 7,
+        "path": "/json/frames/15/participantFrames/7",
+        "timestampMs": 900000,
+        "xp": 6000
+      },
+      {
+        "cs": 90,
+        "gold": 4700,
+        "participantId": 8,
+        "path": "/json/frames/15/participantFrames/8",
+        "timestampMs": 900000,
+        "xp": 6000
+      },
+      {
+        "cs": 90,
+        "gold": 4700,
+        "participantId": 9,
+        "path": "/json/frames/15/participantFrames/9",
+        "timestampMs": 900000,
+        "xp": 6000
+      },
+      {
+        "cs": 96,
+        "gold": 4980,
+        "participantId": 1,
+        "path": "/json/frames/16/participantFrames/1",
+        "timestampMs": 960000,
+        "xp": 6400
+      },
+      {
+        "cs": 96,
+        "gold": 4980,
+        "participantId": 10,
+        "path": "/json/frames/16/participantFrames/10",
+        "timestampMs": 960000,
+        "xp": 6400
+      },
+      {
+        "cs": 96,
+        "gold": 4980,
+        "participantId": 2,
+        "path": "/json/frames/16/participantFrames/2",
+        "timestampMs": 960000,
+        "xp": 6400
+      },
+      {
+        "cs": 112,
+        "gold": 5300,
+        "participantId": 3,
+        "path": "/json/frames/16/participantFrames/3",
+        "timestampMs": 960000,
+        "xp": 6400
+      },
+      {
+        "cs": 96,
+        "gold": 4980,
+        "participantId": 4,
+        "path": "/json/frames/16/participantFrames/4",
+        "timestampMs": 960000,
+        "xp": 6400
+      },
+      {
+        "cs": 96,
+        "gold": 4980,
+        "participantId": 5,
+        "path": "/json/frames/16/participantFrames/5",
+        "timestampMs": 960000,
+        "xp": 6400
+      },
+      {
+        "cs": 96,
+        "gold": 4980,
+        "participantId": 6,
+        "path": "/json/frames/16/participantFrames/6",
+        "timestampMs": 960000,
+        "xp": 6400
+      },
+      {
+        "cs": 96,
+        "gold": 4980,
+        "participantId": 7,
+        "path": "/json/frames/16/participantFrames/7",
+        "timestampMs": 960000,
+        "xp": 6400
+      },
+      {
+        "cs": 96,
+        "gold": 4980,
+        "participantId": 8,
+        "path": "/json/frames/16/participantFrames/8",
+        "timestampMs": 960000,
+        "xp": 6400
+      },
+      {
+        "cs": 96,
+        "gold": 4980,
+        "participantId": 9,
+        "path": "/json/frames/16/participantFrames/9",
+        "timestampMs": 960000,
+        "xp": 6400
+      },
+      {
+        "cs": 102,
+        "gold": 5260,
+        "participantId": 1,
+        "path": "/json/frames/17/participantFrames/1",
+        "timestampMs": 1020000,
+        "xp": 6800
+      },
+      {
+        "cs": 102,
+        "gold": 5260,
+        "participantId": 10,
+        "path": "/json/frames/17/participantFrames/10",
+        "timestampMs": 1020000,
+        "xp": 6800
+      },
+      {
+        "cs": 102,
+        "gold": 5260,
+        "participantId": 2,
+        "path": "/json/frames/17/participantFrames/2",
+        "timestampMs": 1020000,
+        "xp": 6800
+      },
+      {
+        "cs": 119,
+        "gold": 5600,
+        "participantId": 3,
+        "path": "/json/frames/17/participantFrames/3",
+        "timestampMs": 1020000,
+        "xp": 6800
+      },
+      {
+        "cs": 102,
+        "gold": 5260,
+        "participantId": 4,
+        "path": "/json/frames/17/participantFrames/4",
+        "timestampMs": 1020000,
+        "xp": 6800
+      },
+      {
+        "cs": 102,
+        "gold": 5260,
+        "participantId": 5,
+        "path": "/json/frames/17/participantFrames/5",
+        "timestampMs": 1020000,
+        "xp": 6800
+      },
+      {
+        "cs": 102,
+        "gold": 5260,
+        "participantId": 6,
+        "path": "/json/frames/17/participantFrames/6",
+        "timestampMs": 1020000,
+        "xp": 6800
+      },
+      {
+        "cs": 102,
+        "gold": 5260,
+        "participantId": 7,
+        "path": "/json/frames/17/participantFrames/7",
+        "timestampMs": 1020000,
+        "xp": 6800
+      },
+      {
+        "cs": 102,
+        "gold": 5260,
+        "participantId": 8,
+        "path": "/json/frames/17/participantFrames/8",
+        "timestampMs": 1020000,
+        "xp": 6800
+      },
+      {
+        "cs": 102,
+        "gold": 5260,
+        "participantId": 9,
+        "path": "/json/frames/17/participantFrames/9",
+        "timestampMs": 1020000,
+        "xp": 6800
+      },
+      {
+        "cs": 108,
+        "gold": 5540,
+        "participantId": 1,
+        "path": "/json/frames/18/participantFrames/1",
+        "timestampMs": 1080000,
+        "xp": 7200
+      },
+      {
+        "cs": 108,
+        "gold": 5540,
+        "participantId": 10,
+        "path": "/json/frames/18/participantFrames/10",
+        "timestampMs": 1080000,
+        "xp": 7200
+      },
+      {
+        "cs": 108,
+        "gold": 5540,
+        "participantId": 2,
+        "path": "/json/frames/18/participantFrames/2",
+        "timestampMs": 1080000,
+        "xp": 7200
+      },
+      {
+        "cs": 126,
+        "gold": 5900,
+        "participantId": 3,
+        "path": "/json/frames/18/participantFrames/3",
+        "timestampMs": 1080000,
+        "xp": 7200
+      },
+      {
+        "cs": 108,
+        "gold": 5540,
+        "participantId": 4,
+        "path": "/json/frames/18/participantFrames/4",
+        "timestampMs": 1080000,
+        "xp": 7200
+      },
+      {
+        "cs": 108,
+        "gold": 5540,
+        "participantId": 5,
+        "path": "/json/frames/18/participantFrames/5",
+        "timestampMs": 1080000,
+        "xp": 7200
+      },
+      {
+        "cs": 108,
+        "gold": 5540,
+        "participantId": 6,
+        "path": "/json/frames/18/participantFrames/6",
+        "timestampMs": 1080000,
+        "xp": 7200
+      },
+      {
+        "cs": 108,
+        "gold": 5540,
+        "participantId": 7,
+        "path": "/json/frames/18/participantFrames/7",
+        "timestampMs": 1080000,
+        "xp": 7200
+      },
+      {
+        "cs": 108,
+        "gold": 5540,
+        "participantId": 8,
+        "path": "/json/frames/18/participantFrames/8",
+        "timestampMs": 1080000,
+        "xp": 7200
+      },
+      {
+        "cs": 108,
+        "gold": 5540,
+        "participantId": 9,
+        "path": "/json/frames/18/participantFrames/9",
+        "timestampMs": 1080000,
+        "xp": 7200
+      },
+      {
+        "cs": 114,
+        "gold": 5820,
+        "participantId": 1,
+        "path": "/json/frames/19/participantFrames/1",
+        "timestampMs": 1140000,
+        "xp": 7600
+      },
+      {
+        "cs": 114,
+        "gold": 5820,
+        "participantId": 10,
+        "path": "/json/frames/19/participantFrames/10",
+        "timestampMs": 1140000,
+        "xp": 7600
+      },
+      {
+        "cs": 114,
+        "gold": 5820,
+        "participantId": 2,
+        "path": "/json/frames/19/participantFrames/2",
+        "timestampMs": 1140000,
+        "xp": 7600
+      },
+      {
+        "cs": 133,
+        "gold": 6200,
+        "participantId": 3,
+        "path": "/json/frames/19/participantFrames/3",
+        "timestampMs": 1140000,
+        "xp": 7600
+      },
+      {
+        "cs": 114,
+        "gold": 5820,
+        "participantId": 4,
+        "path": "/json/frames/19/participantFrames/4",
+        "timestampMs": 1140000,
+        "xp": 7600
+      },
+      {
+        "cs": 114,
+        "gold": 5820,
+        "participantId": 5,
+        "path": "/json/frames/19/participantFrames/5",
+        "timestampMs": 1140000,
+        "xp": 7600
+      },
+      {
+        "cs": 114,
+        "gold": 5820,
+        "participantId": 6,
+        "path": "/json/frames/19/participantFrames/6",
+        "timestampMs": 1140000,
+        "xp": 7600
+      },
+      {
+        "cs": 114,
+        "gold": 5820,
+        "participantId": 7,
+        "path": "/json/frames/19/participantFrames/7",
+        "timestampMs": 1140000,
+        "xp": 7600
+      },
+      {
+        "cs": 114,
+        "gold": 5820,
+        "participantId": 8,
+        "path": "/json/frames/19/participantFrames/8",
+        "timestampMs": 1140000,
+        "xp": 7600
+      },
+      {
+        "cs": 114,
+        "gold": 5820,
+        "participantId": 9,
+        "path": "/json/frames/19/participantFrames/9",
+        "timestampMs": 1140000,
+        "xp": 7600
+      },
+      {
+        "cs": 120,
+        "gold": 6100,
+        "participantId": 1,
+        "path": "/json/frames/20/participantFrames/1",
+        "timestampMs": 1200000,
+        "xp": 8000
+      },
+      {
+        "cs": 120,
+        "gold": 6100,
+        "participantId": 10,
+        "path": "/json/frames/20/participantFrames/10",
+        "timestampMs": 1200000,
+        "xp": 8000
+      },
+      {
+        "cs": 120,
+        "gold": 6100,
+        "participantId": 2,
+        "path": "/json/frames/20/participantFrames/2",
+        "timestampMs": 1200000,
+        "xp": 8000
+      },
+      {
+        "cs": 140,
+        "gold": 6500,
+        "participantId": 3,
+        "path": "/json/frames/20/participantFrames/3",
+        "timestampMs": 1200000,
+        "xp": 8000
+      },
+      {
+        "cs": 120,
+        "gold": 6100,
+        "participantId": 4,
+        "path": "/json/frames/20/participantFrames/4",
+        "timestampMs": 1200000,
+        "xp": 8000
+      },
+      {
+        "cs": 120,
+        "gold": 6100,
+        "participantId": 5,
+        "path": "/json/frames/20/participantFrames/5",
+        "timestampMs": 1200000,
+        "xp": 8000
+      },
+      {
+        "cs": 120,
+        "gold": 6100,
+        "participantId": 6,
+        "path": "/json/frames/20/participantFrames/6",
+        "timestampMs": 1200000,
+        "xp": 8000
+      },
+      {
+        "cs": 120,
+        "gold": 6100,
+        "participantId": 7,
+        "path": "/json/frames/20/participantFrames/7",
+        "timestampMs": 1200000,
+        "xp": 8000
+      },
+      {
+        "cs": 120,
+        "gold": 6100,
+        "participantId": 8,
+        "path": "/json/frames/20/participantFrames/8",
+        "timestampMs": 1200000,
+        "xp": 8000
+      },
+      {
+        "cs": 120,
+        "gold": 6100,
+        "participantId": 9,
+        "path": "/json/frames/20/participantFrames/9",
+        "timestampMs": 1200000,
+        "xp": 8000
+      },
+      {
+        "cs": 126,
+        "gold": 6380,
+        "participantId": 1,
+        "path": "/json/frames/21/participantFrames/1",
+        "timestampMs": 1260000,
+        "xp": 8400
+      },
+      {
+        "cs": 126,
+        "gold": 6380,
+        "participantId": 10,
+        "path": "/json/frames/21/participantFrames/10",
+        "timestampMs": 1260000,
+        "xp": 8400
+      },
+      {
+        "cs": 126,
+        "gold": 6380,
+        "participantId": 2,
+        "path": "/json/frames/21/participantFrames/2",
+        "timestampMs": 1260000,
+        "xp": 8400
+      },
+      {
+        "cs": 147,
+        "gold": 6800,
+        "participantId": 3,
+        "path": "/json/frames/21/participantFrames/3",
+        "timestampMs": 1260000,
+        "xp": 8400
+      },
+      {
+        "cs": 126,
+        "gold": 6380,
+        "participantId": 4,
+        "path": "/json/frames/21/participantFrames/4",
+        "timestampMs": 1260000,
+        "xp": 8400
+      },
+      {
+        "cs": 126,
+        "gold": 6380,
+        "participantId": 5,
+        "path": "/json/frames/21/participantFrames/5",
+        "timestampMs": 1260000,
+        "xp": 8400
+      },
+      {
+        "cs": 126,
+        "gold": 6380,
+        "participantId": 6,
+        "path": "/json/frames/21/participantFrames/6",
+        "timestampMs": 1260000,
+        "xp": 8400
+      },
+      {
+        "cs": 126,
+        "gold": 6380,
+        "participantId": 7,
+        "path": "/json/frames/21/participantFrames/7",
+        "timestampMs": 1260000,
+        "xp": 8400
+      },
+      {
+        "cs": 126,
+        "gold": 6380,
+        "participantId": 8,
+        "path": "/json/frames/21/participantFrames/8",
+        "timestampMs": 1260000,
+        "xp": 8400
+      },
+      {
+        "cs": 126,
+        "gold": 6380,
+        "participantId": 9,
+        "path": "/json/frames/21/participantFrames/9",
+        "timestampMs": 1260000,
+        "xp": 8400
+      },
+      {
+        "cs": 132,
+        "gold": 6660,
+        "participantId": 1,
+        "path": "/json/frames/22/participantFrames/1",
+        "timestampMs": 1320000,
+        "xp": 8800
+      },
+      {
+        "cs": 132,
+        "gold": 6660,
+        "participantId": 10,
+        "path": "/json/frames/22/participantFrames/10",
+        "timestampMs": 1320000,
+        "xp": 8800
+      },
+      {
+        "cs": 132,
+        "gold": 6660,
+        "participantId": 2,
+        "path": "/json/frames/22/participantFrames/2",
+        "timestampMs": 1320000,
+        "xp": 8800
+      },
+      {
+        "cs": 154,
+        "gold": 7100,
+        "participantId": 3,
+        "path": "/json/frames/22/participantFrames/3",
+        "timestampMs": 1320000,
+        "xp": 8800
+      },
+      {
+        "cs": 132,
+        "gold": 6660,
+        "participantId": 4,
+        "path": "/json/frames/22/participantFrames/4",
+        "timestampMs": 1320000,
+        "xp": 8800
+      },
+      {
+        "cs": 132,
+        "gold": 6660,
+        "participantId": 5,
+        "path": "/json/frames/22/participantFrames/5",
+        "timestampMs": 1320000,
+        "xp": 8800
+      },
+      {
+        "cs": 132,
+        "gold": 6660,
+        "participantId": 6,
+        "path": "/json/frames/22/participantFrames/6",
+        "timestampMs": 1320000,
+        "xp": 8800
+      },
+      {
+        "cs": 132,
+        "gold": 6660,
+        "participantId": 7,
+        "path": "/json/frames/22/participantFrames/7",
+        "timestampMs": 1320000,
+        "xp": 8800
+      },
+      {
+        "cs": 132,
+        "gold": 6660,
+        "participantId": 8,
+        "path": "/json/frames/22/participantFrames/8",
+        "timestampMs": 1320000,
+        "xp": 8800
+      },
+      {
+        "cs": 132,
+        "gold": 6660,
+        "participantId": 9,
+        "path": "/json/frames/22/participantFrames/9",
+        "timestampMs": 1320000,
+        "xp": 8800
+      },
+      {
+        "cs": 138,
+        "gold": 6940,
+        "participantId": 1,
+        "path": "/json/frames/23/participantFrames/1",
+        "timestampMs": 1380000,
+        "xp": 9200
+      },
+      {
+        "cs": 138,
+        "gold": 6940,
+        "participantId": 10,
+        "path": "/json/frames/23/participantFrames/10",
+        "timestampMs": 1380000,
+        "xp": 9200
+      },
+      {
+        "cs": 138,
+        "gold": 6940,
+        "participantId": 2,
+        "path": "/json/frames/23/participantFrames/2",
+        "timestampMs": 1380000,
+        "xp": 9200
+      },
+      {
+        "cs": 161,
+        "gold": 7400,
+        "participantId": 3,
+        "path": "/json/frames/23/participantFrames/3",
+        "timestampMs": 1380000,
+        "xp": 9200
+      },
+      {
+        "cs": 138,
+        "gold": 6940,
+        "participantId": 4,
+        "path": "/json/frames/23/participantFrames/4",
+        "timestampMs": 1380000,
+        "xp": 9200
+      },
+      {
+        "cs": 138,
+        "gold": 6940,
+        "participantId": 5,
+        "path": "/json/frames/23/participantFrames/5",
+        "timestampMs": 1380000,
+        "xp": 9200
+      },
+      {
+        "cs": 138,
+        "gold": 6940,
+        "participantId": 6,
+        "path": "/json/frames/23/participantFrames/6",
+        "timestampMs": 1380000,
+        "xp": 9200
+      },
+      {
+        "cs": 138,
+        "gold": 6940,
+        "participantId": 7,
+        "path": "/json/frames/23/participantFrames/7",
+        "timestampMs": 1380000,
+        "xp": 9200
+      },
+      {
+        "cs": 138,
+        "gold": 6940,
+        "participantId": 8,
+        "path": "/json/frames/23/participantFrames/8",
+        "timestampMs": 1380000,
+        "xp": 9200
+      },
+      {
+        "cs": 138,
+        "gold": 6940,
+        "participantId": 9,
+        "path": "/json/frames/23/participantFrames/9",
+        "timestampMs": 1380000,
+        "xp": 9200
+      },
+      {
+        "cs": 144,
+        "gold": 7220,
+        "participantId": 1,
+        "path": "/json/frames/24/participantFrames/1",
+        "timestampMs": 1440000,
+        "xp": 9600
+      },
+      {
+        "cs": 144,
+        "gold": 7220,
+        "participantId": 10,
+        "path": "/json/frames/24/participantFrames/10",
+        "timestampMs": 1440000,
+        "xp": 9600
+      },
+      {
+        "cs": 144,
+        "gold": 7220,
+        "participantId": 2,
+        "path": "/json/frames/24/participantFrames/2",
+        "timestampMs": 1440000,
+        "xp": 9600
+      },
+      {
+        "cs": 168,
+        "gold": 7700,
+        "participantId": 3,
+        "path": "/json/frames/24/participantFrames/3",
+        "timestampMs": 1440000,
+        "xp": 9600
+      },
+      {
+        "cs": 144,
+        "gold": 7220,
+        "participantId": 4,
+        "path": "/json/frames/24/participantFrames/4",
+        "timestampMs": 1440000,
+        "xp": 9600
+      },
+      {
+        "cs": 144,
+        "gold": 7220,
+        "participantId": 5,
+        "path": "/json/frames/24/participantFrames/5",
+        "timestampMs": 1440000,
+        "xp": 9600
+      },
+      {
+        "cs": 144,
+        "gold": 7220,
+        "participantId": 6,
+        "path": "/json/frames/24/participantFrames/6",
+        "timestampMs": 1440000,
+        "xp": 9600
+      },
+      {
+        "cs": 144,
+        "gold": 7220,
+        "participantId": 7,
+        "path": "/json/frames/24/participantFrames/7",
+        "timestampMs": 1440000,
+        "xp": 9600
+      },
+      {
+        "cs": 144,
+        "gold": 7220,
+        "participantId": 8,
+        "path": "/json/frames/24/participantFrames/8",
+        "timestampMs": 1440000,
+        "xp": 9600
+      },
+      {
+        "cs": 144,
+        "gold": 7220,
+        "participantId": 9,
+        "path": "/json/frames/24/participantFrames/9",
+        "timestampMs": 1440000,
+        "xp": 9600
+      },
+      {
+        "cs": 150,
+        "gold": 7500,
+        "participantId": 1,
+        "path": "/json/frames/25/participantFrames/1",
+        "timestampMs": 1500000,
+        "xp": 10000
+      },
+      {
+        "cs": 150,
+        "gold": 7500,
+        "participantId": 10,
+        "path": "/json/frames/25/participantFrames/10",
+        "timestampMs": 1500000,
+        "xp": 10000
+      },
+      {
+        "cs": 150,
+        "gold": 7500,
+        "participantId": 2,
+        "path": "/json/frames/25/participantFrames/2",
+        "timestampMs": 1500000,
+        "xp": 10000
+      },
+      {
+        "cs": 175,
+        "gold": 8000,
+        "participantId": 3,
+        "path": "/json/frames/25/participantFrames/3",
+        "timestampMs": 1500000,
+        "xp": 10000
+      },
+      {
+        "cs": 150,
+        "gold": 7500,
+        "participantId": 4,
+        "path": "/json/frames/25/participantFrames/4",
+        "timestampMs": 1500000,
+        "xp": 10000
+      },
+      {
+        "cs": 150,
+        "gold": 7500,
+        "participantId": 5,
+        "path": "/json/frames/25/participantFrames/5",
+        "timestampMs": 1500000,
+        "xp": 10000
+      },
+      {
+        "cs": 150,
+        "gold": 7500,
+        "participantId": 6,
+        "path": "/json/frames/25/participantFrames/6",
+        "timestampMs": 1500000,
+        "xp": 10000
+      },
+      {
+        "cs": 150,
+        "gold": 7500,
+        "participantId": 7,
+        "path": "/json/frames/25/participantFrames/7",
+        "timestampMs": 1500000,
+        "xp": 10000
+      },
+      {
+        "cs": 150,
+        "gold": 7500,
+        "participantId": 8,
+        "path": "/json/frames/25/participantFrames/8",
+        "timestampMs": 1500000,
+        "xp": 10000
+      },
+      {
+        "cs": 150,
+        "gold": 7500,
+        "participantId": 9,
+        "path": "/json/frames/25/participantFrames/9",
+        "timestampMs": 1500000,
+        "xp": 10000
+      },
+      {
+        "cs": 156,
+        "gold": 7780,
+        "participantId": 1,
+        "path": "/json/frames/26/participantFrames/1",
+        "timestampMs": 1560000,
+        "xp": 10400
+      },
+      {
+        "cs": 156,
+        "gold": 7780,
+        "participantId": 10,
+        "path": "/json/frames/26/participantFrames/10",
+        "timestampMs": 1560000,
+        "xp": 10400
+      },
+      {
+        "cs": 156,
+        "gold": 7780,
+        "participantId": 2,
+        "path": "/json/frames/26/participantFrames/2",
+        "timestampMs": 1560000,
+        "xp": 10400
+      },
+      {
+        "cs": 182,
+        "gold": 8300,
+        "participantId": 3,
+        "path": "/json/frames/26/participantFrames/3",
+        "timestampMs": 1560000,
+        "xp": 10400
+      },
+      {
+        "cs": 156,
+        "gold": 7780,
+        "participantId": 4,
+        "path": "/json/frames/26/participantFrames/4",
+        "timestampMs": 1560000,
+        "xp": 10400
+      },
+      {
+        "cs": 156,
+        "gold": 7780,
+        "participantId": 5,
+        "path": "/json/frames/26/participantFrames/5",
+        "timestampMs": 1560000,
+        "xp": 10400
+      },
+      {
+        "cs": 156,
+        "gold": 7780,
+        "participantId": 6,
+        "path": "/json/frames/26/participantFrames/6",
+        "timestampMs": 1560000,
+        "xp": 10400
+      },
+      {
+        "cs": 156,
+        "gold": 7780,
+        "participantId": 7,
+        "path": "/json/frames/26/participantFrames/7",
+        "timestampMs": 1560000,
+        "xp": 10400
+      },
+      {
+        "cs": 156,
+        "gold": 7780,
+        "participantId": 8,
+        "path": "/json/frames/26/participantFrames/8",
+        "timestampMs": 1560000,
+        "xp": 10400
+      },
+      {
+        "cs": 156,
+        "gold": 7780,
+        "participantId": 9,
+        "path": "/json/frames/26/participantFrames/9",
+        "timestampMs": 1560000,
+        "xp": 10400
+      },
+      {
+        "cs": 162,
+        "gold": 8060,
+        "participantId": 1,
+        "path": "/json/frames/27/participantFrames/1",
+        "timestampMs": 1620000,
+        "xp": 10800
+      },
+      {
+        "cs": 162,
+        "gold": 8060,
+        "participantId": 10,
+        "path": "/json/frames/27/participantFrames/10",
+        "timestampMs": 1620000,
+        "xp": 10800
+      },
+      {
+        "cs": 162,
+        "gold": 8060,
+        "participantId": 2,
+        "path": "/json/frames/27/participantFrames/2",
+        "timestampMs": 1620000,
+        "xp": 10800
+      },
+      {
+        "cs": 189,
+        "gold": 8600,
+        "participantId": 3,
+        "path": "/json/frames/27/participantFrames/3",
+        "timestampMs": 1620000,
+        "xp": 10800
+      },
+      {
+        "cs": 162,
+        "gold": 8060,
+        "participantId": 4,
+        "path": "/json/frames/27/participantFrames/4",
+        "timestampMs": 1620000,
+        "xp": 10800
+      },
+      {
+        "cs": 162,
+        "gold": 8060,
+        "participantId": 5,
+        "path": "/json/frames/27/participantFrames/5",
+        "timestampMs": 1620000,
+        "xp": 10800
+      },
+      {
+        "cs": 162,
+        "gold": 8060,
+        "participantId": 6,
+        "path": "/json/frames/27/participantFrames/6",
+        "timestampMs": 1620000,
+        "xp": 10800
+      },
+      {
+        "cs": 162,
+        "gold": 8060,
+        "participantId": 7,
+        "path": "/json/frames/27/participantFrames/7",
+        "timestampMs": 1620000,
+        "xp": 10800
+      },
+      {
+        "cs": 162,
+        "gold": 8060,
+        "participantId": 8,
+        "path": "/json/frames/27/participantFrames/8",
+        "timestampMs": 1620000,
+        "xp": 10800
+      },
+      {
+        "cs": 162,
+        "gold": 8060,
+        "participantId": 9,
+        "path": "/json/frames/27/participantFrames/9",
+        "timestampMs": 1620000,
+        "xp": 10800
+      },
+      {
+        "cs": 168,
+        "gold": 8340,
+        "participantId": 1,
+        "path": "/json/frames/28/participantFrames/1",
+        "timestampMs": 1680000,
+        "xp": 11200
+      },
+      {
+        "cs": 168,
+        "gold": 8340,
+        "participantId": 10,
+        "path": "/json/frames/28/participantFrames/10",
+        "timestampMs": 1680000,
+        "xp": 11200
+      },
+      {
+        "cs": 168,
+        "gold": 8340,
+        "participantId": 2,
+        "path": "/json/frames/28/participantFrames/2",
+        "timestampMs": 1680000,
+        "xp": 11200
+      },
+      {
+        "cs": 196,
+        "gold": 8900,
+        "participantId": 3,
+        "path": "/json/frames/28/participantFrames/3",
+        "timestampMs": 1680000,
+        "xp": 11200
+      },
+      {
+        "cs": 168,
+        "gold": 8340,
+        "participantId": 4,
+        "path": "/json/frames/28/participantFrames/4",
+        "timestampMs": 1680000,
+        "xp": 11200
+      },
+      {
+        "cs": 168,
+        "gold": 8340,
+        "participantId": 5,
+        "path": "/json/frames/28/participantFrames/5",
+        "timestampMs": 1680000,
+        "xp": 11200
+      },
+      {
+        "cs": 168,
+        "gold": 8340,
+        "participantId": 6,
+        "path": "/json/frames/28/participantFrames/6",
+        "timestampMs": 1680000,
+        "xp": 11200
+      },
+      {
+        "cs": 168,
+        "gold": 8340,
+        "participantId": 7,
+        "path": "/json/frames/28/participantFrames/7",
+        "timestampMs": 1680000,
+        "xp": 11200
+      },
+      {
+        "cs": 168,
+        "gold": 8340,
+        "participantId": 8,
+        "path": "/json/frames/28/participantFrames/8",
+        "timestampMs": 1680000,
+        "xp": 11200
+      },
+      {
+        "cs": 168,
+        "gold": 8340,
+        "participantId": 9,
+        "path": "/json/frames/28/participantFrames/9",
+        "timestampMs": 1680000,
+        "xp": 11200
+      },
+      {
+        "cs": 174,
+        "gold": 8620,
+        "participantId": 1,
+        "path": "/json/frames/29/participantFrames/1",
+        "timestampMs": 1740000,
+        "xp": 11600
+      },
+      {
+        "cs": 174,
+        "gold": 8620,
+        "participantId": 10,
+        "path": "/json/frames/29/participantFrames/10",
+        "timestampMs": 1740000,
+        "xp": 11600
+      },
+      {
+        "cs": 174,
+        "gold": 8620,
+        "participantId": 2,
+        "path": "/json/frames/29/participantFrames/2",
+        "timestampMs": 1740000,
+        "xp": 11600
+      },
+      {
+        "cs": 203,
+        "gold": 9200,
+        "participantId": 3,
+        "path": "/json/frames/29/participantFrames/3",
+        "timestampMs": 1740000,
+        "xp": 11600
+      },
+      {
+        "cs": 174,
+        "gold": 8620,
+        "participantId": 4,
+        "path": "/json/frames/29/participantFrames/4",
+        "timestampMs": 1740000,
+        "xp": 11600
+      },
+      {
+        "cs": 174,
+        "gold": 8620,
+        "participantId": 5,
+        "path": "/json/frames/29/participantFrames/5",
+        "timestampMs": 1740000,
+        "xp": 11600
+      },
+      {
+        "cs": 174,
+        "gold": 8620,
+        "participantId": 6,
+        "path": "/json/frames/29/participantFrames/6",
+        "timestampMs": 1740000,
+        "xp": 11600
+      },
+      {
+        "cs": 174,
+        "gold": 8620,
+        "participantId": 7,
+        "path": "/json/frames/29/participantFrames/7",
+        "timestampMs": 1740000,
+        "xp": 11600
+      },
+      {
+        "cs": 174,
+        "gold": 8620,
+        "participantId": 8,
+        "path": "/json/frames/29/participantFrames/8",
+        "timestampMs": 1740000,
+        "xp": 11600
+      },
+      {
+        "cs": 174,
+        "gold": 8620,
+        "participantId": 9,
+        "path": "/json/frames/29/participantFrames/9",
+        "timestampMs": 1740000,
+        "xp": 11600
+      },
+      {
+        "cs": 180,
+        "gold": 8900,
+        "participantId": 1,
+        "path": "/json/frames/30/participantFrames/1",
+        "timestampMs": 1800000,
+        "xp": 12000
+      },
+      {
+        "cs": 180,
+        "gold": 8900,
+        "participantId": 10,
+        "path": "/json/frames/30/participantFrames/10",
+        "timestampMs": 1800000,
+        "xp": 12000
+      },
+      {
+        "cs": 180,
+        "gold": 8900,
+        "participantId": 2,
+        "path": "/json/frames/30/participantFrames/2",
+        "timestampMs": 1800000,
+        "xp": 12000
+      },
+      {
+        "cs": 210,
+        "gold": 9500,
+        "participantId": 3,
+        "path": "/json/frames/30/participantFrames/3",
+        "timestampMs": 1800000,
+        "xp": 12000
+      },
+      {
+        "cs": 180,
+        "gold": 8900,
+        "participantId": 4,
+        "path": "/json/frames/30/participantFrames/4",
+        "timestampMs": 1800000,
+        "xp": 12000
+      },
+      {
+        "cs": 180,
+        "gold": 8900,
+        "participantId": 5,
+        "path": "/json/frames/30/participantFrames/5",
+        "timestampMs": 1800000,
+        "xp": 12000
+      },
+      {
+        "cs": 180,
+        "gold": 8900,
+        "participantId": 6,
+        "path": "/json/frames/30/participantFrames/6",
+        "timestampMs": 1800000,
+        "xp": 12000
+      },
+      {
+        "cs": 180,
+        "gold": 8900,
+        "participantId": 7,
+        "path": "/json/frames/30/participantFrames/7",
+        "timestampMs": 1800000,
+        "xp": 12000
+      },
+      {
+        "cs": 180,
+        "gold": 8900,
+        "participantId": 8,
+        "path": "/json/frames/30/participantFrames/8",
+        "timestampMs": 1800000,
+        "xp": 12000
+      },
+      {
+        "cs": 180,
+        "gold": 8900,
+        "participantId": 9,
+        "path": "/json/frames/30/participantFrames/9",
+        "timestampMs": 1800000,
+        "xp": 12000
+      }
+    ],
+    "id": "fixture-input",
+    "limitations": [
+      "item_semantics_unavailable"
+    ],
+    "revision": 1,
+    "summarySnapshot": "fixture-summary",
+    "timelineSnapshot": "fixture-timeline"
+  },
+  "report": {
+    "evidence": [
+      {
+        "id": "event-2-0",
+        "participantIds": [
+          3
+        ],
+        "path": "/json/frames/2/events/0",
+        "snapshotId": "fixture-timeline",
+        "timestampMs": 120000
+      },
+      {
+        "id": "event-2-1",
+        "participantIds": [
+          3
+        ],
+        "path": "/json/frames/2/events/1",
+        "snapshotId": "fixture-timeline",
+        "timestampMs": 120000
+      },
+      {
+        "id": "event-2-2",
+        "participantIds": [
+          3
+        ],
+        "path": "/json/frames/2/events/2",
+        "snapshotId": "fixture-timeline",
+        "timestampMs": 120000
+      },
+      {
+        "id": "event-2-3",
+        "participantIds": [
+          3
+        ],
+        "path": "/json/frames/2/events/3",
+        "snapshotId": "fixture-timeline",
+        "timestampMs": 120000
+      },
+      {
+        "id": "event-4-0",
+        "participantIds": [
+          3
+        ],
+        "path": "/json/frames/4/events/0",
+        "snapshotId": "fixture-timeline",
+        "timestampMs": 240000
+      },
+      {
+        "id": "event-8-0",
+        "participantIds": [
+          7,
+          3,
+          8
+        ],
+        "path": "/json/frames/8/events/0",
+        "snapshotId": "fixture-timeline",
+        "timestampMs": 480000
+      },
+      {
+        "id": "event-9-0",
+        "participantIds": [
+          7,
+          8
+        ],
+        "path": "/json/frames/9/events/0",
+        "snapshotId": "fixture-timeline",
+        "timestampMs": 540000
+      },
+      {
+        "id": "frame-3-600000",
+        "participantIds": [
+          3
+        ],
+        "path": "/json/frames/10/participantFrames/3",
+        "snapshotId": "fixture-timeline",
+        "timestampMs": 600000
+      },
+      {
+        "id": "frame-8-600000",
+        "participantIds": [
+          8
+        ],
+        "path": "/json/frames/10/participantFrames/8",
+        "snapshotId": "fixture-timeline",
+        "timestampMs": 600000
+      },
+      {
+        "id": "summary",
+        "participantIds": [
+          3
+        ],
+        "path": "",
+        "snapshotId": "fixture-summary",
+        "timestampMs": null
+      }
+    ],
+    "findings": [
+      {
+        "actionKey": "action_development",
+        "evidenceIds": [
+          "frame-3-600000",
+          "frame-8-600000"
+        ],
+        "id": "development-2d60b7778e559dbae2f5387f05f9355d4e0bacaa87aee41f58fb248ce9d5805a",
+        "limitations": [],
+        "messageKey": "finding_development",
+        "metricIds": [
+          "gold_diff_10"
+        ],
+        "params": {
+          "value": "200"
+        },
+        "priority": 1,
+        "ruleId": "development",
+        "ruleVersion": "1"
+      },
+      {
+        "actionKey": "action_deaths",
+        "evidenceIds": [
+          "event-8-0"
+        ],
+        "id": "deaths-2d60b7778e559dbae2f5387f05f9355d4e0bacaa87aee41f58fb248ce9d5805a",
+        "limitations": [],
+        "messageKey": "finding_deaths",
+        "metricIds": [],
+        "params": {
+          "count": "1"
+        },
+        "priority": 2,
+        "ruleId": "deaths",
+        "ruleVersion": "1"
+      },
+      {
+        "actionKey": "action_objectives",
+        "evidenceIds": [
+          "event-9-0"
+        ],
+        "id": "objectives-2d60b7778e559dbae2f5387f05f9355d4e0bacaa87aee41f58fb248ce9d5805a",
+        "limitations": [
+          "observation_window_60s_not_causation"
+        ],
+        "messageKey": "finding_objectives",
+        "metricIds": [],
+        "params": {
+          "count": "1"
+        },
+        "priority": 3,
+        "ruleId": "objectives",
+        "ruleVersion": "1"
+      },
+      {
+        "actionKey": null,
+        "evidenceIds": [
+          "event-2-0",
+          "event-2-1",
+          "event-2-2",
+          "event-2-3",
+          "event-4-0"
+        ],
+        "id": "build-2d60b7778e559dbae2f5387f05f9355d4e0bacaa87aee41f58fb248ce9d5805a",
+        "limitations": [
+          "item_semantics_unavailable"
+        ],
+        "messageKey": "finding_build",
+        "metricIds": [],
+        "params": {
+          "count": "5"
+        },
+        "priority": 0,
+        "ruleId": "build",
+        "ruleVersion": "1"
+      }
+    ],
+    "generatedAt": "2026-10-19T00:00:00Z",
+    "id": "fixture-report",
+    "inputFingerprint": "2d60b7778e559dbae2f5387f05f9355d4e0bacaa87aee41f58fb248ce9d5805a",
+    "inputRevision": 1,
+    "limitations": [
+      "item_semantics_unavailable"
+    ],
+    "matchKey": "TENCENT_HN1:900719925474101",
+    "metrics": [
+      {
+        "denominator": null,
+        "id": "kills",
+        "reason": null,
+        "sampledAtMs": null,
+        "status": "available",
+        "unit": "count",
+        "value": 8.0,
+        "version": "1"
+      },
+      {
+        "denominator": null,
+        "id": "deaths",
+        "reason": null,
+        "sampledAtMs": null,
+        "status": "available",
+        "unit": "count",
+        "value": 2.0,
+        "version": "1"
+      },
+      {
+        "denominator": null,
+        "id": "assists",
+        "reason": null,
+        "sampledAtMs": null,
+        "status": "available",
+        "unit": "count",
+        "value": 4.0,
+        "version": "1"
+      },
+      {
+        "denominator": 2.0,
+        "id": "kda",
+        "reason": null,
+        "sampledAtMs": null,
+        "status": "available",
+        "unit": "ratio",
+        "value": 6.0,
+        "version": "1"
+      },
+      {
+        "denominator": null,
+        "id": "lane_cs",
+        "reason": null,
+        "sampledAtMs": null,
+        "status": "available",
+        "unit": "count",
+        "value": 160.0,
+        "version": "1"
+      },
+      {
+        "denominator": null,
+        "id": "jungle_cs",
+        "reason": null,
+        "sampledAtMs": null,
+        "status": "available",
+        "unit": "count",
+        "value": 20.0,
+        "version": "1"
+      },
+      {
+        "denominator": null,
+        "id": "total_cs",
+        "reason": null,
+        "sampledAtMs": null,
+        "status": "available",
+        "unit": "count",
+        "value": 180.0,
+        "version": "1"
+      },
+      {
+        "denominator": 30.0,
+        "id": "cs_per_min",
+        "reason": null,
+        "sampledAtMs": null,
+        "status": "available",
+        "unit": "per_min",
+        "value": 6.0,
+        "version": "1"
+      },
+      {
+        "denominator": 30.0,
+        "id": "deaths_per_10",
+        "reason": null,
+        "sampledAtMs": null,
+        "status": "available",
+        "unit": "per_10_min",
+        "value": 0.6666666666666666,
+        "version": "1"
+      },
+      {
+        "denominator": 20.0,
+        "id": "participation",
+        "reason": null,
+        "sampledAtMs": null,
+        "status": "available",
+        "unit": "ratio",
+        "value": 0.6,
+        "version": "1"
+      },
+      {
+        "denominator": 52000.0,
+        "id": "gold_share",
+        "reason": null,
+        "sampledAtMs": null,
+        "status": "available",
+        "unit": "ratio",
+        "value": 0.23076923076923078,
+        "version": "1"
+      },
+      {
+        "denominator": 60000.0,
+        "id": "damage_share",
+        "reason": null,
+        "sampledAtMs": null,
+        "status": "available",
+        "unit": "ratio",
+        "value": 0.3333333333333333,
+        "version": "1"
+      },
+      {
+        "denominator": null,
+        "id": "cs_10",
+        "reason": null,
+        "sampledAtMs": 600000,
+        "status": "available",
+        "unit": "count",
+        "value": 70.0,
+        "version": "1"
+      },
+      {
+        "denominator": null,
+        "id": "gold_10",
+        "reason": null,
+        "sampledAtMs": 600000,
+        "status": "available",
+        "unit": "gold",
+        "value": 3500.0,
+        "version": "1"
+      },
+      {
+        "denominator": null,
+        "id": "xp_10",
+        "reason": null,
+        "sampledAtMs": 600000,
+        "status": "available",
+        "unit": "xp",
+        "value": 4000.0,
+        "version": "1"
+      },
+      {
+        "denominator": null,
+        "id": "cs_diff_10",
+        "reason": null,
+        "sampledAtMs": 600000,
+        "status": "available",
+        "unit": "count",
+        "value": 10.0,
+        "version": "1"
+      },
+      {
+        "denominator": null,
+        "id": "gold_diff_10",
+        "reason": null,
+        "sampledAtMs": 600000,
+        "status": "available",
+        "unit": "gold",
+        "value": 200.0,
+        "version": "1"
+      },
+      {
+        "denominator": null,
+        "id": "xp_diff_10",
+        "reason": null,
+        "sampledAtMs": 600000,
+        "status": "available",
+        "unit": "xp",
+        "value": 0.0,
+        "version": "1"
+      },
+      {
+        "denominator": null,
+        "id": "cs_15",
+        "reason": null,
+        "sampledAtMs": 900000,
+        "status": "available",
+        "unit": "count",
+        "value": 105.0,
+        "version": "1"
+      },
+      {
+        "denominator": null,
+        "id": "gold_15",
+        "reason": null,
+        "sampledAtMs": 900000,
+        "status": "available",
+        "unit": "gold",
+        "value": 5000.0,
+        "version": "1"
+      },
+      {
+        "denominator": null,
+        "id": "xp_15",
+        "reason": null,
+        "sampledAtMs": 900000,
+        "status": "available",
+        "unit": "xp",
+        "value": 6000.0,
+        "version": "1"
+      },
+      {
+        "denominator": null,
+        "id": "cs_diff_15",
+        "reason": null,
+        "sampledAtMs": 900000,
+        "status": "available",
+        "unit": "count",
+        "value": 15.0,
+        "version": "1"
+      },
+      {
+        "denominator": null,
+        "id": "gold_diff_15",
+        "reason": null,
+        "sampledAtMs": 900000,
+        "status": "available",
+        "unit": "gold",
+        "value": 300.0,
+        "version": "1"
+      },
+      {
+        "denominator": null,
+        "id": "xp_diff_15",
+        "reason": null,
+        "sampledAtMs": 900000,
+        "status": "available",
+        "unit": "xp",
+        "value": 0.0,
+        "version": "1"
+      }
+    ],
+    "playerKey": "TENCENT_HN1:synthetic-player",
+    "revision": 1,
+    "ruleVersion": "2.1",
+    "semanticVersion": null
+  }
+}

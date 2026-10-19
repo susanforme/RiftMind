@@ -12,28 +12,43 @@
   "app": {
     "windows": [
       {
-        "title": "riftmind",
-        "width": 800,
-        "height": 600
+        "title": "RiftMind",
+        "width": 1280,
+        "height": 800,
+        "label": "main",
+        "minWidth": 800,
+        "minHeight": 600,
+        "decorations": false
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: http://cdragon.localhost; connect-src http://cdragon.localhost ipc: http://ipc.localhost; object-src 'none'; base-uri 'none'; frame-src 'none'",
+      "devCsp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: http://cdragon.localhost; connect-src http://cdragon.localhost ipc: http://ipc.localhost http://localhost:1420 ws://localhost:1420; object-src 'none'; base-uri 'none'"
     }
   },
   "plugins": {
     "sql": {
-      "preload": ["sqlite:riftmind.db"]
+      "preload": [
+        "sqlite:riftmind.db"
+      ]
     }
   },
   "bundle": {
     "active": true,
-    "targets": ["msi", "nsis"],
+    "targets": [
+      "nsis"
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.ico"
-    ]
+    ],
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "installerHooks": "installer/hooks.nsh"
+      }
+    }
   }
 }

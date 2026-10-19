@@ -1,0 +1,19 @@
+name: Core and browser
+on: [push, pull_request]
+jobs:
+  mac-core:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: bun install --frozen-lockfile
+      - run: bunx playwright install chromium
+      - run: cargo fmt --all --check
+      - run: cargo clippy -p riftmind-core -p dev-harness --locked -- -D warnings
+      - run: bun run verify:stage2

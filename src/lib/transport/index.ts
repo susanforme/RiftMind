@@ -6,10 +6,10 @@ export interface Transport {
   subscribe(listener: (event: EventEnvelope) => void): Promise<() => void>;
 }
 export async function createTransport(): Promise<Transport> {
-  if (import.meta.env.DEV && import.meta.env.VITE_TRANSPORT === 'fixture') {
+  if (import.meta.env.DEV && import.meta.env.MODE === 'development' && import.meta.env.VITE_TRANSPORT === 'fixture') {
     return (await import('./fixture')).fixtureTransport();
   }
-  if (import.meta.env.DEV && import.meta.env.VITE_TRANSPORT === 'dev-harness') {
+  if (import.meta.env.DEV && import.meta.env.MODE === 'development' && import.meta.env.VITE_TRANSPORT === 'dev-harness') {
     return (await import('./harness')).harnessTransport();
   }
   return (await import('./desktop')).desktopTransport;

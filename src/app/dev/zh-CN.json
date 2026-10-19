@@ -1,0 +1,10 @@
+{
+  "scenario": "场景",
+  "no-client": "无客户端",
+  "tencent": "国服",
+  "riot": "外服",
+  "offline": "离线",
+  "waiting": "等待授权",
+  "conflict": "识别冲突",
+  "unknown": "未知区服"
+}

@@ -1,19 +1,9 @@
-// Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-
-#[cfg(not(target_os = "windows"))]
-compile_error!("RiftMind only supports Windows because it integrates with Riot LCU.");
-
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
-}
-
+#[cfg(all(not(target_os = "windows"), not(test)))]
+compile_error!("RiftMind only supports Windows. Use cargo test -p riftmind-core on macOS.");
+mod adapters;
+mod app;
+mod bootstrap;
 fn main() {
-    tauri::Builder::default()
-        .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_sql::Builder::default().build())
-        .invoke_handler(tauri::generate_handler![greet])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+    app::run();
 }

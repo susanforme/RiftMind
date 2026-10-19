@@ -1,0 +1,10 @@
+{
+  "scenario": "Scenario",
+  "no-client": "No client",
+  "tencent": "Tencent",
+  "riot": "Riot",
+  "offline": "Offline",
+  "waiting": "Waiting for sign-in",
+  "conflict": "Server conflict",
+  "unknown": "Unknown server"
+}

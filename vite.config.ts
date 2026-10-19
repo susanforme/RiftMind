@@ -1,21 +1,21 @@
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
-
-// https://vite.dev/config/
-export default defineConfig(() => ({
-  plugins: [react()],
-
-  // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
-  //
-  // 1. prevent Vite from obscuring rust errors
-  clearScreen: false,
-  // 2. tauri expects a fixed port, fail if that port is not available
-  server: {
-    port: 1420,
-    strictPort: true,
-    watch: {
-      // 3. tell Vite to ignore watching `src-tauri`
-      ignored: ["**/src-tauri/**"],
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
+export default defineConfig({
+  resolve: { alias: { '@': new URL('./src', import.meta.url).pathname } },
+  plugins: [react({ jsxImportSource: 'react' }), tailwindcss(), {
+    name: 'production-isolation',
+    apply: 'build',
+    generateBundle(_, bundle) {
+      for (const output of Object.values(bundle)) {
+        if (output.type !== 'chunk') continue;
+        for (const id of Object.keys(output.modules)) {
+          if (/[/\\](?:src[/\\]app[/\\]dev|tests[/\\]fixtures)[/\\]|[/\\]src[/\\]lib[/\\]transport[/\\](?:fixture|review-fixture|harness)\.ts/.test(id)) {
+            this.error(`Development module included in production: ${id}`);
+          }
+        }
+      }
     },
-  },
-}));
+  }], clearScreen: false,
+  server: { host: 'localhost', port: Number(process.env.RIFTMIND_DEV_PORT || 1420), strictPort: true, watch: { ignored: ['**/src-tauri/**', '**/target/**', '**/.riftmind-dev/**'] }, proxy: process.env.RIFTMIND_HARNESS_PORT ? { '/bridge': { target: `http://127.0.0.1:${process.env.RIFTMIND_HARNESS_PORT}`, ws: true, rewrite: path => path.replace(/^\/bridge/, '') } } : undefined },
+});

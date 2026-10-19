@@ -1,6 +1,6 @@
 # 一期计划：完整基座、设置页、对局列表
 
-状态：待实施。日期：2026-10-19。本文中的勾选项均为后续工作，不表示已经实现或测试通过。
+状态：主体实施中，尚未完成全部验收。日期：2026-10-19。实现与已执行检查见 [一期验收记录](../docs/stage1-verification.md)；未勾选项仍需补齐或验证，不能视为完成。
 
 总体架构见 [架构设计](../docs/architecture.md)。本文决定一期交付范围；总体架构中的复盘、图表、训练闭环等安排不得扩大一期页面范围。
 
@@ -75,12 +75,12 @@ tests/
 .github/workflows/                 # Mac/core 检查与 Windows 构建/宿主测试
 ```
 
-- [ ] Windows API、Tauri、Store/SQL 插件不作为 core 的依赖；core 不引用窗口、AppHandle 或全局 Tauri state。
-- [ ] 宿主通过插件取得生产池并注入 core；Mac 测试自行创建临时 SQLite 池，使用相同迁移、查询与事务代码，不用内存 Map 代替数据库。
+- [x] Windows API、Tauri、Store/SQL 插件不作为 core 的依赖；core 不引用窗口、AppHandle 或全局 Tauri state。
+- [x] 宿主通过插件取得生产池并注入 core；Mac 测试自行创建临时 SQLite 池，使用相同迁移、查询与事务代码，不用内存 Map 代替数据库。
 - [ ] `ClientDiscovery`、设置持久化、事件接收、时钟等外部边界可替换；仅为实际 I/O 建接口，不构造通用依赖注入框架。
-- [ ] 国服/外服判断、来源选择、去重、状态迁移放在 core；Windows 适配器只收集原始发现信息和执行原生操作。
-- [ ] 测试使用临时目录和专用数据库，禁止读取开发者的真实客户端凭证、正式设置或历史库。
-- [ ] Mac 的 core 测试和类型生成无需执行 `src-tauri/build.rs`，无需 WebView2、Windows SDK 或 LoL。
+- [x] 国服/外服判断、来源选择、去重、状态迁移放在 core；Windows 适配器只收集原始发现信息和执行原生操作。
+- [x] 测试使用临时目录和专用数据库，禁止读取开发者的真实客户端凭证、正式设置或历史库。
+- [x] Mac 的 core 测试和类型生成无需执行 `src-tauri/build.rs`，无需 WebView2、Windows SDK 或 LoL。
 
 ### 2.2 一期 Commands、错误与事件契约
 
@@ -105,12 +105,12 @@ tests/
 
 ### S1-0：先建立可测试工程与契约
 
-- [ ] 完成上述 workspace 拆分，保留 Windows 宿主编译限制；提供明确的 Mac 命令，不使用会构建宿主的默认 `cargo test --workspace`。
-- [ ] 建立版本化 DTO、错误码、事件信封和 Commands 注册表；外部 ID 跨 IPC 用字符串。
-- [ ] 建立 `desktop / fixture / dev-harness` 传输选择；业务组件只依赖同一接口，不分叉渲染逻辑。
-- [ ] 默认生产构建仅包含 desktop；模拟模式只能通过显式开发入口启用，并显示固定“模拟数据”标识。桌面 IPC 故障不能自动切换成假数据。
+- [x] 完成上述 workspace 拆分，保留 Windows 宿主编译限制；提供明确的 Mac 命令，不使用会构建宿主的默认 `cargo test --workspace`。
+- [x] 建立版本化 DTO、错误码、事件信封和 Commands 注册表；外部 ID 跨 IPC 用字符串。
+- [x] 建立 `desktop / fixture / dev-harness` 传输选择；业务组件只依赖同一接口，不分叉渲染逻辑。
+- [x] 默认生产构建仅包含 desktop；模拟模式只能通过显式开发入口启用，并显示固定“模拟数据”标识。桌面 IPC 故障不能自动切换成假数据。
 - [ ] 提供 fixture 场景重置、时钟控制、错误注入和可重复事件脚本；测试互不共享状态。
-- [ ] 完成 Router、QueryClient、Zustand、Tailwind、shadcn/ui 基础配置，删除模板 greet 和演示 UI。
+- [x] 完成 Router、QueryClient、Zustand、Tailwind、shadcn/ui 基础配置，删除模板 greet 和演示 UI。
 - [ ] 完成 AppShell、侧栏、多标签与路由联动；实现主题 tokens 和模式解析，具体交互与设计验收见 4.0。
 - [ ] 在安装更多业务依赖前，让 core 单元测试、一条真实 SQLite 测试和两个空路由的浏览器导航测试可运行。
 
@@ -123,8 +123,8 @@ tests/
 - [ ] SQL 插件 preload 会执行迁移，因此必须在迁移前检查通过后初始化；验证初始化失败仍能显示恢复界面，不能先迁移后备份。
 - [ ] `settings.json` 使用 Store 持久化，字段校验、默认值、schema 迁移、串行保存和 `expectedRevision` 冲突处理完整。
 - [ ] 语言、主题模式、侧栏折叠、有效标签会话、关闭窗口行为、自动连接、自动同步、同步范围等偏好重启可恢复；保存失败不显示成功，保留编辑草稿。
-- [ ] Rust 是 SQLite 唯一业务入口；移除 `src/lib/database.ts`、前端 SQL 依赖与通用 SQL 执行权限。
-- [ ] 一期建表：`players`、`matches`、`match_participants`、`source_snapshots`、`match_revisions`、`jobs`、`sync_state`、`resource_manifests`。不提前建立复盘、目标和模型表。
+- [x] Rust 是 SQLite 唯一业务入口；移除 `src/lib/database.ts`、前端 SQL 依赖与通用 SQL 执行权限。
+- [x] 一期建表：`players`、`matches`、`match_participants`、`source_snapshots`、`match_revisions`、`jobs`、`sync_state`、`resource_manifests`。不提前建立复盘、目标和模型表。
 - [ ] 迁移与连接配置包含外键、WAL、有限 busy timeout；在各池连接验证配置，事务内不请求网络。
 - [ ] 备份包含数据库、配置和资源清单；可下载图片可省略。恢复先校验、保留旧数据，再进入维护状态替换，失败可恢复旧工作区。
 - [ ] 恢复后更新 `workspaceEpoch`，清空旧查询缓存、游标和任务订阅；缺失图片重新解析。
@@ -165,7 +165,7 @@ tests/
 - [ ] 首次连接同步最近一页；手动同步、赛后补拉和重连对账复用同一入口；自动同步可关闭。
 - [ ] 只同步当前已登录账号；历史缓存可以在独立列表标签查看。切号时激活新账号标签，旧标签保留明确的玩家/区服及本地缓存身份，不把旧标签内容重新绑定到新账号。
 - [ ] 分页有范围/页数预算，按对局键去重，处理新对局插入导致的偏移变化，展示实际覆盖范围。
-- [ ] 分离 source DTO 与标准列表模型；未知队列/英雄保留原始 ID，缺失统计保存空值，不填零。
+- [x] 分离 source DTO 与标准列表模型；未知队列/英雄保留原始 ID，缺失统计保存空值，不填零。
 - [ ] 原始快照、新修订、列表投影、任务阶段和检查点在短事务中协调提交；相同内容不反复增加修订。
 - [ ] 任务持久化后返回 ID；重复请求合并，有限并发/超时/退避/429 冷却、取消和重启恢复可测。
 - [ ] 当前用户操作优先于历史补拉与资源预取；已提交数据在取消后仍可读取。
@@ -274,7 +274,7 @@ Store 中增加版本化 `workspaceTabs` 与 `sidebarCollapsed` 偏好，仅持�
 - [ ] 点击恢复备份或退出到安全点有真实反馈；维护状态阻止新的同步/设置写入。
 - [ ] 原生文件对话框在 Windows 使用受控适配；浏览器 harness 通过测试专用上传/下载边界走相同备份用例。
 - [ ] 表单标签、校验消息、弹窗、工具提示、键盘焦点和危险操作说明双语完整。
-- [ ] 不显示未实现的 AI、图表或训练设置；不把假开关当作“基座预留”。
+- [x] 不显示未实现的 AI、图表或训练设置；不把假开关当作“基座预留”。
 
 ### 4.2 对局列表 `/matches`
 
@@ -295,14 +295,14 @@ Store 中增加版本化 `workspaceTabs` 与 `sidebarCollapsed` 偏好，仅持�
 
 ## 5. i18n 必须一期完成
 
-- [ ] 使用 i18next + react-i18next，内置 `zh-CN`、`en-US` 两套资源；命名空间按 `common / settings / matches / errors / connection` 拆分。
+- [x] 使用 i18next + react-i18next，内置 `zh-CN`、`en-US` 两套资源；命名空间按 `common / settings / matches / errors / connection` 拆分。
 - [ ] Store 保存 `languagePreference: system | zh-CN | en-US`；首次默认 system，系统中文映射简体中文，其余语言回退英语。读取系统语言失败时回退简体中文并可手动改。
 - [ ] 明确区分 `languagePreference`、`resolvedUiLanguage`、客户端 locale 和实际资源 locale；切语言不改变区服、端点、账号或数据源策略。
-- [ ] 禁止 i18n detector 自动写 localStorage 形成第二份偏好；配置权威来源保持 Rust/Store，测试适配器模拟相同契约。
+- [x] 禁止 i18n detector 自动写 localStorage 形成第二份偏好；配置权威来源保持 Rust/Store，测试适配器模拟相同契约。
 - [ ] 错误、任务和连接状态由 Rust 返回 code + 有类型的参数，React 翻译展示；托盘/原生提示使用共享翻译资源或受校验的对应子集。
 - [ ] 日期、数字和复数使用语言规则，数据库保留 UTC 和原始值；时间范围查询统一转换为 UTC，比赛时长不按时区转换。
 - [ ] 游戏名词来自匹配版本和语言的资源；翻译缺失时回退同版本资源，再显示 ID，不用更换区服解决语言缺失。
-- [ ] 两种语言 key 和插值参数一致；所有可见静态文案、错误、空状态、保存提示、ARIA 标签和模拟标识均覆盖。
+- [ ] 两种语言 key 和插值参数一致；所有可见静态文案、错误、空状态、保存提示、ARIA 标签和模拟标识均覆盖。（页面 key/参数检查已通过；原生托盘随语言切换仍待 Windows 验收。）
 - [ ] 自动测试系统语言选择、手动覆盖、重启保持、缺失 key、长英文布局，以及“英文国服/中文外服”组合。
 
 参考：[i18next 配置](https://www.i18next.com/overview/configuration-options)、[react-i18next](https://react.i18next.com/)。
@@ -392,14 +392,14 @@ Mac 的集成测试使用 Playwright Chromium，验证 Web 前端交互；它不
 - [ ] `verify:stage1` 可重复通过，包含 Rust SQLite 集成与 harness 浏览器测试。
 - [ ] fixtures 覆盖 T01–T16、T19–T22 的 Mac 部分，测试断言关键结果，不能只判断页面无报错。
 - [ ] 左侧功能区、顶部多标签和两页明暗设计全部落地；未来多主题只保留 token/配置扩展边界，一期没有额外配色主题实现。
-- [ ] README 说明模拟/集成启动、场景重置、测试目录、错误排查和 Windows 构建入口。
-- [ ] 没有新增复盘/详情/训练页面，设置中没有无行为的占位配置。
+- [x] README 说明模拟/集成启动、场景重置、测试目录、错误排查和 Windows 构建入口。
+- [x] 没有新增复盘/详情/训练页面，设置中没有无行为的占位配置。
 
 ### 8.2 Windows CI 与真实环境的独立状态
 
 - [ ] 提交 Windows workflow，运行 Windows 宿主编译、适配器测试、安装包构建和可自动化的原生冒烟，产物与日志可追踪。
 - [ ] 宿主桌面交互需要交互式 session 时明确 runner 前置条件；不能静默跳过后标记通过。
-- [ ] 若当前没有远程仓库/可用 runner，记录为“Windows CI 未执行”，不能仅凭 YAML 已写好宣称通过。
+- [x] 若当前没有远程仓库/可用 runner，记录为“Windows CI 未执行”，不能仅凭 YAML 已写好宣称通过。
 - [ ] T18 独立记录国服和外服验证区服/客户端版本/结果；普通 hosted runner 没有真实客户端时保持“未验证”。
 
 最终交付报告必须分别列出 **Mac 自动化结果、Windows CI 结果、真实客户端联网结果、生产发布配置状态**。当前 Mac 环境可以完成计划中的开发与模拟验证，不等待真机才开展；但“Windows 原生已验证”“国服/外服实际可联网”和“可正式发布”不能由模拟测试代替。

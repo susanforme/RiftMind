@@ -1,0 +1,31 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { fixtureTransport, resetFixture, injectError, setScenario } from '../../src/lib/transport/fixture';
+import { setTransport } from '../../src/app/runtime';
+import { SettingsPage } from '../../src/features/settings/SettingsPage';
+import { resolveMode, applyTheme } from '../../src/app/theme';
+import { resolveLanguage } from '../../src/i18n';
+import { validateSearch } from '../../src/app/router';
+import { useWorkspace } from '../../src/stores/workspace-tabs';
+import i18n from '../../src/i18n';
+beforeEach(() => { resetFixture(); useWorkspace.setState({ draft: null, dirty: false, tabs: [], scroll: {} }); setTransport(fixtureTransport()); void i18n.changeLanguage('en-US'); });
+describe('preference and routing boundaries', () => {
+  it('resolves system language without affecting server identity', async () => { expect(resolveLanguage('system', 'zh-TW')).toBe('zh-CN'); expect(resolveLanguage('system', 'fr-FR')).toBe('en-US'); expect(resolveLanguage('system')).toBe('zh-CN'); expect(resolveLanguage('en-US', 'zh-CN')).toBe('en-US'); setScenario('tencent'); expect((await fixtureTransport().call('get_connection_state', {})).identification?.serverId).toBe('TENCENT_HN1'); });
+  it('keeps explicit theme modes and safely falls back for unknown theme IDs', () => { expect(resolveMode('light', true)).toBe('light'); expect(resolveMode('dark', false)).toBe('dark'); expect(resolveMode('system', true)).toBe('dark'); applyTheme('not-installed', 'dark'); expect(document.documentElement.dataset.theme).toBe('default'); expect(document.documentElement.style.colorScheme).toBe('dark'); });
+  it('rejects unbounded or invalid route search', () => { expect(validateSearch({ player: '../../secret', queue: '-1', champion: '103', from: 'invalid', cursor: 'x'.repeat(2049) })).toEqual({ champion: 103 }); });
+  it('deduplicates, reorders tabs and preserves settings draft across tabs', () => { const w = useWorkspace.getState(); const a = { id: 'matches:A', kind: 'matches', playerKey: 'NA1:A', search: '{}' }; w.open(a); w.open(a); w.open({ ...a, id: 'matches:B' }); expect(useWorkspace.getState().tabs).toHaveLength(2); w.reorder('matches:B', 'matches:A'); expect(useWorkspace.getState().tabs[0].id).toBe('matches:B'); });
+});
+it('retains an edited settings draft when saving fails', async () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  render(<QueryClientProvider client={client}><SettingsPage /></QueryClientProvider>);
+  const darkMode = await screen.findByRole('radio', { name: 'Dark', exact: true });
+  fireEvent.click(darkMode);
+  injectError('update_settings', 'storage_unavailable');
+  fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+  expect(await screen.findByRole('alert')).toHaveTextContent('Local storage is unavailable');
+  expect(useWorkspace.getState().dirty).toBe(true);
+  expect(useWorkspace.getState().draft?.colorModePreference).toBe('dark');
+  client.clear();
+});
+it('events unsubscribe cleanly and fixture resets isolate tests', async () => { const fn = vi.fn(); const transport = fixtureTransport(); const stop = await transport.subscribe(fn); setScenario('riot'); expect(fn).toHaveBeenCalled(); stop(); fn.mockClear(); setScenario('offline'); expect(fn).not.toHaveBeenCalled(); resetFixture(); expect(await transport.call('list_players', {})).toEqual([]); });
