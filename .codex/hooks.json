@@ -1,0 +1,29 @@
+{
+  "description": "Format only source files changed during the current AI turn.",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun \"$(git rev-parse --show-toplevel)/scripts/ai-code-quality.ts\"",
+            "timeout": 30,
+            "statusMessage": "记录本轮代码状态"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun \"$(git rev-parse --show-toplevel)/scripts/ai-code-quality.ts\"",
+            "timeout": 120,
+            "statusMessage": "修复 ESLint 并执行 Biome 格式化"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -40,23 +40,8 @@ fn exclusion(input: &AnalysisInput, scope: Option<&GoalScope>) -> Option<&'stati
         if analysis::patch(&c.version) != s.patch {
             return Some("patch_mismatch");
         }
-        if let Some(origin) = &s.origin {
-            if origin
-                .filter
-                .champion_id
-                .is_some_and(|id| p.champion_id != Some(id))
-            {
-                return Some("champion_mismatch");
-            }
-            if origin
-                .filter
-                .from
-                .as_ref()
-                .is_some_and(|t| c.started_at < *t)
-                || origin.filter.to.as_ref().is_some_and(|t| c.started_at > *t)
-            {
-                return Some("date_mismatch");
-            }
+        if s.champion_id.is_some_and(|id| p.champion_id != Some(id)) {
+            return Some("champion_mismatch");
         }
     }
     None
@@ -129,7 +114,9 @@ impl Service {
         self.check_workspace(&q.workspace_epoch).await?;
         let s = &q.scope;
         domain::validate_key(&s.player_key)?;
-        if ![420, 440].contains(&s.queue_id)
+        if s.champion_id
+            .is_some_and(|id| !super::notebooks::known_champion(id))
+            || ![420, 440].contains(&s.queue_id)
             || !["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"].contains(&s.position.as_str())
             || s.patch.len() > 20
             || s.patch.split('.').count() != 2
@@ -154,7 +141,10 @@ impl Service {
         }
         if let Some(origin) = &s.origin {
             let filter = super::insights::validate_filter(origin.filter.clone())?;
-            if filter.player_key != s.player_key
+            if s.champion_id.is_some()
+                && filter.champion_id.is_some()
+                && filter.champion_id != s.champion_id
+                || filter.player_key != s.player_key
                 || filter.queue_id != Some(s.queue_id)
                 || filter.position.as_deref() != Some(&s.position)
                 || filter.patch.as_deref() != Some(&s.patch)
@@ -336,17 +326,125 @@ impl Service {
         let evaluation = s
             .map(|s| serde_json::from_str::<GoalEvaluation>(&s))
             .transpose()?;
-        Ok(GoalProgress { goal, evaluation })
+        let availability = self.goal_availability(&goal).await?;
+        Ok(GoalProgress {
+            frozen_baseline: average(&goal.baseline),
+            goal,
+            evaluation,
+            availability,
+        })
     }
-    pub(super) async fn evaluate_active(self: &Arc<Self>, player: &str) -> Result<()> {
-        let ids:Vec<String>=sqlx::query_scalar("SELECT id FROM training_goals WHERE player_key=? AND state='active' ORDER BY id LIMIT 100").bind(player).fetch_all(&self.pool).await?;
-        for id in ids {
-            self.start_evaluation(&id).await?;
+    async fn goal_availability(&self, goal: &TrainingGoal) -> Result<GoalAvailability> {
+        let count: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM match_participants WHERE player_key=?")
+                .bind(&goal.scope.player_key)
+                .fetch_one(&self.pool)
+                .await?;
+        let rows=sqlx::query("SELECT p.projection,(SELECT json_set(i.payload,'$.frames',json('[]'),'$.events',json('[]')) FROM analysis_inputs i WHERE i.match_key=p.match_key AND i.player_key=p.player_key ORDER BY revision DESC LIMIT 1) input,(SELECT r.payload FROM reviews r JOIN analysis_inputs i ON i.id=r.input_id WHERE r.match_key=p.match_key AND r.player_key=p.player_key ORDER BY i.revision DESC,r.revision DESC LIMIT 1) report FROM match_participants p JOIN matches m USING(match_key) WHERE p.player_key=? ORDER BY m.started_at DESC,m.match_key DESC LIMIT 10000").bind(&goal.scope.player_key).fetch_all(&self.pool).await?;
+        let mut availability = GoalAvailability {
+            scanned: rows.len() as u32,
+            truncated: count > rows.len() as i64,
+            missing_details: vec![],
+            missing_reports: vec![],
+            not_applicable: 0,
+            version_mismatch: 0,
+        };
+        for row in rows {
+            let summary: MatchSummary = serde_json::from_str(row.get("projection"))?;
+            if summary.started_at <= goal.window_start
+                || summary.queue_id != Some(goal.scope.queue_id)
+                || summary.position.as_deref() != Some(&goal.scope.position)
+                || analysis::patch(&summary.version) != goal.scope.patch
+                || goal
+                    .scope
+                    .champion_id
+                    .is_some_and(|id| summary.champion_id != Some(id))
+            {
+                continue;
+            }
+            let key = MatchRef {
+                match_key: summary.match_key.clone(),
+                player_key: goal.scope.player_key.clone(),
+            };
+            let input: Option<AnalysisInput> = row
+                .get::<Option<String>, _>("input")
+                .map(|payload| serde_json::from_str(&payload))
+                .transpose()?;
+            let report: Option<ReviewReport> = row
+                .get::<Option<String>, _>("report")
+                .map(|payload| serde_json::from_str(&payload))
+                .transpose()?;
+            if summary.outcome == Outcome::Remake {
+                availability.not_applicable += 1;
+            } else if input
+                .as_ref()
+                .is_none_or(|input| input.timeline_snapshot.is_none())
+            {
+                availability.missing_details.push(key);
+            } else if report.is_none() {
+                availability.missing_reports.push(key);
+            } else if report.as_ref().is_some_and(|report| {
+                !report.metrics.iter().any(|metric| {
+                    metric.id == goal.scope.metric_id && metric.version == goal.scope.metric_version
+                })
+            }) {
+                availability.version_mismatch += 1;
+            } else if report.as_ref().is_some_and(|report| {
+                !report.metrics.iter().any(|metric| {
+                    metric.id == goal.scope.metric_id && metric.status == MetricStatus::Available
+                })
+            }) {
+                availability.not_applicable += 1;
+            }
+        }
+        Ok(availability)
+    }
+    pub(super) async fn evaluate_active(
+        self: &Arc<Self>,
+        player: &str,
+        report_id: &str,
+        epoch: &str,
+    ) -> Result<()> {
+        self.check_workspace(epoch).await?;
+        let report = db::report(&self.pool, report_id).await?;
+        let input = db::required_input(
+            &self.pool,
+            &MatchRef {
+                match_key: report.match_key,
+                player_key: report.player_key,
+            },
+            report.input_revision,
+        )
+        .await?;
+        let goals:Vec<String>=sqlx::query_scalar("SELECT payload FROM training_goals WHERE player_key=? AND state='active' ORDER BY id LIMIT 100").bind(player).fetch_all(&self.pool).await?;
+        for payload in goals {
+            let goal: TrainingGoal = serde_json::from_str(&payload)?;
+            if input.context.started_at > goal.window_start
+                && exclusion(&input, Some(&goal.scope)).is_none()
+                && report.metrics.iter().any(|metric| {
+                    metric.id == goal.scope.metric_id
+                        && metric.version == goal.scope.metric_version
+                        && metric.status == MetricStatus::Available
+                })
+            {
+                self.start_evaluation_in_workspace(&goal.id, Some(epoch))
+                    .await?;
+            }
         }
         Ok(())
     }
     pub async fn start_evaluation(self: &Arc<Self>, id: &str) -> Result<Task> {
+        self.start_evaluation_in_workspace(id, None).await
+    }
+    async fn start_evaluation_in_workspace(
+        self: &Arc<Self>,
+        id: &str,
+        epoch: Option<&str>,
+    ) -> Result<Task> {
         let _workspace = self.maintenance.read().await;
+        if let Some(epoch) = epoch {
+            self.check_workspace(epoch).await?;
+        }
         self.ready().await?;
         let goal = db::json_one::<TrainingGoal>(
             &self.pool,
@@ -362,7 +460,7 @@ impl Service {
             goal.revision,
             &members,
             &excluded,
-            "2",
+            "3",
         ))?);
         let key = format!(
             "{}|{}|{}",
@@ -379,6 +477,7 @@ impl Service {
                 &goal.scope.player_key,
                 serde_json::to_value(IdInput { id: id.into() })?,
                 &self.state.read().await.workspace_epoch,
+                None,
             )
             .await?;
         let t = task.clone();
@@ -432,7 +531,7 @@ impl Service {
                     id: uuid::Uuid::new_v4().to_string(),
                     goal_id: goal.id.clone(),
                     revision,
-                    algorithm_version: "2".into(),
+                    algorithm_version: "3".into(),
                     baseline,
                     current,
                     delta: current.zip(baseline).map(|(a, b)| a - b),
@@ -457,6 +556,10 @@ impl Service {
                 Ok(eval.id)
             }
             .await;
+            let _workspace = service.maintenance.read().await;
+            if service.state.read().await.workspace_epoch != t.session_epoch {
+                return;
+            }
             service.finish_job(&t, result).await;
             service.emit("goals-changed", Some(goal.id), 0).await;
         });

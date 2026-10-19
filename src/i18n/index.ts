@@ -1,3 +1,7 @@
+import notebooksZh from './locales/zh-CN/notebooks.json';
+import notebooksEn from './locales/en-US/notebooks.json';
+import trainingZh from './locales/zh-CN/training.json';
+import trainingEn from './locales/en-US/training.json';
 import i18n from 'i18next';
 import labelsZh from './locales/zh-CN/labels.json';
 import labelsEn from './locales/en-US/labels.json';
@@ -33,6 +37,8 @@ export function resolveLanguage(preference: string, system?: string) {
 void i18n.use(initReactI18next).init({
   resources: {
     'zh-CN': {
+      notebooks: notebooksZh,
+      training: trainingZh,
       labels: labelsZh,
       scouting: scoutingZh,
       servers: serversZh,
@@ -44,6 +50,8 @@ void i18n.use(initReactI18next).init({
       connection: connectionZh,
     },
     'en-US': {
+      notebooks: notebooksEn,
+      training: trainingEn,
       labels: labelsEn,
       scouting: scoutingEn,
       servers: serversEn,
@@ -58,6 +66,8 @@ void i18n.use(initReactI18next).init({
   lng: resolveLanguage('system', navigator.language),
   fallbackLng: 'zh-CN',
   ns: [
+    'notebooks',
+    'training',
     'labels',
     'scouting',
     'servers',

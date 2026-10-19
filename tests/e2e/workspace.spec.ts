@@ -107,11 +107,11 @@ test('HTTP sync, filters, pagination, backup restore, offline process restart an
 }) => {
   await start('tencent');
   await page.goto('/');
-  await expect(page.locator('.match-row')).toHaveCount(50);
+  await expect(page.locator('[data-ui~=match-row]')).toHaveCount(50);
   await page.getByRole('button', { name: 'Sync matches', exact: true }).click();
   await expect(page.getByText('125 saved matches')).toBeVisible();
   await page.getByRole('button', { name: 'Next page', exact: true }).click();
-  await expect(page.locator('.match-row')).toHaveCount(50);
+  await expect(page.locator('[data-ui~=match-row]')).toHaveCount(50);
   await page.getByRole('button', { name: 'Back to latest', exact: true }).click();
   await choose(page, page.getByLabel('Game mode'), 'ARAM');
   await page.getByRole('button', { name: 'Apply filters', exact: true }).click();
@@ -137,13 +137,13 @@ test('HTTP sync, filters, pagination, backup restore, offline process restart an
     data: { scenario: 'riot' },
   });
   await page.getByRole('button', { name: 'Matches', exact: true }).click();
-  await expect(page.locator('.player-banner')).toContainText('North America');
+  await expect(page.locator('[data-ui~=player-banner]')).toContainText('North America');
   await stop();
   await start('offline');
   await page.reload();
   await page.goto('/#/matches');
   await choose(page, page.getByLabel('Switch player'), 'Rift Walker #DEMO · Ionia');
-  await expect(page.locator('.match-row')).toHaveCount(50);
+  await expect(page.locator('[data-ui~=match-row]')).toHaveCount(50);
   await expect(page.getByRole('button', { name: 'Sync matches', exact: true })).toBeDisabled();
   await expect(page.getByText('125 saved matches')).toBeVisible();
 });
@@ -160,11 +160,13 @@ test('two pages, both languages and modes, system mode and narrow layout', async
         .getByRole('radio')
         .nth(mode === 'light' ? 0 : 1)
         .check();
-      await page.locator('.save-bar .button-primary').click();
+      await page.locator('[data-ui~=save-bar] [data-variant=default]').click();
       await expect(page.locator('html')).toHaveAttribute('data-mode', mode);
       await expect(page.locator('html')).toHaveCSS('color-scheme', mode);
-      await expect(page.locator('.save-bar .button-primary')).toBeDisabled();
-      await expect(page.locator('.sidebar-actions > .nav-item').first()).toHaveClass(/selected/);
+      await expect(page.locator('[data-ui~=save-bar] [data-variant=default]')).toBeDisabled();
+      await expect(
+        page.locator('[data-ui~=sidebar-actions] > [data-ui~=nav-item]').first(),
+      ).toHaveAttribute('data-selected', 'true');
       await page.screenshot({
         animations: 'disabled',
         path: info.outputPath(`settings-${language}-${mode}.png`),
@@ -174,19 +176,19 @@ test('two pages, both languages and modes, system mode and narrow layout', async
         exact: true,
       });
       await matchesNav.click();
-      await expect(matchesNav).toHaveClass(/selected/);
-      await expect(page.locator('.matches-page')).toBeVisible();
+      await expect(matchesNav).toHaveAttribute('data-selected', 'true');
+      await expect(page.locator('[data-ui~=matches-page]')).toBeVisible();
       await page.screenshot({
         animations: 'disabled',
         path: info.outputPath(`matches-${language}-${mode}.png`),
       });
-      await expect(page.locator('.main-content')).toBeVisible();
-      await page.locator('.sidebar-actions > .nav-item').first().click();
-      await expect(page.locator('.settings-page')).toBeVisible();
+      await expect(page.locator('[data-ui~=main-content]')).toBeVisible();
+      await page.locator('[data-ui~=sidebar-actions] > [data-ui~=nav-item]').first().click();
+      await expect(page.locator('[data-ui~=settings-page]')).toBeVisible();
     }
   }
   await page.getByRole('radiogroup').getByRole('radio').nth(2).check();
-  await page.locator('.save-bar .button-primary').click();
+  await page.locator('[data-ui~=save-bar] [data-variant=default]').click();
   await page.emulateMedia({ colorScheme: 'dark' });
   await expect(page.locator('html')).toHaveAttribute('data-mode', 'dark');
   await page.emulateMedia({ colorScheme: 'light' });
@@ -209,11 +211,11 @@ test('resource proxy loads images from disk after a real process restart with th
 }) => {
   await start('tencent');
   await page.goto('/');
-  await expect(page.locator('.match-row')).toHaveCount(50);
+  await expect(page.locator('[data-ui~=match-row]')).toHaveCount(50);
   await expect
     .poll(() =>
       page
-        .locator('.match-row img')
+        .locator('[data-ui~=match-row] img')
         .evaluateAll(
           (images) =>
             images.length === 150 &&
@@ -233,7 +235,7 @@ test('resource proxy loads images from disk after a real process restart with th
   await expect
     .poll(() =>
       page
-        .locator('.match-row img')
+        .locator('[data-ui~=match-row] img')
         .evaluateAll(
           (images) =>
             images.length === 150 &&
@@ -248,11 +250,11 @@ test('resource proxy loads images from disk after a real process restart with th
   await start('offline');
   await page.reload();
   await page.goto('/');
-  await expect(page.locator('.match-row')).toHaveCount(50);
+  await expect(page.locator('[data-ui~=match-row]')).toHaveCount(50);
   await expect
     .poll(() =>
       page
-        .locator('.match-row img')
+        .locator('[data-ui~=match-row] img')
         .evaluateAll(
           (images) =>
             images.length === 150 &&
@@ -282,17 +284,23 @@ test('window controls stay at the upper right and compact navigation keeps acces
     await expect(page.getByRole('button', { name: 'Matches', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Progress', exact: true })).toBeVisible();
     expect(
-      await page.locator('.main-content').evaluate((el) => el.scrollWidth <= el.clientWidth),
+      await page
+        .locator('[data-ui~=main-content]')
+        .evaluate((el) => el.scrollWidth <= el.clientWidth),
     ).toBe(true);
   }
-  await page.getByRole('link', { name: 'Skip to content' }).focus();
+  const skipLink = page.getByRole('link', { name: 'Skip to content' });
+  await skipLink.focus();
+  await expect(skipLink).toBeInViewport();
   await page.keyboard.press('Enter');
   await expect(page.locator('#main-content')).toBeFocused();
   await page.getByRole('button', { name: 'Progress', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Progress', exact: true })).toBeVisible();
-  await expect(page.locator('.page-heading p')).toHaveCount(0);
+  await expect(page.locator('[data-ui~=page-heading] p')).toHaveCount(0);
   expect(
-    await page.locator('.main-content').evaluate((el) => el.scrollWidth <= el.clientWidth),
+    await page
+      .locator('[data-ui~=main-content]')
+      .evaluate((el) => el.scrollWidth <= el.clientWidth),
   ).toBe(true);
 });
 
@@ -304,7 +312,7 @@ test('sidebar theme cycles with keyboard and keeps the collapse control anchored
   await page.goto('/');
   const theme = page.getByRole('button', { name: /^Appearance:/ });
   await expect(theme).toHaveAccessibleName('Appearance: System. Switch to Light');
-  await expect(page.locator('.mode-switch')).toHaveCount(0);
+  await expect(page.locator('[data-ui~=mode-switch]')).toHaveCount(0);
   await theme.focus();
   for (const [mode, label, key] of [
     ['light', 'Appearance: Light. Switch to Dark', 'Enter'],
@@ -336,8 +344,8 @@ test('sidebar theme cycles with keyboard and keeps the collapse control anchored
   await expect(theme).toHaveAccessibleName('Appearance: Dark. Switch to System');
   await expect(expand).toHaveAttribute('aria-expanded', 'false');
   await page.setViewportSize({ width: 800, height: 600 });
-  await expect(page.locator('.sidebar-actions')).toBeInViewport();
-  const actionsBounds = (await page.locator('.sidebar-actions').boundingBox())!;
+  await expect(page.locator('[data-ui~=sidebar-actions]')).toBeInViewport();
+  const actionsBounds = (await page.locator('[data-ui~=sidebar-actions]').boundingBox())!;
   expect(actionsBounds.y + actionsBounds.height).toBeLessThanOrEqual(600);
   await page.evaluate(
     () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),

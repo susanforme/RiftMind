@@ -6,6 +6,18 @@ use tokio::sync::Mutex;
 
 #[async_trait]
 pub trait MatchRemote: Send + Sync {
+    fn item_sets_verified(&self) -> bool {
+        false
+    }
+    async fn item_set_identity(&self) -> Result<Value> {
+        Err(AppError::new(ErrorCode::EndpointUnsupported))
+    }
+    async fn item_sets(&self, _summoner_id: u64) -> Result<Value> {
+        Err(AppError::new(ErrorCode::EndpointUnsupported))
+    }
+    async fn put_item_sets(&self, _summoner_id: u64, _collection: Value) -> Result<()> {
+        Err(AppError::new(ErrorCode::EndpointUnsupported))
+    }
     async fn current_match(&self) -> Result<Value> {
         Err(AppError::new(ErrorCode::EndpointUnsupported))
     }
@@ -67,6 +79,7 @@ impl LcuClient {
             "/lol-champ-select/v1/session",
         ]
         .contains(&path)
+            && !path.starts_with("/lol-item-sets/v1/item-sets/")
             && !path.starts_with("/lol-summoner/v1/riot-alias/")
             && !path.starts_with("/lol-summoner/v1/summoners?name=")
             && !path.starts_with("/lol-ranked/v1/ranked-stats/")
@@ -84,6 +97,31 @@ impl LcuClient {
             .await
             .map_err(|_| AppError::new(ErrorCode::NetworkUnavailable))?;
         bounded_json(res).await
+    }
+    pub async fn put_item_sets(&self, summoner_id: u64, collection: Value) -> Result<()> {
+        if summoner_id == 0 {
+            return Err(AppError::new(ErrorCode::InvalidInput));
+        }
+        let response = self
+            .client
+            .put(format!(
+                "{}/lol-item-sets/v1/item-sets/{summoner_id}/sets",
+                self.base
+            ))
+            .basic_auth("riot", Some(&self.token))
+            .json(&collection)
+            .send()
+            .await
+            .map_err(|_| AppError::new(ErrorCode::NetworkUnavailable))?;
+        if !response.status().is_success() {
+            return Err(AppError::new(match response.status().as_u16() {
+                401 => ErrorCode::WaitingAuth,
+                403 => ErrorCode::Forbidden,
+                429 => ErrorCode::RateLimited,
+                _ => ErrorCode::NetworkUnavailable,
+            }));
+        }
+        Ok(())
     }
     pub fn ws_credentials(&self) -> (&str, &str) {
         (&self.base, &self.token)
@@ -115,6 +153,7 @@ pub struct HttpRemote {
     pub tokens: Mutex<Tokens>,
     client: reqwest::Client,
     pub refresh_lock: Mutex<u32>,
+    simulated_item_sets: bool,
 }
 impl HttpRemote {
     pub fn new(lcu: Option<LcuClient>, server: domain::Server, tokens: Tokens) -> Self {
@@ -129,6 +168,7 @@ impl HttpRemote {
                 .build()
                 .unwrap(),
             refresh_lock: Mutex::new(0),
+            simulated_item_sets: false,
         }
     }
     // Test bridges inject loopback mock origins; the production command registry exposes no override.
@@ -142,6 +182,7 @@ impl HttpRemote {
             },
         );
         r.sgp_base = Some(base);
+        r.simulated_item_sets = true;
         r
     }
     async fn sgp_request(&self, path: &str, query: &[(&str, String)]) -> Result<Value> {
@@ -189,6 +230,61 @@ impl HttpRemote {
 }
 #[async_trait]
 impl MatchRemote for HttpRemote {
+    // Only the explicitly constructed loopback test adapter has verified synthetic shapes.
+    fn item_sets_verified(&self) -> bool {
+        self.simulated_item_sets
+    }
+    async fn item_set_identity(&self) -> Result<Value> {
+        if self.simulated_item_sets {
+            return self.sgp_request("/test/item-set-identity", &[]).await;
+        }
+        self.lcu
+            .as_ref()
+            .ok_or(AppError::new(ErrorCode::ClientNotFound))?
+            .get("/lol-summoner/v1/current-summoner")
+            .await
+    }
+    async fn item_sets(&self, summoner_id: u64) -> Result<Value> {
+        if self.simulated_item_sets {
+            return self
+                .sgp_request(
+                    "/test/item-sets",
+                    &[("summonerId", summoner_id.to_string())],
+                )
+                .await;
+        }
+        self.lcu
+            .as_ref()
+            .ok_or(AppError::new(ErrorCode::ClientNotFound))?
+            .get(&format!("/lol-item-sets/v1/item-sets/{summoner_id}/sets"))
+            .await
+    }
+    async fn put_item_sets(&self, summoner_id: u64, collection: Value) -> Result<()> {
+        if self.simulated_item_sets {
+            let base = self
+                .sgp_base
+                .as_ref()
+                .ok_or(AppError::new(ErrorCode::Forbidden))?;
+            let response = self
+                .client
+                .put(format!("{base}/test/item-sets"))
+                .query(&[("summonerId", summoner_id)])
+                .json(&collection)
+                .send()
+                .await
+                .map_err(|_| AppError::new(ErrorCode::NetworkUnavailable))?;
+            if !response.status().is_success() {
+                return Err(AppError::new(ErrorCode::NetworkUnavailable));
+            }
+            return Ok(());
+        }
+        self.lcu
+            .as_ref()
+            .ok_or(AppError::new(ErrorCode::ClientNotFound))?
+            .put_item_sets(summoner_id, collection)
+            .await
+    }
+
     async fn current_match(&self) -> Result<Value> {
         if let Some(lcu) = &self.lcu {
             let phase = lcu.get("/lol-gameflow/v1/gameflow-phase").await?;

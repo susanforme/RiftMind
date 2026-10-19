@@ -1,5 +1,35 @@
 # 项目约束
 
+## 代码格式化与 ESLint
+
+- 以下命令均在项目根目录执行，使用项目已安装的工具和现有配置。
+- JS、JSX、TS、TSX 及其模块扩展名、CSS（含 CSS Modules）统一使用 Biome 格式化，配置见 `biome.json`：2 空格缩进、100 字符行宽、JS 单引号、JSX 双引号、分号和尾随逗号；CSS 启用 Tailwind 指令解析。Biome 遵循 `.gitignore`，排除 `.agents/` 和 `src/generated/`；JS/TS 代码检查由 ESLint 负责，配置见 `eslint.config.js`，CSS 不交给 ESLint。
+
+| 用途 | 命令 |
+| --- | --- |
+| 格式化代码并写入文件 | `bun run format` |
+| 仅检查代码格式 | `bun run format:check` |
+| 安装提交前检查 | `bun run hooks:install`（`bun install` 后自动执行） |
+| 检查暂存区代码 | `bun run check:staged` |
+| 验证代码质量 Hooks | `bun run test:hooks` |
+| 检查 ESLint | `bunx --no-install eslint src scripts tests` |
+| 自动修复可修复的 ESLint 问题 | `bunx --no-install eslint src scripts tests --fix` |
+| 格式化 Rust 代码 | `cargo fmt --all` |
+| 仅检查 Rust 代码格式 | `cargo fmt --all --check` |
+
+- 修改代码后先修复 ESLint 问题，再执行格式化并审阅 diff，避免混入无关文件的格式改动；无法自动修复的问题须手动处理，不得通过关闭规则绕过。
+- 每次完成代码修改并回复用户前，都必须对本次修改的 JS/TS 文件先修复 ESLint 问题，再使用 Biome 格式化并检查本次修改的 JS/TS 和 CSS 文件；Rust 文件使用 rustfmt 格式化并检查。无论是否提交都必须执行。只处理本次修改文件，不得批量格式化用户已有的其他改动；未执行或未通过时必须说明原因。
+- 格式化 fixture 源码后，运行 `bun scripts/fixture-manifest.ts` 更新清单，并审阅哈希变更。
+- 提交前运行 `bun run check`，其中已包含 Biome 格式检查、TypeScript 类型检查、ESLint 和项目专项检查；涉及 Rust 改动时同时运行 `cargo fmt --all --check`。
+
+### 自动执行
+
+- Codex 项目配置见 `.codex/hooks.json`。首次使用或配置变化后，在 Codex CLI 的 `/hooks` 中审阅并信任 Hook，并在新一轮对话验证已加载；禁止绕过 Hook 信任机制。
+- `UserPromptSubmit` 将本轮开始时的源码哈希记录到 `.tmp/ai-code-quality/`；`Stop` 只处理相对此快照变化的 JS/TS、CSS 和 Rust 文件，包含未跟踪的新文件。先对 JS/TS 执行 ESLint 自动修复，再对 JS/TS 和 CSS 执行 Biome 格式化和格式检查；Rust 使用 `rustfmt --edition 2024 --config skip_children=true <本轮修改文件>` 格式化，并追加 `--check` 验证，避免递归格式化未修改的模块。失败则要求 AI 继续修复。缺少本轮快照或快照版本不兼容时不自动修改文件，须手动验证；下一轮自动记录新版快照。
+- 快照按会话与轮次隔离；同一轮有其他人或 AI 同时修改同一工作区时，无法区分修改归属，应使用独立 worktree。
+- Git `pre-commit` 在 `.tmp/staged-code-quality/` 导出暂存区快照，检查其中的 JS/TS 和 CSS 格式，并对 JS/TS 执行 ESLint；涉及 Rust 时检查 Rust 格式，涉及 fixture 时检查清单。检查不写入业务文件、不重新暂存、不执行 stash；失败即阻止提交。
+- `pre-commit` 是增量检查，不能替代提交前的 `bun run check`。不要使用 `--no-verify`、关闭规则或修改检查脚本来掩盖错误。
+
 ## 临时文件
 
 - 开发、调试和验证过程中创建的临时文件统一存放在项目根目录的 `.tmp/` 下，按用途建立子目录；目录不存在时先创建，禁止散落在项目根目录、业务源码目录或系统临时目录中。
@@ -19,6 +49,12 @@
 - 测试、fixture、脚本、后端模块和国际化资源也必须按对应业务职责命名，不得继续扩散阶段编号名称。阶段编号仅可用于计划、进度或验收文档；数据库迁移可保留排序编号，但描述部分必须使用业务名称。
 - 修改已有不合规模块时，应按业务职责重命名或拆分，并同步更新导入、导出、调用方、测试和资源引用，禁止仅更名目录后留下旧命名或失效引用。
 
+## 测试目录与语言归属
+
+- 项目根目录 `tests/` 下的测试代码及辅助源码仅允许使用 JavaScript / TypeScript（含 JSX、TSX 和对应模块扩展名）；单元测试放在 `tests/unit/`，端到端测试和 Hook 测试分别放在 `tests/e2e/`、`tests/hooks/`。`tests/fixtures/` 可保留跨语言共享的 JSON、图片等测试数据与来源文档，但不得放置 Rust 源码。
+- Rust 单元测试放在所属 crate 的源码模块中（`#[cfg(test)]`），集成测试放在所属 crate 的 `tests/` 中；测试辅助模块放在该 crate 的 `tests/support/` 等子目录，避免被 Cargo 当成独立集成测试目标。禁止将 Rust 测试或辅助源码放入项目根目录 `tests/`。
+- 迁移测试或辅助模块时，必须同步更新模块引用、fixture 相对路径和相关配置，并运行受影响的测试。
+
 ## UI Skills
 
 - 涉及 UI 设计、开发、调整或审查时，优先读取并结合使用项目中的 `ui-ux-pro-max` 和 `frontend-design` skills，遵守其中适用于当前任务的指导。
@@ -31,6 +67,15 @@
 - 所有 UI 组件必须基于 shadcn/ui，禁止从零手写组件或自行实现替代组件。
 - 优先复用项目已有的 shadcn/ui 组件；缺少组件时，通过 shadcn 官方 CLI 添加，禁止手动仿写。
 - 业务界面和业务组件必须通过组合 shadcn/ui 组件实现；样式调整和功能扩展也必须以这些组件为基础。
+
+## 样式作用域与 Tailwind
+
+- `src/styles/globals.css` 只允许保留 Tailwind/主题导入、全局主题 token 映射、基础元素重置和真正作用于整个应用的无障碍规则（如焦点与减少动态效果）。
+- 页面、布局、业务组件和 shadcn/ui 组件的局部样式一律使用组件中的 Tailwind utility classes；响应式、交互状态、子元素样式也通过 Tailwind variants 表达，复用现有主题 token。
+- 禁止在 `globals.css` 或其他 CSS 文件中编写页面/组件选择器，禁止用 CSS Modules、局部样式表、`@apply` 或自定义 CSS 类替代 Tailwind；不得把局部规则转移到另一个全局文件。
+- shadcn/ui 基础样式与 variants 保留在对应组件中，业务差异通过 `className` 和已有 `cn`/CVA 组合；不要依赖全局 CSS 覆盖组件。
+- 仅运行时计算的动态值（如进度、图表尺寸或定位数据）可使用内联 `style`，静态视觉样式必须使用 Tailwind。
+- 测试使用语义定位或稳定的 `data-*` 属性，不得依赖 Tailwind 类名及其排列。
 
 ## 图表与数据可视化
 

@@ -1,4 +1,6 @@
-const performanceFile = `/tmp/riftmind-scouting-perf-${crypto.randomUUID()}`;
+import { mkdir } from 'node:fs/promises';
+await mkdir('.tmp/verification', { recursive: true });
+const performanceFile = `.tmp/verification/scouting-perf-${crypto.randomUUID()}`;
 const commands = [
   ['bun', 'run', 'check'],
   ['bun', 'run', 'test:unit'],
@@ -41,7 +43,7 @@ for (const suffix of ['aggregates', 'browser']) {
   if (await file.exists()) performance[suffix] = await file.json();
 }
 await Bun.write(
-  '.stage3-report.json',
+  '.tmp/verification/scouting-report.json',
   JSON.stringify(
     {
       timestamp: new Date().toISOString(),

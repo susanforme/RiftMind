@@ -589,6 +589,7 @@ async fn issue_denominators_report_dedup_versions_and_goal_sources() {
     f.patch = Some("16.20".into());
     if let Some(g) = issues.items.iter().find(|g| g.hits > 0) {
         let scope = GoalScope {
+            champion_id: None,
             player_key: f.player_key.clone(),
             queue_id: 420,
             position: "MIDDLE".into(),
@@ -643,7 +644,7 @@ async fn v2_migration_and_backup_upgrade() {
             .fetch_one(&pool)
             .await
             .unwrap(),
-        3
+        5
     );
     assert!(
         sqlx::query("SELECT * FROM favorites")

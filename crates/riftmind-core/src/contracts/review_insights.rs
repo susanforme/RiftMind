@@ -1,0 +1,10 @@
+dto!(EventContextQuery {report_id:String, event_id:Option<String>, at_ms:Option<u32>, radius_ms:u32, category:String});
+dto!(ReviewEventContext {report_id:String, input_revision:u32, focus:Option<TimelineEvent>, previous_id:Option<String>, next_id:Option<String>, from_ms:u32, to_ms:u32, events:Vec<TimelineEvent>, participants:Vec<Participant>, enemy_jungler_ids:Vec<u32>, capabilities:BTreeMap<String,Capability>, evidence_ids:Vec<String>, chart:ChartData});
+dto!(PersonalBaselineQuery {report_id:String, all_champions:bool, refresh:bool, workspace_epoch:String});
+dto!(BaselineSample {match_key:String, report_id:Option<String>, input_revision:Option<u32>, value:Option<f64>, reason:Option<String>});
+dto!(BaselineMetric {id:String, version:String, unit:String, current:Option<f64>, count:u32, median:Option<f64>, lower_quartile:Option<f64>, upper_quartile:Option<f64>, delta:Option<f64>, samples:Vec<BaselineSample>});
+dto!(PersonalBaseline {id:String, report_id:String, all_champions:bool, algorithm_version:String, scanned:u32, truncated:bool, metrics:Vec<BaselineMetric>, created_at:String});
+dto!(PrepareMatchesQuery {workspace_epoch:String, player_key:String, match_keys:Vec<String>, batch_id:Option<String>, recompute:bool});
+dto!(PreparationMember {match_key:String, details:String, report:String, input_revision:Option<u32>, report_id:Option<String>, error:Option<AppError>});
+dto!(PreparationBatch {id:String, player_key:String, workspace_epoch:String, session_epoch:String, state:String, cancel_requested:bool, members:Vec<PreparationMember>, updated_at:String});
+dto!(PreparationChange {workspace_epoch:String, id:String, action:String});

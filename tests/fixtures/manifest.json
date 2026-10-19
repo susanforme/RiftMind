@@ -4,7 +4,7 @@
   "entries": [
     {
       "path": "crates/riftmind-core/src/clients/mod.rs",
-      "sha256": "65e8337d163e783eda73ff4130a42fd0e8547b12ccf29b814e77897cb15049ee"
+      "sha256": "43f203d2500175ee4faed08411191056080328cb95136f13b9d6d922efb30fe2"
     },
     {
       "path": "crates/riftmind-core/src/domain/servers.json",
@@ -12,7 +12,7 @@
     },
     {
       "path": "src/lib/transport/fixture.ts",
-      "sha256": "1c363fe77f1305ee8cd3634697cbed60868d2dfd16f7e4cc1622332768707f7d"
+      "sha256": "bfbb9c0c4d55ce790b8ece5770ff24818b66e31e4cb5fc5af79c6bcc08b8cfd3"
     },
     {
       "path": "tests/fixtures/icon.png",
@@ -157,6 +157,10 @@
     {
       "path": "tests/fixtures/scouting/live.json",
       "sha256": "1b6d5094e2811d617246eda28393a496f627ed228aeb0d9863424843773cac84"
+    },
+    {
+      "path": "tests/fixtures/notebooks/client-item-set.json",
+      "sha256": "3ddc333174e383b366379943005cae496bb1b7266e1bf05693439f4aab1815dd"
     }
   ]
 }

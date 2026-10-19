@@ -58,6 +58,7 @@ export function RecurringIssuesPanel({ player, epoch }: { player: string; epoch:
       const [queue, position, patch] = selected.group.split(':');
       const scope: GoalScope = {
         playerKey: player,
+        championId: filter.championId || undefined,
         queueId: Number(queue),
         position,
         patch,
@@ -86,11 +87,11 @@ export function RecurringIssuesPanel({ player, epoch }: { player: string; epoch:
     },
   });
   return (
-    <Card className="issues-panel">
+    <Card data-ui="issues-panel" className="min-w-0 [&_td]:align-top [&_td_[data-ui~=badge]]:block">
       <CardHeader>
         <CardTitle>{t('scouting.issues')}</CardTitle>
       </CardHeader>
-      <CardContent className="review-stack">
+      <CardContent data-ui="review-stack" className="grid grid-cols-1 gap-4 min-w-0">
         <AnalysisFilters
           search={search}
           onChange={(s) => {
@@ -99,7 +100,7 @@ export function RecurringIssuesPanel({ player, epoch }: { player: string; epoch:
           }}
         />
         <ErrorNotice error={issues.error} />
-        <span className="help">
+        <span className="text-muted-foreground text-[12px]">
           {t('scouting.savedReports', { count: issues.data?.reports || 0 })}
           {issues.data?.truncated && ` · ${t('scouting.limited')}`}
         </span>
@@ -173,7 +174,7 @@ export function RecurringIssuesPanel({ player, epoch }: { player: string; epoch:
             </TableBody>
           </Table>
         )}
-        <div className="actions">
+        <div data-ui="actions" className="flex items-center gap-2">
           <Button variant="outline" disabled={!cursor} onClick={() => setCursor(null)}>
             {t('matches.first')}
           </Button>
@@ -202,7 +203,7 @@ export function RecurringIssuesPanel({ player, epoch }: { player: string; epoch:
               <p>
                 {t(`scouting.${selected.ruleId}`)} · {groupName(t, selected.group)}
                 {search.champion ? (
-                  <span className="inline-entity">
+                  <span className="inline-flex items-center gap-1.5 me-2.5 align-middle [&_[data-slot='avatar']]:w-6 [&_[data-slot='avatar']]:h-6">
                     <GameEntityIcon
                       kind="champion"
                       id={search.champion}
@@ -212,7 +213,7 @@ export function RecurringIssuesPanel({ player, epoch }: { player: string; epoch:
                   </span>
                 ) : null}
               </p>
-              <p className="help">
+              <p className="text-muted-foreground text-[12px]">
                 {search.from || '—'} – {search.to || '—'}
               </p>
               <Label>

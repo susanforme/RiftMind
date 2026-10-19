@@ -1,5 +1,6 @@
 import { defineConfig } from '@playwright/test';
 export default defineConfig({
+  outputDir: '.tmp/playwright/results',
   testDir: './tests/e2e',
   timeout: 60000,
   expect: { timeout: 10000 },
@@ -14,5 +15,5 @@ export default defineConfig({
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
-  reporter: [['list'], ['html', { open: 'never' }]],
+  reporter: [['list'], ['html', { open: 'never', outputFolder: '.tmp/playwright/report' }]],
 });

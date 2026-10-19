@@ -41,7 +41,7 @@ pub async fn dispatch(
                 runtime_id: "bootstrap".into(),
                 workspace_epoch: "bootstrap".into(),
                 app_version: env!("CARGO_PKG_VERSION").into(),
-                database_version: 3,
+                database_version: 5,
                 settings_version: 1,
                 update_status: UpdateStatus {
                     state: "unavailable".into(),
@@ -134,6 +134,22 @@ pub async fn dispatch(
     }
     let service = service.unwrap();
     match request {
+        Command::save_item_build_file(query) => {
+            let build = service.export_build(query).await?;
+            if !build.issues.is_empty() {
+                return Err(AppError::new(ErrorCode::InvalidInput));
+            }
+            let target = save_path(&app, "item-set.json", "json")?;
+            tokio::fs::write(target, build.json).await?;
+            Ok(serde_json::json!({}))
+        }
+        Command::save_champion_notebook_file(query) => {
+            let notebook = service.export_notebook(query).await?;
+            let target = save_path(&app, "champion-notebook.json", "json")?;
+            tokio::fs::write(target, serde_json::to_vec_pretty(&notebook)?).await?;
+            Ok(serde_json::json!({}))
+        }
+
         Command::check_for_updates(_) => {
             let status = crate::adapters::updates::check(&app, false).await?;
             service.state.write().await.update_status = status.clone();

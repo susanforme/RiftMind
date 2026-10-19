@@ -22,7 +22,7 @@ const CardHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDiv
     <div
       ref={ref}
       data-slot="card-header"
-      className={cn('flex flex-col space-y-1.5 p-5', className)}
+      className={cn('flex flex-col p-5', className)}
       {...props}
     />
   ),
@@ -34,7 +34,7 @@ const CardTitle = React.forwardRef<HTMLHeadingElement, React.HTMLAttributes<HTML
     <h2
       ref={ref}
       data-slot="card-title"
-      className={cn('text-base font-semibold leading-snug tracking-tight', className)}
+      className={cn('text-[15px] font-semibold leading-snug tracking-tight', className)}
       {...props}
     />
   ),

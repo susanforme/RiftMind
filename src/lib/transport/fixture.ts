@@ -1,3 +1,4 @@
+import { notebookFixture, resetNotebookFixture } from './notebook-fixture';
 import type {
   AppState,
   ConnectionState,
@@ -57,6 +58,7 @@ const app: AppState = {
   },
 };
 export function resetFixture() {
+  resetNotebookFixture();
   resetReviewFixture();
   resetScoutingFixture();
   now = new Date('2026-10-19T00:00:00Z');
@@ -350,6 +352,8 @@ async function execute(command: CommandName, args: unknown): Promise<unknown> {
           return task;
         },
       };
+      const notebook = notebookFixture(command, args, context);
+      if (notebook !== undefined) return notebook;
       const value = scoutingFixture(command, args, context, context);
       return value === undefined ? reviewFixture(command, args, context) : value;
     }

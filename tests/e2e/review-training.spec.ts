@@ -59,7 +59,9 @@ test('review evidence, draft close, feedback, goal adoption, assessment, backup 
     .getByRole('textbox', { name: 'Note text' })
     .fill('<script>remains plain text</script>');
   await page.getByRole('button', { name: 'Save note', exact: true }).click();
-  await expect(page.locator('.note-text')).toHaveText('<script>remains plain text</script>');
+  await expect(page.locator('[data-ui~=note-text]')).toHaveText(
+    '<script>remains plain text</script>',
+  );
   await page.getByRole('button', { name: 'Helpful', exact: true }).first().click();
   await page.getByRole('textbox', { name: 'Note text' }).fill('draft survives closing failure');
   await page.getByRole('button', { name: /^Close tab Match review/ }).click();
@@ -70,10 +72,15 @@ test('review evidence, draft close, feedback, goal adoption, assessment, backup 
     'draft survives closing failure',
   );
   await page.getByRole('button', { name: 'Save note', exact: true }).click();
-  await expect(page.locator('.note-text')).toHaveCount(2);
+  await expect(page.locator('[data-ui~=note-text]')).toHaveCount(2);
   await page.getByRole('button', { name: 'Adopt training goal', exact: true }).click();
+  await page
+    .getByRole('dialog')
+    .getByRole('combobox', { name: 'Champion', exact: true })
+    .fill('All champions');
+  await page.getByRole('option', { name: 'All champions', exact: true }).click();
   await page.getByRole('button', { name: 'Confirm goal', exact: true }).click();
-  await expect(page.locator('.goal-card')).toContainText('Active');
+  await expect(page.locator('[data-ui~=goal-card]')).toContainText('Active');
   await harness.scenario({ scenario: 'tencent', generation: 1 });
   await harness.wait(await harness.call('sync_player_matches', { playerKey, pages: 1 }));
   await harness.seedReviews(playerKey);
@@ -85,7 +92,9 @@ test('review evidence, draft close, feedback, goal adoption, assessment, backup 
   });
   await harness.wait(await harness.call('evaluate_training_goal', { id: goals.items[0].id }));
   await page.reload();
-  await expect(page.locator('.goal-card')).toContainText('Current window meets the target');
+  await expect(page.locator('[data-ui~=goal-card]')).toContainText(
+    'Current window meets the target',
+  );
   await page.screenshot({ path: info.outputPath('progress-en-light.png'), animations: 'disabled' });
   const backup = await harness.wait(await harness.call('create_backup', {}));
   await harness.wait(await harness.call('restore_backup', { id: backup.result!.reference }));
@@ -95,14 +104,14 @@ test('review evidence, draft close, feedback, goal adoption, assessment, backup 
   await page.goto(
     `/#/matches/${encodeURIComponent(m.matchKey)}/review?player=${encodeURIComponent(playerKey)}`,
   );
-  await expect(page.locator('.note-text')).toHaveCount(2);
+  await expect(page.locator('[data-ui~=note-text]')).toHaveCount(2);
   await expect(page.getByText('Review overview', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Fetch details', exact: true })).toBeDisabled();
   await page.getByRole('textbox', { name: 'Note text' }).fill('offline note');
   await page.getByRole('button', { name: 'Save note', exact: true }).click();
-  await expect(page.locator('.note-text')).toHaveCount(3);
+  await expect(page.locator('[data-ui~=note-text]')).toHaveCount(3);
   await expectThemeBorders(page);
-  await page.locator('.main-content').evaluate((el) => {
+  await page.locator('[data-ui~=main-content]').evaluate((el) => {
     el.scrollTop = 0;
   });
   await page.screenshot({ path: info.outputPath('review-en-light.png'), animations: 'disabled' });
@@ -130,7 +139,7 @@ test('review evidence, draft close, feedback, goal adoption, assessment, backup 
     await expect(page.locator('html')).toHaveAttribute('lang', language);
     await expect(page.locator('html')).toHaveAttribute('data-mode', mode);
     await expectThemeBorders(page);
-    await page.locator('.main-content').evaluate((el) => {
+    await page.locator('[data-ui~=main-content]').evaluate((el) => {
       el.scrollTop = 0;
     });
     await page.screenshot({
@@ -145,12 +154,12 @@ test('review evidence, draft close, feedback, goal adoption, assessment, backup 
       page.evaluate(
         () =>
           document.documentElement.scrollWidth <= innerWidth &&
-          document.querySelector('.main-content')!.scrollWidth <=
-            document.querySelector('.main-content')!.clientWidth,
+          document.querySelector('[data-ui~=main-content]')!.scrollWidth <=
+            document.querySelector('[data-ui~=main-content]')!.clientWidth,
       ),
     )
     .toBe(true);
-  await page.locator('.main-content').evaluate((el) => {
+  await page.locator('[data-ui~=main-content]').evaluate((el) => {
     el.scrollTop = 0;
   });
   await page.screenshot({
@@ -164,7 +173,7 @@ test('invalid old report links stay explicit and list reads never fetch DETAILS'
   await harness.wait(await harness.call('sync_player_matches', { playerKey, pages: 1 }));
   const before = await (await harness.request.get('/bridge/stats')).json();
   await page.goto('/#/matches');
-  await expect(page.locator('.match-row')).toHaveCount(50);
+  await expect(page.locator('[data-ui~=match-row]')).toHaveCount(50);
   const after = await (await harness.request.get('/bridge/stats')).json();
   expect(after.calls).toBe(before.calls);
   const rows = await harness.call('list_matches', {
@@ -198,5 +207,7 @@ test('chart failures keep report text and editable notes available', async ({ pa
     .getByRole('textbox', { name: 'Note text' })
     .fill('note remains editable when chart fails');
   await page.getByRole('button', { name: 'Save note', exact: true }).click();
-  await expect(page.locator('.note-text')).toHaveText('note remains editable when chart fails');
+  await expect(page.locator('[data-ui~=note-text]')).toHaveText(
+    'note remains editable when chart fails',
+  );
 });

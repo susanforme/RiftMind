@@ -35,6 +35,8 @@ struct Scenario {
     live: Option<Value>,
     details_calls: u32,
     profile_calls: u32,
+    item_set_writes: u32,
+    item_sets: Option<Value>,
 }
 fn allowed(headers: &HeaderMap, b: &Bridge) -> bool {
     headers
@@ -227,7 +229,7 @@ async fn mock_resource(
     headers: HeaderMap,
 ) -> axum::response::Response {
     assert!(!headers.contains_key("authorization"));
-    if !uri.path().starts_with("/16.20/plugins/") {
+    if !uri.path().starts_with("/16.20/plugins/") && !uri.path().starts_with("/catalogues/") {
         return StatusCode::NOT_FOUND.into_response();
     }
     {
@@ -241,12 +243,16 @@ async fn mock_resource(
     if uri.path().ends_with("summoner-spells.json") {
         return Json(json!([{"id":4,"name":"Flash","iconPath":"/lol-game-data/assets/assets/spells/flash.png"},{"id":14,"name":"Ignite","iconPath":"/lol-game-data/assets/assets/spells/ignite.png"}])).into_response();
     }
+    if uri.path().ends_with("/item.json") {
+        let zh = uri.path().contains("/zh_CN/");
+        return Json(json!({"type":"item","version":"16.20.1","data":{"1001":{"name":if zh{"速度之靴"}else{"Boots"},"gold":{"purchasable":true},"maps":{"11":true,"12":true}},"1052":{"name":if zh{"增幅典籍"}else{"Amplifying Tome"},"gold":{"purchasable":true},"maps":{"11":true,"12":true}},"3089":{"name":if zh{"灭世者的死亡之帽"}else{"Rabadon's Deathcap"},"gold":{"purchasable":true},"maps":{"11":true,"12":true}}}})).into_response();
+    }
     if uri.path().ends_with("items.json") {
         return Json(json!([
-            {"id":3089,"name":if zh {"灭世者的死亡之帽"} else {"Rabadon's Deathcap"},"iconPath":"/lol-game-data/assets/assets/items/3089.png"},
-            {"id":3020,"name":if zh {"法师之靴"} else {"Sorcerer's Shoes"},"iconPath":"/lol-game-data/assets/assets/items/3020.png"},
-            {"id":1001,"name":if zh {"速度之靴"} else {"Boots"},"iconPath":"/lol-game-data/assets/assets/items/1001.png"},
-            {"id":1052,"name":if zh {"增幅典籍"} else {"Amplifying Tome"},"iconPath":"/lol-game-data/assets/assets/items/1052.png"}
+            {"id":3089,"inStore":true,"name":if zh {"灭世者的死亡之帽"} else {"Rabadon's Deathcap"},"iconPath":"/lol-game-data/assets/assets/items/3089.png"},
+            {"id":3020,"inStore":true,"name":if zh {"法师之靴"} else {"Sorcerer's Shoes"},"iconPath":"/lol-game-data/assets/assets/items/3020.png"},
+            {"id":1001,"inStore":true,"name":if zh {"速度之靴"} else {"Boots"},"iconPath":"/lol-game-data/assets/assets/items/1001.png"},
+            {"id":1052,"inStore":true,"name":if zh {"增幅典籍"} else {"Amplifying Tome"},"iconPath":"/lol-game-data/assets/assets/items/1052.png"}
         ])).into_response();
     }
     if uri.path().ends_with(".json") {
@@ -575,6 +581,8 @@ async fn run() -> std::result::Result<(), Box<dyn std::error::Error>> {
         scenario: Arc::new(Mutex::new(Scenario::default())),
     };
     let mock_app = Router::new()
+        .route("/test/item-set-identity",get(|State(bridge):State<Bridge>|async move {let connection=bridge.service.connection.read().await;Json(json!({"summonerId":123,"puuid":connection.player.as_ref().map(|player|player.puuid.clone())}))}))
+        .route("/test/item-sets",get(|State(bridge):State<Bridge>|async move {let scenario=bridge.scenario.lock().await;Json(scenario.item_sets.clone().unwrap_or_else(||json!({"itemSets":[{"uid":"client-original","title":"Existing set","customField":"preserve"}],"timestamp":123,"unknown":"preserve"})))}).put(|State(bridge):State<Bridge>,Json(collection):Json<Value>|async move {let mut scenario=bridge.scenario.lock().await;scenario.item_sets=Some(collection);scenario.item_set_writes+=1;Json(json!({}))}))
         .route("/test/live", get(mock_live))
         .route("/test/search", get(mock_search))
         .route("/test/ranks", get(mock_ranks))
@@ -613,11 +621,11 @@ async fn run() -> std::result::Result<(), Box<dyn std::error::Error>> {
             get(|State(b): State<Bridge>| async move {
                 {
                     let state = b.scenario.lock().await;
-                    Json(json!({"calls":state.calls,"assetCalls":state.asset_calls,"detailsCalls":state.details_calls,"profileCalls":state.profile_calls}))
+                    Json(json!({"calls":state.calls,"assetCalls":state.asset_calls,"detailsCalls":state.details_calls,"profileCalls":state.profile_calls,"itemSetWrites":state.item_set_writes,"itemSets":state.item_sets}))
                 }
             }),
         )
-        .layer(DefaultBodyLimit::max(65536))
+        .layer(DefaultBodyLimit::max(5*1024*1024))
         .with_state(b);
     axum::serve(listener, app)
         .with_graceful_shutdown(async move {

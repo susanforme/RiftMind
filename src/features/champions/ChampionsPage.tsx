@@ -60,8 +60,14 @@ export function ChampionsPage() {
     enabled: !!player && !!app.data,
   });
   return (
-    <div className="page champions-page">
-      <div className="page-heading">
+    <div
+      data-ui="page champions-page"
+      className="max-w-[1400px] pt-[30px] px-9 pb-[26px] m-auto max-[1150.01px]:p-[26px] max-[900.01px]:p-[22px] max-[650.01px]:py-[18px] max-[650.01px]:px-4 grid gap-5"
+    >
+      <div
+        data-ui="page-heading"
+        className="flex items-center justify-between gap-6 mb-7 max-[650.01px]:mb-[22px] max-[650.01px]:gap-2.5"
+      >
         <h1>{t('scouting.champions')}</h1>
       </div>
       <AnalysisFilters
@@ -79,12 +85,12 @@ export function ChampionsPage() {
         }}
       />
       <ErrorNotice error={pool.error || players.error} />
-      <div className="actions">
+      <div data-ui="actions" className="flex items-center gap-2">
         <Badge variant="outline">
           {t('scouting.localCoverage', { count: pool.data?.cachedMatches || 0 })}
         </Badge>
         {pool.data?.from && (
-          <span className="help">
+          <span className="text-muted-foreground text-[12px]">
             {new Date(pool.data.from).toLocaleDateString()} –{' '}
             {new Date(pool.data.to!).toLocaleDateString()}
           </span>
@@ -114,7 +120,7 @@ export function ChampionsPage() {
       </div>
       {!!pool.data?.items.length && (
         <Card>
-          <CardContent className="pool-chart-content">
+          <CardContent className="pt-5">
             <ChartBoundary fallback={t('review.chartFailed')}>
               <Suspense fallback={t('common.loading')}>
                 <ChampionGamesChart rows={pool.data.items} />
@@ -170,6 +176,15 @@ export function ChampionsPage() {
                         />
                         {championName(t, row.championId)}
                       </Button>
+                      <Button
+                        variant="ghost"
+                        disabled={!row.championId}
+                        onClick={() =>
+                          void navigate({ to: '/notebooks', search: { champion: row.championId! } })
+                        }
+                      >
+                        {t('notebooks.titlePage')}
+                      </Button>
                     </TableCell>
                     <TableCell>{row.games}</TableCell>
                     {[
@@ -186,11 +201,11 @@ export function ChampionsPage() {
                       </TableCell>
                     ))}
                     <TableCell>
-                      <div className="champion-trends">
+                      <div className="min-w-40 max-w-[260px] grid gap-2 [&_[data-ui~=actions]]:gap-1">
                         {[...new Set(row.trend.map((p) => p.group))].map((group) => (
                           <div key={group}>
                             <small>{groupName(t, group)}</small>
-                            <div className="actions">
+                            <div data-ui="actions" className="flex items-center gap-2">
                               {row.trend
                                 .filter((p) => p.group === group)
                                 .map((p) => (
@@ -210,7 +225,7 @@ export function ChampionsPage() {
           )}
         </CardContent>
       </Card>
-      <div className="actions">
+      <div data-ui="actions" className="flex items-center gap-2">
         <Button variant="outline" disabled={!cursor} onClick={() => setCursor(null)}>
           {t('matches.first')}
         </Button>

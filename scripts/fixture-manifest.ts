@@ -27,6 +27,12 @@ files.push(
     .sort()
     .map((file) => `tests/fixtures/scouting/${file}`),
 );
+files.push(
+  ...(await readdir('tests/fixtures/notebooks'))
+    .filter((file) => file.endsWith('.json'))
+    .sort()
+    .map((file) => `tests/fixtures/notebooks/${file}`),
+);
 const entries = [];
 for (const path of files)
   entries.push({

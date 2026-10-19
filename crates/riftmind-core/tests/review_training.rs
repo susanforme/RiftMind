@@ -549,7 +549,7 @@ async fn real_v1_migration_and_v1_backup_upgrade_preserve_data_and_mark_missing(
             .fetch_one(&s.pool)
             .await
             .unwrap(),
-        3
+        5
     );
     assert_eq!(storage::players(&s.pool).await.unwrap().len(), 1);
     assert_eq!(
@@ -570,7 +570,7 @@ async fn real_v1_migration_and_v1_backup_upgrade_preserve_data_and_mark_missing(
     .unwrap();
     s.restore(&id).await.unwrap();
     assert_eq!(storage::players(&s.pool).await.unwrap().len(), 1);
-    assert_eq!(s.state.read().await.database_version, 3);
+    assert_eq!(s.state.read().await.database_version, 5);
     s.shutdown().await.unwrap();
 }
 #[tokio::test]
@@ -641,6 +641,7 @@ async fn training_uses_fixed_baseline_post_creation_windows_versions_and_exclusi
             .unwrap();
     }
     let scope = GoalScope {
+        champion_id: None,
         origin: None,
         player_key: key().player_key,
         queue_id: 420,

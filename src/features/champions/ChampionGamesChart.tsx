@@ -55,6 +55,12 @@ export default function ChampionGamesChart({ rows }: { rows: ChampionStats[] }) 
     };
   }, [rows, t]);
   return (
-    <div ref={ref} className="pool-chart" role="img" aria-label={t('scouting.championsChart')} />
+    <div
+      ref={ref}
+      data-ui="pool-chart"
+      className="w-full h-[220px] min-w-0"
+      role="img"
+      aria-label={t('scouting.championsChart')}
+    />
   );
 }

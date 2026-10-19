@@ -22,26 +22,15 @@ pub async fn initialize(app: &AppHandle) -> Result<Arc<Service>> {
             tauri_plugin_sql::Builder::default()
                 .add_migrations(
                     "sqlite:riftmind.db",
-                    vec![
-                        tauri_plugin_sql::Migration {
-                            version: 1,
-                            description: "workspace",
-                            sql: storage::MIGRATION,
+                    storage::SCHEMA_MIGRATIONS
+                        .iter()
+                        .map(|(version, description, sql)| tauri_plugin_sql::Migration {
+                            version: *version,
+                            description,
+                            sql,
                             kind: tauri_plugin_sql::MigrationKind::Up,
-                        },
-                        tauri_plugin_sql::Migration {
-                            version: 2,
-                            description: "review_training",
-                            sql: storage::MIGRATION2,
-                            kind: tauri_plugin_sql::MigrationKind::Up,
-                        },
-                        tauri_plugin_sql::Migration {
-                            version: 3,
-                            description: "players_insights",
-                            sql: storage::MIGRATION_PLAYERS_INSIGHTS,
-                            kind: tauri_plugin_sql::MigrationKind::Up,
-                        },
-                    ],
+                        })
+                        .collect(),
                 )
                 .build(),
         )

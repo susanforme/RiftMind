@@ -14,6 +14,42 @@ pub const MIGRATION2: &str =
     include_str!("../../../../src-tauri/migrations/0002_review_training.sql");
 pub const MIGRATION_PLAYERS_INSIGHTS: &str =
     include_str!("../../../../src-tauri/migrations/0003_players_insights.sql");
+pub const MIGRATION_NOTEBOOKS: &str =
+    include_str!("../../../../src-tauri/migrations/0004_champion_notebooks.sql");
+pub const MIGRATION_REVIEW_INSIGHTS: &str =
+    include_str!("../../../../src-tauri/migrations/0005_review_training_insights.sql");
+pub const SCHEMA_MIGRATIONS: &[(i64, &str, &str)] = &[
+    (1, "workspace", MIGRATION),
+    (2, "review_training", MIGRATION2),
+    (3, "players_insights", MIGRATION_PLAYERS_INSIGHTS),
+    (4, "champion_notebooks", MIGRATION_NOTEBOOKS),
+    (5, "review_training_insights", MIGRATION_REVIEW_INSIGHTS),
+];
+#[derive(Debug)]
+struct WorkspaceMigrations;
+impl sqlx::migrate::MigrationSource<'static> for WorkspaceMigrations {
+    fn resolve(
+        self,
+    ) -> futures_util::future::BoxFuture<
+        'static,
+        std::result::Result<Vec<sqlx::migrate::Migration>, sqlx::error::BoxDynError>,
+    > {
+        Box::pin(async {
+            Ok(SCHEMA_MIGRATIONS
+                .iter()
+                .map(|(version, description, sql)| {
+                    sqlx::migrate::Migration::new(
+                        *version,
+                        (*description).into(),
+                        sqlx::migrate::MigrationType::ReversibleUp,
+                        (*sql).into(),
+                        false,
+                    )
+                })
+                .collect())
+        })
+    }
+}
 pub mod review;
 pub const TABLES: &[&str] = &[
     "players",
@@ -34,6 +70,12 @@ pub const TABLES: &[&str] = &[
     "goal_evaluations",
     "favorites",
     "player_profiles",
+    "notebook_entries",
+    "notebook_revisions",
+    "practice_entries",
+    "build_applications",
+    "personal_baselines",
+    "preparation_batches",
 ];
 pub fn now() -> String {
     chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true)
@@ -78,11 +120,11 @@ pub async fn preflight(path: &Path) -> Result<()> {
     let integrity: String = sqlx::query_scalar("PRAGMA quick_check")
         .fetch_one(&pool)
         .await?;
-    if version > 3 || integrity != "ok" {
+    if version > 5 || integrity != "ok" {
         pool.close().await;
         return Err(AppError::new(ErrorCode::BackupInvalid));
     }
-    if version < 3 {
+    if version < 5 {
         let backup = path.with_extension(format!("pre-migration-{}.db", uuid::Uuid::new_v4()));
         vacuum_backup(&pool, &backup).await?;
         if let Some(root) = path.parent() {
@@ -98,20 +140,32 @@ pub async fn preflight(path: &Path) -> Result<()> {
 pub async fn open(path: &Path) -> Result<SqlitePool> {
     preflight(path).await?;
     let pool = connect(path).await?;
-    let mut tx = pool.begin().await?;
     let version: i64 = sqlx::query_scalar("PRAGMA user_version")
-        .fetch_one(&mut *tx)
+        .fetch_one(&pool)
         .await?;
-    if version < 1 {
-        sqlx::Executor::execute(&mut *tx, MIGRATION).await?;
+    let registered: bool = sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='_sqlx_migrations')",
+    )
+    .fetch_one(&pool)
+    .await?;
+    if registered {
+        // Desktop backups retain SQLx metadata; upgrading only user_version would replay DDL on recovery.
+        let migrator = sqlx::migrate::Migrator::new(WorkspaceMigrations)
+            .await
+            .map_err(|_| AppError::new(ErrorCode::StorageCorrupt))?;
+        migrator
+            .run(&pool)
+            .await
+            .map_err(|_| AppError::new(ErrorCode::StorageCorrupt))?;
+    } else {
+        let mut tx = pool.begin().await?;
+        for (migration_version, _, sql) in SCHEMA_MIGRATIONS {
+            if version < *migration_version {
+                sqlx::Executor::execute(&mut *tx, *sql).await?;
+            }
+        }
+        tx.commit().await?;
     }
-    if version < 2 {
-        sqlx::Executor::execute(&mut *tx, MIGRATION2).await?;
-    }
-    if version < 3 {
-        sqlx::Executor::execute(&mut *tx, MIGRATION_PLAYERS_INSIGHTS).await?;
-    }
-    tx.commit().await?;
     if version < 2 {
         review::bootstrap_cached_inputs(&pool).await?;
     }

@@ -1,4 +1,4 @@
-import { useId, useState, type ReactNode } from 'react';
+import { useId, useState, useRef, useEffect, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Combobox,
@@ -36,6 +36,11 @@ export function SearchSelect({
   disabled,
 }: SearchSelectProps) {
   const generatedId = useId();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    setPortalContainer(inputRef.current?.closest<HTMLElement>('[role="dialog"]') || null);
+  }, []);
   const { t } = useTranslation();
   const [query, setQuery] = useState<string | null>(null);
   const selected = options.find((option) => option.value === value) ?? null;
@@ -66,15 +71,16 @@ export function SearchSelect({
       }}
     >
       <ComboboxInput
+        ref={inputRef}
         disabled={disabled}
         id={id || generatedId}
         aria-label={label}
         placeholder={label}
         triggerLabel={t('common.openOptions')}
-        className="search-select w-full bg-card shadow-none"
+        className="w-full bg-card shadow-none"
         onBlur={() => setQuery(null)}
       />
-      <ComboboxContent>
+      <ComboboxContent portalContainer={portalContainer}>
         <ComboboxEmpty>{t('common.noOptions')}</ComboboxEmpty>
         <ComboboxList>
           {(option: SearchSelectOption) => (

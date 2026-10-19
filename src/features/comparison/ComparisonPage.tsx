@@ -143,8 +143,14 @@ export function ComparisonPage() {
     void navigate({ to: '/compare', search: next });
   }
   return (
-    <div className="page compare-page">
-      <div className="page-heading">
+    <div
+      data-ui="page"
+      className="max-w-[1400px] pt-[30px] px-9 pb-[26px] m-auto max-[1150.01px]:p-[26px] max-[900.01px]:p-[22px] max-[650.01px]:py-[18px] max-[650.01px]:px-4 grid gap-5 [&_table_small]:block"
+    >
+      <div
+        data-ui="page-heading"
+        className="flex items-center justify-between gap-6 mb-7 max-[650.01px]:mb-[22px] max-[650.01px]:gap-2.5"
+      >
         <h1>{t('scouting.compare')}</h1>
         <Button variant="outline" onClick={swap} disabled={!data}>
           {t('scouting.swap')}
@@ -165,14 +171,17 @@ export function ComparisonPage() {
       ) : (
         data && (
           <>
-            <div className="actions">
+            <div data-ui="actions" className="flex items-center gap-2">
               {data.differences.map((d) => (
                 <Badge variant="outline" key={d}>
                   {t(`scouting.different_${d}`)}
                 </Badge>
               ))}
             </div>
-            <div className="compare-sides">
+            <div
+              data-ui="compare-sides"
+              className="grid grid-cols-2 gap-5 items-start [&_[data-slot='card-content']]:min-w-0 [&_[data-slot='select-trigger']]:max-w-full max-[960.01px]:grid-cols-1"
+            >
               {(['left', 'right'] as const).map((side) => (
                 <CompareSide
                   key={`${side}:${data[side].summary.matchKey}`}
@@ -189,7 +198,7 @@ export function ComparisonPage() {
                 <CardTitle>{t('scouting.metrics')}</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="compare-values">
+                <div className="max-h-[330px] overflow-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -225,7 +234,7 @@ export function ComparisonPage() {
             <Card>
               <CardHeader>
                 <CardTitle>{t('scouting.elapsed')}</CardTitle>
-                <div className="actions">
+                <div data-ui="actions" className="flex items-center gap-2">
                   {(['gold', 'cs'] as const).map((m) => (
                     <Button
                       key={m}
@@ -252,7 +261,7 @@ export function ComparisonPage() {
                     </Suspense>
                   </ChartBoundary>
                 )}
-                <div className="compare-values">
+                <div className="max-h-[330px] overflow-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -391,7 +400,7 @@ function CompareSide({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="actions">
+        <CardTitle data-ui="actions" className="flex items-center gap-2">
           <GameEntityIcon
             kind="champion"
             id={m.championId}
@@ -400,20 +409,20 @@ function CompareSide({
           />
           {t(`scouting.${side}`)} · {matchName(t, m.matchKey)}
         </CardTitle>
-        <div className="meta-line">
+        <div className="flex items-center gap-2.5 text-[12px] text-muted-foreground mt-[5px]">
           {t(`matches.${m.outcome}`)} · {m.kills ?? '—'}/{m.deaths ?? '—'}/{m.assists ?? '—'} ·{' '}
           {matchTime((m.duration || 0) * 1000)} · {m.version} · {queueName(t, m.queueId)} ·{' '}
           {assets.data?.find((a) => a.resourceId === `champion:${m.championId}`)?.name ||
             championName(t, m.championId)}
         </div>
-        <span className="help">
+        <span className="text-muted-foreground text-[12px]">
           {t('scouting.fixedRevision')}: {i?.revision ?? '—'} /{' '}
           {data.report ? t('labels.reportRevision', { n: data.report.revision }) : '—'}
         </span>
       </CardHeader>
-      <CardContent className="review-stack">
+      <CardContent data-ui="review-stack" className="grid grid-cols-1 gap-4 min-w-0">
         <ErrorNotice error={events.error || fetch.error || candidates.error} />
-        <div className="actions">
+        <div data-ui="actions" className="flex items-center gap-2">
           <Button variant="outline" onClick={() => open()}>
             {t('review.open')}
           </Button>
@@ -464,7 +473,7 @@ function CompareSide({
           {t('scouting.events')}
         </Button>
         {showEvents && (
-          <div className="compare-events">
+          <div data-ui="compare-events" className="max-h-[270px] overflow-auto grid gap-2">
             <Label>
               {t('scouting.events')}
               <Select
@@ -486,9 +495,11 @@ function CompareSide({
                 </SelectContent>
               </Select>
             </Label>
-            {!events.data?.events.length && <span className="help">{t('scouting.noEvents')}</span>}
+            {!events.data?.events.length && (
+              <span className="text-muted-foreground text-[12px]">{t('scouting.noEvents')}</span>
+            )}
             {events.data?.events.map((e) => (
-              <div className="actions" key={e.id}>
+              <div data-ui="actions" className="flex items-center gap-2" key={e.id}>
                 <Button
                   variant="link"
                   onClick={() =>
@@ -501,7 +512,7 @@ function CompareSide({
                   {t(`review.event_${e.kind}`, { defaultValue: t('labels.unknownEvent') })}
                 </span>
                 {e.itemId && (
-                  <span className="inline-entity">
+                  <span className="inline-flex items-center gap-1.5 me-2.5 align-middle [&_[data-slot='avatar']]:w-6 [&_[data-slot='avatar']]:h-6">
                     <GameEntityIcon
                       kind="item"
                       id={e.itemId}
@@ -516,7 +527,7 @@ function CompareSide({
                   </span>
                 )}
                 {e.skillSlot && (
-                  <span className="inline-entity">
+                  <span className="inline-flex items-center gap-1.5 me-2.5 align-middle [&_[data-slot='avatar']]:w-6 [&_[data-slot='avatar']]:h-6">
                     <GameEntityIcon
                       kind="skill"
                       id={skillResourceId(

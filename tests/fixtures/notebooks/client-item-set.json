@@ -1,0 +1,10 @@
+{
+  "uid": "fixed-example",
+  "title": "Private build",
+  "type": "custom",
+  "map": "any",
+  "mode": "any",
+  "associatedChampions": [64],
+  "associatedMaps": [11],
+  "blocks": [{"type": "Core", "items": [{"id": "1001", "count": 2}]}]
+}

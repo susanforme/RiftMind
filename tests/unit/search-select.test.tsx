@@ -103,3 +103,22 @@ it('keeps disabled selects and options unselectable', async () => {
     fireEvent.keyDown(input, { key: 'Escape' });
   });
 });
+
+it('keeps popup options inside a modal focus and accessibility boundary', async () => {
+  const { Dialog, DialogContent, DialogTitle } = await import('../../src/components/ui/dialog');
+  render(
+    <Dialog open>
+      <DialogContent>
+        <DialogTitle>Choose champion</DialogTitle>
+        <Subject />
+      </DialogContent>
+    </Dialog>,
+  );
+  const input = screen.getByRole('combobox', { name: 'Champion' });
+  act(() => input.focus());
+  fireEvent.input(input, { inputType: 'insertText', target: { value: 'Lee' } });
+  const option = await screen.findByRole('option', { name: 'Lee Sin' });
+  expect(screen.getByRole('dialog')).toContainElement(option);
+  fireEvent.click(option);
+  await waitFor(() => expect(change).toHaveBeenCalledWith('64'));
+});

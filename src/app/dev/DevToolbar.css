@@ -1,4 +1,0 @@
-.dev-banner { padding: 3px 16px; color: var(--muted-foreground); font-size: 10px; display: flex; align-items: center; justify-content: flex-end; gap: 15px; flex-shrink: 0; border-bottom: 1px solid var(--border); }
-.dev-banner > span { white-space: nowrap; }
-.dev-banner label { white-space: nowrap; display: flex; gap: 8px; align-items: center; }
-.dev-banner button[role=combobox] { height: 24px; width: 130px; font-size: 10px; border: 0; padding: 0 6px; }

@@ -1,12 +1,12 @@
 # RiftMind
 
-仅支持 Windows 的英雄联盟本地对局工具。提供比赛、玩家查询与收藏、英雄池、两场对比、复盘与训练进展页面，使用
+仅支持 Windows 的英雄联盟本地对局工具。提供英雄笔记与出装、比赛、玩家查询与收藏、英雄池、两场对比、事件复盘与训练进展页面，使用
 Tauri 2 / React / Rust / SQLite。macOS 用于开发和测试 core 与浏览器页面，不发行 Mac 客户端。
 
-一期历史验证见 [一期验收记录](docs/stage1-verification.md)，二期验证见 [二期验收记录](docs/stage2-verification.md)，本次实现与验证见 [三期验收记录](docs/stage3-verification.md)。
+一期历史验证见 [一期验收记录](docs/stage1-verification.md)，二期验证见 [二期验收记录](docs/stage2-verification.md)，三期验证见 [三期验收记录](docs/stage3-verification.md)，最新实现与验证见 [四期验收记录](docs/stage4-verification.md)。
 **尚未完成 Windows 原生验收、真实客户端联网验收和生产签名发布。**
 
-三期实施规格见 [三期计划：当前比赛、玩家查询与多场分析](todo/stage3.md)。
+四期规格见 [英雄笔记与深度复盘训练](todo/stage4.md)。
 
 ## 环境与启动
 
@@ -18,7 +18,7 @@ bunx playwright install chromium
 bun run dev:mock
 ```
 
-打开 http://localhost:1420 。左侧导航包含比赛、英雄池、战绩、进展与设置；顶部标签按玩家与区服隔离。
+打开 http://localhost:1420 。左侧导航包含英雄笔记、比赛、英雄池、战绩、进展与设置；顶部标签按玩家与区服隔离。
 模拟模式有固定标识，数据仅在内存中，可通过开发工具栏切换无客户端、国服、外服、等待授权、冲突等场景。
 `fixture.ts` 提供重置、固定时钟及一次性错误注入；它不能证明数据库或网络代码正确。
 
@@ -33,14 +33,16 @@ bun run dev:integration
 希望测试重启持久化时显式指定独立测试目录：
 
 ```sh
-RIFTMIND_TEST_DIR=/tmp/my-riftmind-test RIFTMIND_SCENARIO=tencent bun run dev:integration
+RIFTMIND_TEST_DIR=.tmp/manual-workspace RIFTMIND_SCENARIO=tencent bun run dev:integration
 # 停止进程后复用同一目录，以离线模式启动：
-RIFTMIND_TEST_DIR=/tmp/my-riftmind-test RIFTMIND_SCENARIO=offline bun run dev:integration
+RIFTMIND_TEST_DIR=.tmp/manual-workspace RIFTMIND_SCENARIO=offline bun run dev:integration
 ```
 
 Windows PowerShell 先设置 `$env:RIFTMIND_TEST_DIR` / `$env:RIFTMIND_SCENARIO`，再运行同一脚本。
 不要把此路径指向正式工作区。备份与诊断保存在测试目录 `backups/` 中，浏览器用引用 ID 恢复。
 开发工具栏只改变测试场景，不属于第三个业务页面。重置场景不会删除已缓存战绩；需要全新状态时使用新目录。
+
+英雄笔记的完整存储、导入、统计与客户端模拟验收使用 `dev:integration`；内存 fixture 只提供笔记基础编辑预览，未实现的扩展命令明确降级。真实客户端写入仍须实机验证，当前生产门禁保持关闭。
 
 harness 使用进程级随机凭据、Origin 检查、封闭 Commands 注册表和请求大小限制。
 访问令牌仅注入开发 Vite；正式构建只有 desktop IPC，连接失败不会自动改用模拟数据。
@@ -94,6 +96,7 @@ cargo test -p riftmind-core --locked
 bun run test:e2e
 bun run verify:stage2
 bun run verify:stage3
+bun run verify:stage4
 ```
 
 `verify:stage1` 依次运行类型/lint/翻译/token/fixture 哈希/生成契约检查、前端测试、core 测试、

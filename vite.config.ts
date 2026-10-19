@@ -14,7 +14,7 @@ export default defineConfig({
           if (output.type !== 'chunk') continue;
           for (const id of Object.keys(output.modules)) {
             if (
-              /[/\\](?:src[/\\]app[/\\]dev|tests[/\\]fixtures)[/\\]|[/\\]src[/\\]lib[/\\]transport[/\\](?:fixture|scouting-fixture|review-fixture|harness)\.ts/.test(
+              /[/\\](?:src[/\\]app[/\\]dev|tests[/\\]fixtures)[/\\]|[/\\]src[/\\]lib[/\\]transport[/\\](?:fixture|notebook-fixture|scouting-fixture|review-fixture|harness)\.ts/.test(
                 id,
               )
             ) {
@@ -30,7 +30,7 @@ export default defineConfig({
     host: 'localhost',
     port: Number(process.env.RIFTMIND_DEV_PORT || 1420),
     strictPort: true,
-    watch: { ignored: ['**/src-tauri/**', '**/target/**', '**/.riftmind-dev/**'] },
+    watch: { ignored: ['**/src-tauri/**', '**/target/**', '**/.riftmind-dev/**', '**/.tmp/**'] },
     proxy: process.env.RIFTMIND_HARNESS_PORT
       ? {
           '/bridge': {

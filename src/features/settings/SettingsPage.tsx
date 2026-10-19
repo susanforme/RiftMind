@@ -1,3 +1,4 @@
+import { cn } from '../../lib/utils';
 import { codeName, playerName } from '../../lib/display-names';
 import { serverName } from '../../lib/server-name';
 import { Label } from '../../components/ui/label';
@@ -41,6 +42,16 @@ import { Button } from '../../components/ui/button';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { ErrorNotice } from '../../components/ErrorNotice';
 import type { Settings, SettingsPatch } from '../../generated/contracts';
+const settingsPanelClassName = 'rounded-[9px] px-6 py-[22px] scroll-mt-6 max-[650.01px]:p-[18px]';
+const settingsHeadingClassName =
+  'flex items-center gap-[9px] border-b pb-[18px] text-[15px] [&_svg]:w-[17px] [&_svg]:text-muted-foreground';
+const settingsFieldClassName =
+  'grid grid-cols-[minmax(0,1fr)_minmax(160px,230px)] items-center gap-x-6 gap-y-[5px] border-b py-[18px] last:border-b-0 last:pb-0 max-[650.01px]:grid-cols-1 max-[650.01px]:gap-2.5';
+const settingsLabelClassName = 'flex items-center gap-1.5 text-[13px] leading-none [&>svg]:hidden';
+const settingsControlClassName =
+  'col-start-2 row-span-2 row-start-1 w-full max-[650.01px]:col-start-1 max-[650.01px]:row-auto';
+const settingsHelpClassName =
+  'col-start-1 row-start-2 text-[11px] leading-[1.7] max-[650.01px]:row-auto';
 function Toggle({
   label,
   checked,
@@ -52,7 +63,7 @@ function Toggle({
 }) {
   const id = useId();
   return (
-    <div className="toggle-row">
+    <div className="flex items-center justify-between text-[13px] py-[18px] px-0 gap-6 border-b border-b-border [&_label]:cursor-pointer last:border-b-0 last:pb-0">
       <Label htmlFor={id}>{label}</Label>
       <Switch id={id} checked={checked} onCheckedChange={onChange} />
     </div>
@@ -173,17 +184,26 @@ export function SettingsPage() {
       </>
     );
   return (
-    <div className="page settings-page">
-      <div className="page-heading">
+    <div
+      data-ui="page settings-page"
+      className="pt-[30px] px-9 pb-[26px] m-auto max-[1150.01px]:p-[26px] max-[900.01px]:p-[22px] max-[650.01px]:py-[18px] max-[650.01px]:px-4 max-w-[1160px]"
+    >
+      <div
+        data-ui="page-heading"
+        className="flex items-center justify-between gap-6 mb-7 max-[650.01px]:mb-[22px] max-[650.01px]:gap-2.5"
+      >
         <div>
           <h1>{t('settings.title')}</h1>
         </div>
-        <span className="settings-version">
+        <span className="text-[12px] text-muted-foreground [&_span]:ml-1.5 max-[650.01px]:hidden">
           RiftMind <span>v{app.data?.appVersion || '0.1.0'}</span>
         </span>
       </div>
-      <div className="settings-body">
-        <nav className="settings-nav" aria-label={t('settings.sections')}>
+      <div className="grid grid-cols-[156px_minmax(0,_1fr)] gap-7 items-start max-[1150.01px]:grid-cols-[140px_minmax(0,_1fr)] max-[1150.01px]:gap-5 max-[900.01px]:block">
+        <nav
+          className="grid gap-1 sticky top-6 [&_[data-slot=button]]:h-auto [&_[data-slot=button]]:min-h-9 [&_[data-slot=button]]:whitespace-normal [&_[data-slot=button]]:text-left [&_[data-slot=button]]:justify-start [&_[data-slot=button]]:py-2 [&_[data-slot=button]]:px-2.5 [&_[data-slot=button]]:text-[13px] [&_[data-slot=button]]:gap-[9px] max-[900.01px]:static max-[900.01px]:flex max-[900.01px]:flex-wrap max-[900.01px]:border-b max-[900.01px]:border-b-border max-[900.01px]:mb-5 max-[900.01px]:pb-3 max-[900.01px]:gap-0.5 max-[900.01px]:[&_[data-slot=button]]:py-1.5 max-[900.01px]:[&_[data-slot=button]]:px-2 max-[900.01px]:[&_[data-slot=button]]:text-[12px] max-[900.01px]:[&_[data-slot=button]]:gap-1.5"
+          aria-label={t('settings.sections')}
+        >
           {(['general', 'client', 'sync', 'storage', 'diagnostics', 'updates'] as const).map(
             (section, index) => {
               const Icon = [Palette, Cable, RefreshCw, Database, ShieldCheck, Download][index];
@@ -204,15 +224,15 @@ export function SettingsPage() {
             },
           )}
         </nav>
-        <div className="settings-layout">
-          <div className="settings-primary">
-            <Card className="panel" id="settings-general">
-              <h2>
+        <div className="grid gap-6 min-w-0">
+          <div className="contents">
+            <Card className={settingsPanelClassName} id="settings-general">
+              <h2 className={settingsHeadingClassName}>
                 <Palette aria-hidden="true" size={18} />
                 {t('settings.general')}
               </h2>
-              <div className="field">
-                <Label htmlFor="language">
+              <div className={settingsFieldClassName}>
+                <Label className={settingsLabelClassName} htmlFor="language">
                   <Globe2 aria-hidden="true" size={15} />
                   {t('settings.language')}
                 </Label>
@@ -220,7 +240,11 @@ export function SettingsPage() {
                   value={draft.languagePreference}
                   onValueChange={(value) => change('languagePreference', value)}
                 >
-                  <SelectTrigger id="language" aria-describedby="language-help">
+                  <SelectTrigger
+                    className={settingsControlClassName}
+                    id="language"
+                    aria-describedby="language-help"
+                  >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -229,12 +253,19 @@ export function SettingsPage() {
                     <SelectItem value="en-US">English</SelectItem>
                   </SelectContent>
                 </Select>
-                <small id="language-help">{t('settings.languageHelp')}</small>
+                <small className={settingsHelpClassName} id="language-help">
+                  {t('settings.languageHelp')}
+                </small>
               </div>
-              <fieldset className="field">
-                <legend>{t('settings.appearance')}</legend>
+              <fieldset className={settingsFieldClassName}>
+                <legend className="float-left w-full p-0 text-[13px]">
+                  {t('settings.appearance')}
+                </legend>
                 <RadioGroup
-                  className="segmented"
+                  className={cn(
+                    settingsControlClassName,
+                    'flex gap-[3px] rounded-[7px] border p-[3px]',
+                  )}
                   aria-label={t('settings.appearance')}
                   value={draft.colorModePreference}
                   onValueChange={(mode) =>
@@ -244,9 +275,16 @@ export function SettingsPage() {
                   {(['light', 'dark', 'system'] as const).map((mode, index) => {
                     const Icon = [Sun, Moon, Monitor][index];
                     return (
-                      <Label key={mode}>
-                        <RadioGroupItem value={mode} aria-label={t(`common.${mode}`)} />
-                        <span>
+                      <Label
+                        className="relative flex flex-1 cursor-pointer items-center gap-1.5 text-[13px] leading-none"
+                        key={mode}
+                      >
+                        <RadioGroupItem
+                          className="peer absolute inset-0 size-full opacity-0"
+                          value={mode}
+                          aria-label={t(`common.${mode}`)}
+                        />
+                        <span className="pointer-events-none flex w-full items-center justify-center gap-[5px] rounded-sm px-[3px] py-2 text-[11px] text-muted-foreground peer-data-[state=checked]:bg-accent peer-data-[state=checked]:text-accent-foreground peer-focus-visible:outline-2 peer-focus-visible:outline-ring peer-focus-visible:outline-offset-2">
                           <Icon aria-hidden="true" size={16} />
                           {t(`common.${mode}`)}
                         </span>
@@ -260,15 +298,17 @@ export function SettingsPage() {
                 checked={draft.sidebarCollapsed}
                 onChange={(v) => change('sidebarCollapsed', v)}
               />
-              <div className="field horizontal">
-                <Label htmlFor="close-behavior">{t('settings.closeBehavior')}</Label>
+              <div className={settingsFieldClassName}>
+                <Label className={settingsLabelClassName} htmlFor="close-behavior">
+                  {t('settings.closeBehavior')}
+                </Label>
                 <Select
                   value={draft.closeBehavior}
                   onValueChange={(value) =>
                     change('closeBehavior', value as Settings['closeBehavior'])
                   }
                 >
-                  <SelectTrigger id="close-behavior">
+                  <SelectTrigger className={settingsControlClassName} id="close-behavior">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -278,8 +318,8 @@ export function SettingsPage() {
                 </Select>
               </div>
             </Card>
-            <Card className="panel" id="settings-client">
-              <h2>
+            <Card className={settingsPanelClassName} id="settings-client">
+              <h2 className={settingsHeadingClassName}>
                 <Cable aria-hidden="true" size={18} />
                 {t('settings.client')}
               </h2>
@@ -288,28 +328,31 @@ export function SettingsPage() {
                 checked={draft.autoConnect}
                 onChange={(v) => change('autoConnect', v)}
               />
-              <div className="connection-detail">
+              <div className="flex items-center gap-2 text-[12px] mt-[18px] mx-0 mb-2 flex-wrap [&_strong]:font-medium [&_>_span:last-child]:text-muted-foreground [&_>_span:last-child]:ml-auto">
                 <span
-                  className={`status-dot ${connection.data?.phase === 'connected' ? 'online' : ''}`}
+                  data-online={connection.data?.phase === 'connected'}
+                  className="w-[7px] h-[7px] rounded-full bg-muted-foreground data-[online=true]:bg-(--success)"
                 />
                 <strong>{t(`connection.${connection.data?.phase || 'disconnected'}`)}</strong>
                 <span>{serverName(t, connection.data?.identification?.serverId)}</span>
               </div>
               {connection.data?.player && (
-                <p className="muted">
+                <p className="text-muted-foreground text-[12px]">
                   {playerName(t, connection.data.player)} ·{' '}
                   {codeName(t, 'realm', connection.data.identification?.realm)} ·{' '}
                   {codeName(t, 'environment', connection.data.identification?.environment)}
                 </p>
               )}
               {(instances.data?.length || 0) > 1 && (
-                <div className="field">
-                  <Label htmlFor="instance">{t('settings.instance')}</Label>
+                <div className={settingsFieldClassName}>
+                  <Label className={settingsLabelClassName} htmlFor="instance">
+                    {t('settings.instance')}
+                  </Label>
                   <Select
                     value={connection.data?.instance?.id || ''}
                     onValueChange={(value) => selectInstance.mutate(value)}
                   >
-                    <SelectTrigger id="instance">
+                    <SelectTrigger className={settingsControlClassName} id="instance">
                       <SelectValue placeholder={t('settings.chooseInstance')} />
                     </SelectTrigger>
                     <SelectContent>
@@ -333,8 +376,8 @@ export function SettingsPage() {
               </Button>
               <ErrorNotice error={selectInstance.error} />
             </Card>
-            <Card className="panel" id="settings-sync">
-              <h2>
+            <Card className={settingsPanelClassName} id="settings-sync">
+              <h2 className={settingsHeadingClassName}>
                 <RefreshCw aria-hidden="true" size={18} />
                 {t('settings.sync')}
               </h2>
@@ -343,13 +386,19 @@ export function SettingsPage() {
                 checked={draft.autoSync}
                 onChange={(v) => change('autoSync', v)}
               />
-              <div className="field">
-                <Label htmlFor="sync-pages">{t('settings.syncPages')}</Label>
+              <div className={settingsFieldClassName}>
+                <Label className={settingsLabelClassName} htmlFor="sync-pages">
+                  {t('settings.syncPages')}
+                </Label>
                 <Select
                   value={String(draft.syncPages)}
                   onValueChange={(value) => change('syncPages', Number(value))}
                 >
-                  <SelectTrigger id="sync-pages" aria-describedby="sync-help">
+                  <SelectTrigger
+                    className={settingsControlClassName}
+                    id="sync-pages"
+                    aria-describedby="sync-help"
+                  >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -360,17 +409,19 @@ export function SettingsPage() {
                     ))}
                   </SelectContent>
                 </Select>
-                <small id="sync-help">{t('settings.syncHelp')}</small>
+                <small className={settingsHelpClassName} id="sync-help">
+                  {t('settings.syncHelp')}
+                </small>
               </div>
             </Card>
           </div>
-          <div className="settings-secondary">
-            <Card className="panel" id="settings-storage">
-              <h2>
+          <div className="contents">
+            <Card className={settingsPanelClassName} id="settings-storage">
+              <h2 className={settingsHeadingClassName}>
                 <Database aria-hidden="true" size={18} />
                 {t('settings.storage')}
               </h2>
-              <div className="storage-stats">
+              <div className="grid gap-3.5 my-5 mx-0 [&_>_div]:flex [&_>_div]:items-center [&_>_div]:gap-[9px] [&_>_div]:text-[13px] [&_svg]:text-muted-foreground [&_svg]:w-[15px] [&_strong]:ml-auto [&_strong]:font-medium [&_strong]:tabular-nums">
                 {[
                   [HardDrive, 'database', usage.data?.databaseBytes],
                   [Image, 'assets', usage.data?.assetBytes],
@@ -386,7 +437,7 @@ export function SettingsPage() {
                   );
                 })}
               </div>
-              <div className="stack-actions">
+              <div className="flex flex-wrap gap-2 items-center [&_[data-slot=button]]:whitespace-normal">
                 <Button
                   variant="outline"
                   disabled={operation.isPending}
@@ -405,9 +456,15 @@ export function SettingsPage() {
                 {import.meta.env.DEV &&
                   import.meta.env.MODE === 'development' &&
                   import.meta.env.VITE_DEV_TOOLS === 'true' && (
-                    <Label className="field">
+                    <Label
+                      className={cn(
+                        settingsFieldClassName,
+                        'basis-full border-0 py-2.5 text-[13px]',
+                      )}
+                    >
                       {t('settings.restoreId')}
                       <Input
+                        className={settingsControlClassName}
                         value={backupId}
                         onChange={(e) => setBackupId(e.target.value)}
                         maxLength={256}
@@ -422,21 +479,25 @@ export function SettingsPage() {
                   {t('settings.restoreBackup')}
                 </Button>
               </div>
-              <p className="help">{t('settings.restoreWarning')}</p>
+              <p className="my-3.5 max-w-[65ch] text-[12px] leading-[1.8] text-muted-foreground">
+                {t('settings.restoreWarning')}
+              </p>
             </Card>
-            <Card className="panel" id="settings-diagnostics">
-              <h2>
+            <Card className={settingsPanelClassName} id="settings-diagnostics">
+              <h2 className={settingsHeadingClassName}>
                 <ShieldCheck aria-hidden="true" size={18} />
                 {t('settings.diagnostics')}
               </h2>
-              <div className="version-block">
+              <div className="flex justify-between gap-5 pt-[18px] items-center">
                 <small>{t('settings.version')}</small>
                 <code>
                   {app.data?.appVersion || '0.1.0'} / {app.data?.databaseVersion || 1} /{' '}
                   {app.data?.settingsVersion || 1}
                 </code>
               </div>
-              <p className="help">{t('settings.exportHelp')}</p>
+              <p className="my-3.5 max-w-[65ch] text-[12px] leading-[1.8] text-muted-foreground">
+                {t('settings.exportHelp')}
+              </p>
               <Button
                 variant="outline"
                 disabled={operation.isPending}
@@ -446,12 +507,12 @@ export function SettingsPage() {
                 {t('settings.export')}
               </Button>
             </Card>
-            <Card className="panel" id="settings-updates">
-              <h2>
+            <Card className={settingsPanelClassName} id="settings-updates">
+              <h2 className={settingsHeadingClassName}>
                 <Download aria-hidden="true" size={18} />
                 {t('settings.updates')}
               </h2>
-              <p className="help">
+              <p className="my-3.5 max-w-[65ch] text-[12px] leading-[1.8] text-muted-foreground">
                 {app.data?.updateStatus.reason
                   ? t(`errors.${app.data.updateStatus.reason.toLowerCase()}`)
                   : t(`settings.update_${app.data?.updateStatus.state || 'idle'}`)}{' '}
@@ -484,12 +545,15 @@ export function SettingsPage() {
         </div>
       </div>
       <ErrorNotice error={usage.error || app.error || operation.error || save.error} />
-      <div className="save-bar">
+      <div
+        data-ui="save-bar"
+        className="sticky bottom-0 bg-card border border-border rounded-lg py-3 px-[18px] flex gap-5 justify-between items-center mt-6 ml-[184px] text-[12px] [box-shadow:var(--shadow)] z-2 [&_>_div:first-child]:wrap-anywhere [&_>_div:first-child]:min-w-0 [&_>_div:first-child]:text-muted-foreground max-[1150.01px]:ml-40 max-[900.01px]:ml-0 max-[650.01px]:p-3 max-[650.01px]:gap-2.5 max-[650.01px]:flex-wrap max-[650.01px]:[&_>_div:first-child]:basis-full max-[650.01px]:[&_[data-ui~=actions]]:flex-wrap"
+      >
         <div aria-live="polite">
           {operation.isPending ? (
             t('settings.maintenance')
           ) : message ? (
-            <span className="success-text">
+            <span className="flex items-center gap-1.5 text-(--success)">
               <Check aria-hidden="true" size={15} />
               {t(message.key, message.params || {})}
             </span>
@@ -499,7 +563,7 @@ export function SettingsPage() {
             t('common.saved')
           )}
         </div>
-        <div className="actions">
+        <div data-ui="actions" className="flex items-center gap-2">
           {save.error && (
             <Button
               variant="outline"

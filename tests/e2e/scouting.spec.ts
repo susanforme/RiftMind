@@ -20,14 +20,14 @@ test('live phase, champion changes, anonymous players, cancellation and reconnec
 }, info) => {
   await harness.scenario({ scenario: 'tencent', livePhase: 'ChampSelect' });
   await page.goto('/#/live');
-  await expect(page.locator('.live-seat')).toHaveCount(10);
-  await expect(page.locator('.current-player')).toHaveCount(1);
-  await expect(page.locator('.profile-stats')).toHaveCount(10);
+  await expect(page.locator('[data-ui~=live-seat]')).toHaveCount(10);
+  await expect(page.locator('[data-current=true]')).toHaveCount(1);
+  await expect(page.locator('[data-ui~=profile-stats]')).toHaveCount(10);
   await expect(
-    page.locator('.current-player').getByRole('img', { name: 'Ahri', exact: true }).first(),
+    page.locator('[data-current=true]').getByRole('img', { name: 'Ahri', exact: true }).first(),
   ).toBeVisible();
   await expect(
-    page.locator('.current-player').getByRole('img', { name: 'Flash', exact: true }),
+    page.locator('[data-current=true]').getByRole('img', { name: 'Flash', exact: true }),
   ).toBeVisible();
   const before = await harness.call('get_live_snapshot', {});
   const statsBefore = await (await harness.request.get('/bridge/stats')).json();
@@ -38,7 +38,7 @@ test('live phase, champion changes, anonymous players, cancellation and reconnec
     anonymous: true,
   });
   await expect(page.getByText('Identity not public', { exact: true })).toBeVisible();
-  await expect(page.locator('.current-player')).toContainText('Lee Sin');
+  await expect(page.locator('[data-current=true]')).toContainText('Lee Sin');
   const after = await harness.call('get_live_snapshot', {});
   expect(after.generation).toBe(before.generation);
   const statsAfter = await (await harness.request.get('/bridge/stats')).json();
@@ -51,7 +51,7 @@ test('live phase, champion changes, anonymous players, cancellation and reconnec
       scenario: 'tencent',
       livePhase: n % 2 ? 'ChampSelect' : 'ReadyCheck',
     });
-    await expect(page.locator('.live-seat')).toHaveCount(n % 2 ? 10 : 0);
+    await expect(page.locator('[data-ui~=live-seat]')).toHaveCount(n % 2 ? 10 : 0);
     latencies.push(Date.now() - start);
   }
   latencies.sort((a, b) => a - b);
@@ -67,13 +67,13 @@ test('live phase, champion changes, anonymous players, cancellation and reconnec
     );
   await page.screenshot({ path: info.outputPath('live-en-light.png') });
   await harness.scenario({ scenario: 'tencent', livePhase: 'Matchmaking' });
-  await expect(page.locator('.live-seat')).toHaveCount(0);
+  await expect(page.locator('[data-ui~=live-seat]')).toHaveCount(0);
   await harness.scenario({
     scenario: 'tencent',
     livePhase: 'InProgress',
     gameId: '900719925474101',
   });
-  await expect(page.locator('.live-seat')).toHaveCount(10);
+  await expect(page.locator('[data-ui~=live-seat]')).toHaveCount(10);
   await expect(page.getByText('In game', { exact: true })).toBeVisible();
   await harness.scenario({ scenario: 'offline' });
   await expect(page.getByText('Snapshot is stale', { exact: true })).toBeVisible();
@@ -123,18 +123,18 @@ test('search, favorites, champion filters, fixed comparison, issue draft, backup
     .getByRole('button', { name: /Alice#TEST/ })
     .first()
     .click();
-  await expect(page.locator('.player-identity')).toContainText('Alice#TEST');
+  await expect(page.locator('[data-ui~=player-identity]')).toContainText('Alice#TEST');
   await page.getByRole('button', { name: 'Sync matches', exact: true }).click();
-  await expect(page.locator('.match-row')).toHaveCount(50);
+  await expect(page.locator('[data-ui~=match-row]')).toHaveCount(50);
   expect((await harness.call('get_connection_state', {})).player?.playerKey).toBe(playerKey);
   await page.goto(`/#/champions?player=${encodeURIComponent(playerKey)}`);
   await expect(page.getByRole('img', { name: 'Games by champion' })).toBeVisible();
-  await expect(page.locator('.champions-page table tbody tr')).not.toHaveCount(0);
+  await expect(page.locator('[data-ui~=champions-page] table tbody tr')).not.toHaveCount(0);
   await page.screenshot({ path: info.outputPath('champions-en-light.png') });
   await page.goto(
     `/#/compare?player=${encodeURIComponent(playerKey)}&left=${encodeURIComponent(rows[0].matchKey)}&right=${encodeURIComponent(rows[1].matchKey)}`,
   );
-  await expect(page.locator('.compare-sides')).toBeVisible();
+  await expect(page.locator('[data-ui~=compare-sides]')).toBeVisible();
   await expect(page).toHaveURL(/leftReport=/);
   const url = page.url();
   const leftReport = new URL(url).hash.match(/leftReport=([^&]+)/)?.[1];
@@ -146,16 +146,16 @@ test('search, favorites, champion filters, fixed comparison, issue draft, backup
   await expect(page).toHaveURL(/rightReport=/);
   await page.screenshot({ path: info.outputPath('compare-en-light.png') });
   await page
-    .locator('.compare-sides')
+    .locator('[data-ui~=compare-sides]')
     .getByRole('button', { name: 'Events', exact: true })
     .first()
     .click();
-  await expect(page.locator('.compare-events')).toContainText('Item purchased');
+  await expect(page.locator('[data-ui~=compare-events]')).toContainText('Item purchased');
   await expect(
-    page.locator('.compare-events').getByRole('img', { name: 'Boots', exact: true }),
+    page.locator('[data-ui~=compare-events]').getByRole('img', { name: 'Boots', exact: true }),
   ).toBeVisible();
   await expect(
-    page.locator('.compare-events').getByRole('img', { name: 'Skill Q', exact: true }),
+    page.locator('[data-ui~=compare-events]').getByRole('img', { name: 'Skill Q', exact: true }),
   ).toBeVisible();
   await page.goto(`/#/progress?player=${encodeURIComponent(playerKey)}`);
   await expect(page.getByText('Recurring observations', { exact: true })).toBeVisible();
@@ -172,13 +172,13 @@ test('search, favorites, champion filters, fixed comparison, issue draft, backup
     limit: 50,
   });
   expect(goals.items[0].scope.origin?.reports.length).toBeGreaterThan(0);
-  await expect(page.locator('.goal-card')).toContainText('Draft');
+  await expect(page.locator('[data-ui~=goal-card]')).toContainText('Draft');
   await page
-    .locator('.goal-card')
+    .locator('[data-ui~=goal-card]')
     .getByRole('button', { name: 'Activate / resume', exact: true })
     .click();
   await page.getByRole('dialog').getByRole('button', { name: 'Confirm', exact: true }).click();
-  await expect(page.locator('.goal-card')).toContainText('Active');
+  await expect(page.locator('[data-ui~=goal-card]')).toContainText('Active');
   await page.screenshot({ path: info.outputPath('issues-en-light.png') });
   for (const [language, mode] of [
     ['zh-CN', 'dark'],
@@ -208,12 +208,14 @@ test('search, favorites, champion filters, fixed comparison, issue draft, backup
       ['issues', `/progress?player=${encodeURIComponent(playerKey)}`],
     ]) {
       await page.goto(`/#${path}`);
-      await expect(page.locator('.page')).toBeVisible();
-      if (name === 'champions') await expect(page.locator('.pool-chart canvas')).toHaveCount(1);
-      if (name === 'compare') await expect(page.locator('.review-chart canvas')).toHaveCount(1);
+      await expect(page.locator('[data-ui~=page]')).toBeVisible();
+      if (name === 'champions')
+        await expect(page.locator('[data-ui~=pool-chart] canvas')).toHaveCount(1);
+      if (name === 'compare')
+        await expect(page.locator('[data-ui~=review-chart] canvas')).toHaveCount(1);
       if (name === 'issues')
-        await expect(page.locator('.issues-panel table tbody tr')).toHaveCount(2);
-      await page.locator('.main-content').evaluate((el) => {
+        await expect(page.locator('[data-ui~=issues-panel] table tbody tr')).toHaveCount(2);
+      await page.locator('[data-ui~=main-content]').evaluate((el) => {
         el.scrollTop = 0;
       });
       await page.screenshot({ path: info.outputPath(`${name}-${language}-${mode}-800.png`) });
@@ -224,9 +226,9 @@ test('search, favorites, champion filters, fixed comparison, issue draft, backup
   }
   for (let n = 0; n < 4; n++) {
     await page.goto(`/#/champions?player=${encodeURIComponent(playerKey)}`);
-    await expect(page.locator('.pool-chart canvas')).toHaveCount(1);
+    await expect(page.locator('[data-ui~=pool-chart] canvas')).toHaveCount(1);
     await page.goto('/#/matches');
-    await expect(page.locator('.pool-chart canvas')).toHaveCount(0);
+    await expect(page.locator('[data-ui~=pool-chart] canvas')).toHaveCount(0);
   }
   const backup = await harness.wait(await harness.call('create_backup', {}));
   await harness.wait(await harness.call('restore_backup', { id: backup.result!.reference }));
@@ -234,12 +236,12 @@ test('search, favorites, champion filters, fixed comparison, issue draft, backup
   await harness.start('offline');
   await page.reload();
   await page.goto('/#/matches');
-  await expect(page.locator('.favorites')).toContainText('Alice#TEST');
+  await expect(page.locator('[data-ui~=favorites]')).toContainText('Alice#TEST');
   await page
     .getByRole('button', { name: /Alice#TEST/ })
     .first()
     .click();
-  await expect(page.locator('.match-row')).toHaveCount(50);
+  await expect(page.locator('[data-ui~=match-row]')).toHaveCount(50);
   await page.goto(`/#/champions?player=${encodeURIComponent(playerKey)}`);
   await expect(page.getByRole('img', { name: 'Games by champion' })).toBeVisible();
 });

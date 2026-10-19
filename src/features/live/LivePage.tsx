@@ -1,3 +1,4 @@
+import { PreGameNotebook } from '../champion-notes/PreGameNotebook';
 import { GameEntityIcon } from '../../components/GameEntityIcon';
 import {
   codeName,
@@ -46,8 +47,14 @@ export function LivePage() {
   const s = live.data;
   const teams = [...new Set(s?.seats.map((p) => p.teamId))];
   return (
-    <div className="page live-page">
-      <div className="page-heading">
+    <div
+      data-ui="page live-page"
+      className="max-w-[1400px] pt-[30px] px-9 pb-[26px] m-auto max-[1150.01px]:p-[26px] max-[900.01px]:p-[22px] max-[650.01px]:py-[18px] max-[650.01px]:px-4 [&_>_[data-slot='card']_[data-slot='card-content']]:pt-5 grid gap-5"
+    >
+      <div
+        data-ui="page-heading"
+        className="flex items-center justify-between gap-6 mb-7 max-[650.01px]:mb-[22px] max-[650.01px]:gap-2.5"
+      >
         <h1>{t('scouting.live')}</h1>
         <Button variant="outline" onClick={() => void live.refetch()}>
           {t('common.refresh')}
@@ -56,16 +63,20 @@ export function LivePage() {
       <ErrorNotice
         error={live.error || (s?.error ? { code: s.error } : null) || retry.error || sync.error}
       />
-      <div className="actions" role="status">
+      <div data-ui="actions" className="flex items-center gap-2" role="status">
         <Badge>{codeName(t, 'phase', s?.phase || 'None')}</Badge>
         {s?.stale && <Badge variant="outline">{t('scouting.stale')}</Badge>}
         {s?.queueId && <span>{queueName(t, s.queueId)}</span>}
         {s?.mode && <span>{codeName(t, 'mode', s.mode)}</span>}
-        {s?.updatedAt && <time className="help">{new Date(s.updatedAt).toLocaleTimeString()}</time>}
+        {s?.updatedAt && (
+          <time className="text-muted-foreground text-[12px]">
+            {new Date(s.updatedAt).toLocaleTimeString()}
+          </time>
+        )}
       </div>
       {connection.data?.phase !== 'connected' && (
         <Card>
-          <CardContent className="actions">
+          <CardContent data-ui="actions" className="flex items-center gap-2">
             <span>{t(`connection.${connection.data?.phase || 'disconnected'}`)}</span>
             <Button variant="outline" disabled={retry.isPending} onClick={() => retry.mutate()}>
               {t('common.retry')}
@@ -77,18 +88,26 @@ export function LivePage() {
         <p>
           {t('scouting.bans')}:{' '}
           {s.bans.map((id) => (
-            <span className="inline-entity" key={id}>
+            <span
+              className="inline-flex items-center gap-1.5 me-2.5 align-middle [&_[data-slot='avatar']]:w-6 [&_[data-slot='avatar']]:h-6"
+              key={id}
+            >
               <GameEntityIcon kind="champion" id={id} label={championName(t, id)} />
               {championName(t, id)}
             </span>
           ))}
         </p>
       )}
-      <div className="live-teams">
+      <PreGameNotebook
+        key={`${s?.sessionEpoch}:${s?.generation}`}
+        snapshot={s}
+        epoch={app.data?.workspaceEpoch}
+      />
+      <div className="grid grid-cols-2 gap-5 items-start [&_section_>_h2]:mb-3 max-[960.01px]:grid-cols-1">
         {teams.map((team) => (
           <section key={team}>
             <h2>{codeName(t, 'team', team)}</h2>
-            <div className="review-stack">
+            <div data-ui="review-stack" className="grid grid-cols-1 gap-4 min-w-0">
               {s?.seats
                 .filter((p) => p.teamId === team)
                 .map((p) => (
@@ -112,7 +131,7 @@ export function LivePage() {
       )}
       {s?.phase === 'EndOfGame' && (
         <Card>
-          <CardContent className="actions">
+          <CardContent data-ui="actions" className="flex items-center gap-2">
             {s.matchKey ? (
               <Button
                 onClick={() =>
@@ -171,9 +190,15 @@ function SeatCard({
     retry: false,
   });
   return (
-    <Card className={`live-seat ${seat.current ? 'current-player' : ''}`}>
+    <Card
+      data-ui="live-seat"
+      data-current={seat.current}
+      className={
+        "data-[current=true]:border-s-3 data-[current=true]:border-s-primary [&_[data-slot='card-title']]:gap-1.5 [&_[data-slot='card-title']_>_button]:pl-0 [&_[data-slot='card-title']_>_button]:whitespace-normal [&_[data-slot='card-title']_>_button]:text-left"
+      }
+    >
       <CardHeader>
-        <CardTitle className="actions">
+        <CardTitle data-ui="actions" className="flex items-center gap-2">
           <GameEntityIcon
             kind="champion"
             id={seat.championId}
@@ -189,14 +214,17 @@ function SeatCard({
           {seat.current && <Badge variant="secondary">{t('common.current')}</Badge>}
           {seat.player && <FavoriteButton playerKey={seat.player.playerKey} />}
         </CardTitle>
-        <div className="meta-line">
-          <strong>{championName(t, seat.championId)}</strong>
+        <div className="flex items-center gap-2.5 text-[12px] text-muted-foreground mt-[5px]">
+          <ChampionNotebookLink championId={seat.championId} />
           <span>{positionName(t, seat.position)}</span>
           {!!seat.spellIds.length && (
             <span>
               {t('scouting.spells')}:{' '}
               {seat.spellIds.map((id) => (
-                <span className="inline-entity" key={id}>
+                <span
+                  className="inline-flex items-center gap-1.5 me-2.5 align-middle [&_[data-slot='avatar']]:w-6 [&_[data-slot='avatar']]:h-6"
+                  key={id}
+                >
                   <GameEntityIcon kind="spell" id={id} label={spellName(t, id)} />
                   {spellName(t, id)}
                 </span>
@@ -207,9 +235,9 @@ function SeatCard({
       </CardHeader>
       <CardContent>
         <ErrorNotice error={profile.error} />
-        {profile.isFetching && !profile.data && <Skeleton className="profile-skeleton" />}
+        {profile.isFetching && !profile.data && <Skeleton className="h-[100px]" />}
         {profile.data && (
-          <div className="profile-stats">
+          <div data-ui="profile-stats" className="grid gap-2 text-[13px]">
             <p>
               {t('scouting.currentRank')}:{' '}
               {profile.data.ranks
@@ -229,7 +257,10 @@ function SeatCard({
             <p>
               {t('scouting.commonChampions')}:{' '}
               {profile.data.champions.slice(0, 3).map((champion) => (
-                <span className="inline-entity" key={champion.championId}>
+                <span
+                  className="inline-flex items-center gap-1.5 me-2.5 align-middle [&_[data-slot='avatar']]:w-6 [&_[data-slot='avatar']]:h-6"
+                  key={champion.championId}
+                >
                   <GameEntityIcon
                     kind="champion"
                     id={champion.championId}
@@ -244,10 +275,28 @@ function SeatCard({
               <MetricValue metric={profile.data.championWinRate} ratio /> · KDA{' '}
               <MetricValue metric={profile.data.championKda} />
             </p>
-            <time className="help">{new Date(profile.data.collectedAt).toLocaleString()}</time>
+            <time className="text-muted-foreground text-[12px]">
+              {new Date(profile.data.collectedAt).toLocaleString()}
+            </time>
           </div>
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function ChampionNotebookLink({ championId }: { championId: number | null }) {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  return (
+    <Button
+      variant="link"
+      disabled={!championId}
+      onClick={() =>
+        void navigate({ to: '/notebooks', search: { champion: championId || undefined } })
+      }
+    >
+      {championName(t, championId)} · {t('notebooks.titlePage')}
+    </Button>
   );
 }

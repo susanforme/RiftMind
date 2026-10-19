@@ -55,6 +55,14 @@ export function RuntimeEffects() {
             'compare-events',
             'compare-candidates',
             'issues',
+            'notebooks',
+            'notebook-review-source',
+            'notebook-history',
+            'notebook-link',
+            'practices',
+            'personal-baseline',
+            'event-context',
+            'preparations',
           ])
             queryClient.removeQueries({ queryKey: [key] });
           useWorkspace.getState().markWorkspaceChanged();
@@ -78,6 +86,8 @@ export function RuntimeEffects() {
         runtime = e.runtimeId;
         epoch = e.workspaceEpoch;
         const keys: Record<string, string[]> = {
+          'notebooks-changed': ['notebooks', 'notebook-history', 'notebook-link', 'practices'],
+          'preparations-changed': ['preparations', 'matches', 'issues', 'goals', 'goal-progress'],
           'live-changed': ['live', 'players', 'favorites'],
           'players-changed': ['players', 'favorites'],
           'favorites-changed': ['favorites'],
@@ -93,6 +103,14 @@ export function RuntimeEffects() {
             'matches',
             'player-progress',
             'issues',
+            'notebooks',
+            'notebook-review-source',
+            'notebook-history',
+            'notebook-link',
+            'practices',
+            'personal-baseline',
+            'event-context',
+            'preparations',
             'champion-pool',
           ],
           'annotations-changed': ['annotations'],

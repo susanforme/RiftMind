@@ -3,7 +3,7 @@ const developmentMarkers =
   /synthetic-player|synthetic-rso|\/bridge\/|fixture-runtime|dev-toolbar|dev-banner|Preview data|预览数据|Test scenario|测试场景|riftmind-production-leak-sentinel/;
 for (const file of await readdir('dist/assets')) {
   if (
-    /^(?:fixture|scouting-fixture|review-fixture|harness|DevToolbar|champion-\d|item-\d|skill-\d|spell-\d)/.test(
+    /^(?:fixture|notebook-fixture|scouting-fixture|review-fixture|harness|DevToolbar|champion-\d|item-\d|skill-\d|spell-\d)/.test(
       file,
     )
   )

@@ -1,3 +1,8 @@
+import { SearchSelect } from '../../components/SearchSelect';
+import { MatchPreparationPanel } from '../matches/MatchPreparationPanel';
+import { PracticeChecklist } from '../champion-notes/PracticeChecklist';
+import { ChampionSelect } from '../../components/ChampionSelect';
+import { ChartBoundary } from '../review/ChartBoundary';
 import { GameEntityIcon } from '../../components/GameEntityIcon';
 import {
   groupName,
@@ -10,7 +15,7 @@ import {
 import { serverName } from '../../lib/server-name';
 import { RecurringIssuesPanel } from '../progress/RecurringIssuesPanel';
 import { Label } from '../../components/ui/label';
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
@@ -53,10 +58,12 @@ import {
 import { ErrorNotice } from '../../components/ErrorNotice';
 import type { GoalState, TrainingGoal, GoalMember } from '../../generated/contracts';
 import { numberText } from '../review/format';
+const GoalTrendChart = lazy(() => import('./GoalTrendChart'));
 export function ProgressPage() {
   const { t } = useTranslation();
   const search = progressRoute.useSearch();
   const navigate = useNavigate();
+  const [champion, setChampion] = useState<number>();
   const [queue, setQueue] = useState('all');
   const [position, setPosition] = useState('all');
   const [patch, setPatch] = useState('');
@@ -103,8 +110,14 @@ export function ProgressPage() {
   }
   const groups = [...new Set(progress.data?.points.map((p) => p.group))];
   return (
-    <div className="page progress-page">
-      <div className="page-heading">
+    <div
+      data-ui="page"
+      className="max-w-[1400px] pt-[30px] px-9 pb-[26px] m-auto max-[1150.01px]:p-[26px] max-[900.01px]:p-[22px] max-[650.01px]:py-[18px] max-[650.01px]:px-4 grid grid-cols-1 gap-6 min-w-0 [&_[data-ui~=page-heading]]:mb-0 [&_[data-ui~=page-heading]_p]:text-muted-foreground [&_[data-ui~=page-heading]_p]:text-[12px] [&_[data-ui~=page-heading]_p]:mt-1 [&_[data-ui~=page-heading]_p]:wrap-anywhere [&_[data-ui~=actions]]:flex-wrap [&_label]:grid [&_label]:gap-1.5 [&_label]:text-[12px] [&_[data-slot='card-description']]:max-w-[80ch]"
+    >
+      <div
+        data-ui="page-heading"
+        className="flex items-center justify-between gap-6 mb-7 max-[650.01px]:mb-[22px] max-[650.01px]:gap-2.5"
+      >
         <div>
           <h1>{t('review.progress')}</h1>
         </div>
@@ -116,7 +129,7 @@ export function ProgressPage() {
         </Button>
       </div>
       <Card>
-        <CardContent className="progress-filters">
+        <CardContent className="[&_label]:grid [&_label]:gap-1.5 [&_label]:min-w-0 [&_label_>_span]:text-muted-foreground [&_label_>_span]:text-[12px] grid grid-cols-[repeat(auto-fit,_minmax(140px,_1fr))] gap-3 pt-5">
           <Label>
             <span>{t('matches.openPlayer')}</span>
             <Select
@@ -200,18 +213,28 @@ export function ProgressPage() {
       {player && epoch && (
         <RecurringIssuesPanel key={`${epoch}:${player}`} player={player} epoch={epoch} />
       )}
+      {epoch && (
+        <>
+          <ChampionSelect value={champion} onValueChange={setChampion} />
+          <PracticeChecklist championId={champion} epoch={epoch} entries={[]} />
+        </>
+      )}
       <ErrorNotice error={goals.error || progress.error || players.error} />
       <Card>
         <CardHeader>
           <CardTitle>{t('review.goals')}</CardTitle>
         </CardHeader>
-        <CardContent className="review-stack">
+        <CardContent data-ui="review-stack" className="grid grid-cols-1 gap-4 min-w-0">
           {!goals.data?.items.length && <p>{t('review.noGoals')}</p>}
-          {goals.data?.items.map((goal) => (
-            <GoalCard key={`${goal.id}:${goal.revision}`} goal={goal} epoch={epoch} open={open} />
-          ))}
+          {goals.data?.items
+            .filter(
+              (goal) => !champion || !goal.scope.championId || goal.scope.championId === champion,
+            )
+            .map((goal) => (
+              <GoalCard key={`${goal.id}:${goal.revision}`} goal={goal} epoch={epoch} open={open} />
+            ))}
           {!!goals.data?.items.length && (
-            <div className="actions">
+            <div data-ui="actions" className="flex items-center gap-2">
               {cursor != null && (
                 <Button variant="outline" onClick={() => setCursor(null)}>
                   {t('matches.first')}
@@ -242,8 +265,10 @@ export function ProgressPage() {
             </CardDescription>
           )}
         </CardHeader>
-        <CardContent className="review-stack">
-          {!!groups.length && <p className="help">{t('review.comparability')}</p>}
+        <CardContent data-ui="review-stack" className="grid grid-cols-1 gap-4 min-w-0">
+          {!!groups.length && (
+            <p className="text-muted-foreground text-[12px]">{t('review.comparability')}</p>
+          )}
           {Object.entries(progress.data?.excluded || {}).map(([reason, count]) => (
             <p key={reason}>
               {t(`review.reason_${reason}`, { defaultValue: t('labels.unknownReason') })}: {count}
@@ -300,6 +325,14 @@ function GoalCard({
 }) {
   const { t } = useTranslation();
   const [confirm, setConfirm] = useState<GoalState | null>(null);
+  const [scope, setScope] = useState(goal.scope);
+  const updateScope = (patch: Partial<typeof scope>) =>
+    setScope({ ...scope, ...patch, origin: undefined });
+  const scopeChanged =
+    scope.championId !== goal.scope.championId ||
+    scope.position !== goal.scope.position ||
+    scope.patch !== goal.scope.patch ||
+    scope.direction !== goal.scope.direction;
   const [newTarget, setNewTarget] = useState(String(goal.scope.target));
   const [revision, setRevision] = useState<number | null>(null);
   const progress = useQuery({
@@ -316,7 +349,7 @@ function GoalCard({
         workspaceEpoch: epoch!,
         id: goal.id,
         expectedRevision: goal.revision,
-        scope: { ...goal.scope, target: Number(newTarget) },
+        scope: { ...scope, target: Number(newTarget) },
         state,
       }),
     onSuccess: () => {
@@ -329,12 +362,12 @@ function GoalCard({
     onSuccess: refresh,
   });
   const e = progress.data?.evaluation;
-  const avg =
-    goal.baseline.length >= 5
-      ? goal.baseline.reduce((sum, x) => sum + x.value, 0) / goal.baseline.length
-      : null;
+  const avg = progress.data?.frozenBaseline;
   return (
-    <Card className="goal-card">
+    <Card
+      data-ui="goal-card"
+      className="bg-background border-0 [&_[data-slot='card-content']_>_p]:text-[13px] [&_[data-slot='card-content']_>_p]:leading-[1.8] [&_[data-ui~=actions]_[data-slot=button]]:whitespace-normal [&_[data-ui~=actions]_[data-slot=button]]:h-auto [&_[data-ui~=actions]_[data-slot=button]]:min-h-7 [&_[data-ui~=actions]_[data-slot=button]]:max-w-full [&_[data-ui~=actions]_[data-slot=button]]:wrap-anywhere [&_[data-ui~=actions]_[data-slot=button]]:text-left"
+    >
       <CardHeader>
         <CardTitle>
           {t(`review.metric_${goal.scope.metricId}`)}{' '}
@@ -346,8 +379,23 @@ function GoalCard({
           {goal.scope.target}
         </CardDescription>
       </CardHeader>
-      <CardContent className="review-stack">
+      <CardContent data-ui="review-stack" className="grid grid-cols-1 gap-4 min-w-0">
         <ErrorNotice error={progress.error || save.error || evaluate.error} />
+        {goal.scope.championId && (
+          <span className="inline-flex items-center gap-1.5 me-2.5 align-middle [&_[data-slot='avatar']]:w-6 [&_[data-slot='avatar']]:h-6">
+            <GameEntityIcon
+              kind="champion"
+              id={goal.scope.championId}
+              label={championName(t, goal.scope.championId)}
+            />
+            {championName(t, goal.scope.championId)}
+          </span>
+        )}
+        <ChartBoundary fallback={t('review.chartFailed')}>
+          <Suspense fallback={null}>
+            <GoalTrendChart goal={goal} evaluation={e} onOpen={open} />
+          </Suspense>
+        </ChartBoundary>
         <p>
           {t('review.baseline')}: {numberText(avg)} ({goal.baseline.length}/10) ·{' '}
           {t('review.current')}: {numberText(e?.current)} ({e?.members.length || 0}/10) · Δ{' '}
@@ -359,10 +407,10 @@ function GoalCard({
             : t(e.achieved ? 'review.achieved' : 'review.notAchieved')}
         </p>
         {goal.scope.origin && (
-          <p className="help">
+          <p className="text-muted-foreground text-[12px]">
             {t(`scouting.${goal.scope.origin.ruleId}`)} · {t('matches.champion')}{' '}
             {goal.scope.origin.filter.championId ? (
-              <span className="inline-entity">
+              <span className="inline-flex items-center gap-1.5 me-2.5 align-middle [&_[data-slot='avatar']]:w-6 [&_[data-slot='avatar']]:h-6">
                 <GameEntityIcon
                   kind="champion"
                   id={goal.scope.origin.filter.championId}
@@ -376,10 +424,10 @@ function GoalCard({
             · {goal.scope.origin.filter.from || '—'} – {goal.scope.origin.filter.to || '—'}
           </p>
         )}
-        <p className="help">
+        <p className="text-muted-foreground text-[12px]">
           {t('review.windowSince', { at: new Date(goal.windowStart).toLocaleString() })}
         </p>
-        <div className="actions">
+        <div data-ui="actions" className="flex items-center gap-2">
           {(['active', 'paused', 'completed', 'abandoned'] as GoalState[])
             .filter((state) => state !== goal.state)
             .map((state) => (
@@ -402,6 +450,38 @@ function GoalCard({
             {t('review.evaluate')}
           </Button>
         </div>
+        <div data-ui="actions" className="flex items-center gap-2">
+          <ChampionSelect
+            value={scope.championId}
+            onValueChange={(championId) => updateScope({ championId })}
+          />
+          <SearchSelect
+            label={t('review.position')}
+            value={scope.position}
+            options={['TOP', 'JUNGLE', 'MIDDLE', 'BOTTOM', 'UTILITY'].map((position) => ({
+              value: position,
+              label: positionName(t, position),
+            }))}
+            onValueChange={(position) => updateScope({ position })}
+          />
+          <Label>
+            {t('matches.version')}
+            <Input
+              aria-label={t('training.goalPatch')}
+              value={scope.patch}
+              onChange={(event) => updateScope({ patch: event.target.value })}
+            />
+          </Label>
+          <SearchSelect
+            label={t('training.direction')}
+            value={scope.direction}
+            options={['increase', 'decrease'].map((direction) => ({
+              value: direction,
+              label: t(`training.${direction}`),
+            }))}
+            onValueChange={(direction) => updateScope({ direction })}
+          />
+        </div>
         <Label>
           {t('review.changeTarget')}
           <Input
@@ -417,7 +497,7 @@ function GoalCard({
           variant="outline"
           size="sm"
           disabled={
-            newTarget === String(goal.scope.target) ||
+            (!scopeChanged && newTarget === String(goal.scope.target)) ||
             !newTarget ||
             !Number.isFinite(Number(newTarget)) ||
             Number(newTarget) < 0
@@ -426,7 +506,7 @@ function GoalCard({
         >
           {t('review.newGoalVersion')}
         </Button>
-        <div className="actions">
+        <div data-ui="actions" className="flex items-center gap-2">
           <Button
             variant="ghost"
             disabled={revision == null && !e}
@@ -441,8 +521,36 @@ function GoalCard({
           )}
           {e && <Badge variant="outline">{t('review.revision', { n: e.revision })}</Badge>}
         </div>
-        <p className="help">{t('review.baselineMembers')}</p>
-        <div className="actions">
+        <details>
+          <summary>{t('training.numericTable')}</summary>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t('review.match')}</TableHead>
+                <TableHead>{t('training.selection')}</TableHead>
+                <TableHead>{t(`review.metric_${goal.scope.metricId}`)}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {[
+                ...goal.baseline.map((member) => ({ member, group: 'baseline' })),
+                ...(e?.members || []).map((member) => ({ member, group: 'current' })),
+              ].map(({ member, group }) => (
+                <TableRow key={`${group}:${member.matchKey}`}>
+                  <TableCell>
+                    <Button variant="link" onClick={() => open(member)}>
+                      {matchName(t, member.matchKey)}
+                    </Button>
+                  </TableCell>
+                  <TableCell>{t(`review.${group}`)}</TableCell>
+                  <TableCell>{numberText(member.value)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </details>
+        <p className="text-muted-foreground text-[12px]">{t('review.baselineMembers')}</p>
+        <div data-ui="actions" className="flex items-center gap-2">
           {goal.baseline.map((m) => (
             <Button variant="link" size="sm" key={m.matchKey} onClick={() => open(m)}>
               {matchName(t, m.matchKey)} · {numberText(m.value)}
@@ -455,8 +563,32 @@ function GoalCard({
             {t(`review.reason_${reason}`, { defaultValue: t('labels.unknownReason') })}: {count}
           </small>
         ))}
-        <p className="help">{t('review.currentMembers')}</p>
-        <div className="actions">
+        {progress.data?.availability && (
+          <>
+            <p>
+              {t('training.availableSamples', {
+                details: progress.data.availability.missingDetails.length,
+                reports: progress.data.availability.missingReports.length,
+                excluded: progress.data.availability.notApplicable,
+                mismatch: progress.data.availability.versionMismatch,
+              })}
+            </p>
+            {epoch && (
+              <MatchPreparationPanel
+                epoch={epoch}
+                player={goal.scope.playerKey}
+                selected={[
+                  ...progress.data.availability.missingDetails,
+                  ...progress.data.availability.missingReports,
+                ]
+                  .slice(0, 20)
+                  .map((match) => match.matchKey)}
+              />
+            )}
+          </>
+        )}
+        <p className="text-muted-foreground text-[12px]">{t('review.currentMembers')}</p>
+        <div data-ui="actions" className="flex items-center gap-2">
           {e?.members.map((m) => (
             <Button variant="link" size="sm" key={m.matchKey} onClick={() => open(m)}>
               {matchName(t, m.matchKey)} · {numberText(m.value)}

@@ -1,3 +1,4 @@
+import { useNotebookDrafts } from '../../features/champion-notes/notebook-drafts';
 import { matchName, playerName } from '../../lib/display-names';
 import { serverName } from '../../lib/server-name';
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
@@ -61,6 +62,8 @@ const colorModeCycle: Record<ColorMode, { icon: typeof Sun; next: ColorMode }> =
   dark: { icon: Moon, next: 'system' },
   system: { icon: Monitor, next: 'light' },
 };
+const sidebarNavigationClassName =
+  'justify-start w-full h-10 py-2 px-2.5 gap-2.5 data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground [[data-collapsed=true]_&]:p-2 [[data-collapsed=true]_&]:justify-center forced-colors:data-[selected=true]:border forced-colors:data-[selected=true]:border-[ButtonText]';
 const safeSearch = (tab: WorkspaceTab): Search => {
   try {
     return validateSearch(JSON.parse(tab.search));
@@ -69,6 +72,13 @@ const safeSearch = (tab: WorkspaceTab): Search => {
   }
 };
 export function AppShell() {
+  const notebookDrafts = useNotebookDrafts((state) => state.drafts);
+  useEffect(() => {
+    if (!Object.keys(notebookDrafts).length) return;
+    const protect = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener('beforeunload', protect);
+    return () => window.removeEventListener('beforeunload', protect);
+  }, [notebookDrafts]);
   const workspaceChanged = useWorkspace((s) => s.workspaceChanged);
   const previousDrafts = useWorkspace((s) => s.reviewDrafts);
   const [showPreviousDrafts, setShowPreviousDrafts] = useState(false);
@@ -81,20 +91,22 @@ export function AppShell() {
   const routePlayer = (location.search as Search).player;
   const activeId = reviewMatch
     ? `review:${routePlayer || 'unknown'}:${reviewMatch}`
-    : location.pathname === '/live'
-      ? 'live'
-      : location.pathname === '/champions'
-        ? `champions:${routePlayer || 'current'}`
-        : location.pathname === '/compare'
-          ? (location.search as Search).tab || 'compare'
-          : location.pathname === '/progress'
-            ? `progress:${routePlayer || 'current'}`
-            : location.pathname === '/settings'
-              ? 'settings'
-              : (location.search as Search).tab ||
-                ((location.search as Search).player
-                  ? `matches:${(location.search as Search).player}`
-                  : 'matches');
+    : location.pathname === '/notebooks'
+      ? `notebooks:${(location.search as Search).champion || 64}`
+      : location.pathname === '/live'
+        ? 'live'
+        : location.pathname === '/champions'
+          ? `champions:${routePlayer || 'current'}`
+          : location.pathname === '/compare'
+            ? (location.search as Search).tab || 'compare'
+            : location.pathname === '/progress'
+              ? `progress:${routePlayer || 'current'}`
+              : location.pathname === '/settings'
+                ? 'settings'
+                : (location.search as Search).tab ||
+                  ((location.search as Search).player
+                    ? `matches:${(location.search as Search).player}`
+                    : 'matches');
   const app = useQuery({
     queryKey: ['app'],
     queryFn: () => transport.call('get_app_state', {}),
@@ -156,9 +168,14 @@ export function AppShell() {
     },
     onSuccess: (value) => queryClient.setQueryData(['settings'], value),
   });
+  const workspaceReady = !!settings.data && !!players.data;
   function activate(tab: WorkspaceTab) {
     open(tab);
     const search = safeSearch(tab);
+    if (tab.kind === 'notebooks') {
+      void navigate({ to: '/notebooks', search });
+      return;
+    }
     if (tab.kind === 'live' || tab.kind === 'champions' || tab.kind === 'compare') {
       void navigate({
         to: tab.kind === 'live' ? '/live' : tab.kind === 'champions' ? '/champions' : '/compare',
@@ -203,7 +220,7 @@ export function AppShell() {
     }
   });
   useEffect(() => {
-    if (!initialized.current) return;
+    if (!workspaceReady || !initialized.current) return;
     const search = location.search as Search;
     if (
       activeId.startsWith('matches:') &&
@@ -221,7 +238,7 @@ export function AppShell() {
       return;
     }
     const routeKind = location.pathname.slice(1);
-    const tab: WorkspaceTab = ['live', 'champions', 'compare'].includes(routeKind)
+    const tab: WorkspaceTab = ['live', 'champions', 'compare', 'notebooks'].includes(routeKind)
       ? {
           id: activeId,
           kind: routeKind,
@@ -253,7 +270,16 @@ export function AppShell() {
     if (!tabs.some((item) => item.id === tab.id)) open(tab);
     else if (tabs.find((item) => item.id === tab.id)?.search !== tab.search)
       setTabs(tabs.map((item) => (item.id === tab.id ? tab : item)));
-  }, [activeId, location.href, tabs, open, setTabs, location.pathname, location.search]);
+  }, [
+    activeId,
+    location.href,
+    tabs,
+    open,
+    setTabs,
+    location.pathname,
+    location.search,
+    workspaceReady,
+  ]);
   useEffect(() => {
     const p = connection.data?.player;
     if (!p || !initialized.current || previousPlayer.current === p.playerKey) return;
@@ -355,14 +381,14 @@ export function AppShell() {
   const collapsed = settings.data?.sidebarCollapsed;
   if (app.data?.phase === 'recovery_required')
     return (
-      <div className="startup-shell">
+      <div className="grid grid-rows-[48px_minmax(0,_1fr)] h-full">
         <TitleBar />
-        <div className="startup recovery">
+        <div className="min-h-0 overflow-auto p-6 flex items-center justify-center flex-col gap-4 text-primary [&_p]:text-muted-foreground [&_p]:max-w-[470px] [&_p]:text-center">
           <Swords aria-hidden="true" size={40} />
           <h1>{t('settings.recoveryTitle')}</h1>
           <p>{t('settings.recoveryHelp')}</p>
           <ErrorNotice error={recovery.error} />
-          <div className="actions">
+          <div data-ui="actions" className="flex items-center gap-2">
             <Button disabled={recovery.isPending} onClick={() => recovery.mutate('restore_backup')}>
               {t('settings.restoreBackup')}
             </Button>
@@ -379,9 +405,9 @@ export function AppShell() {
     );
   if (!settings.data)
     return (
-      <div className="startup-shell">
+      <div className="grid grid-rows-[48px_minmax(0,_1fr)] h-full">
         <TitleBar />
-        <div className="startup">
+        <div className="min-h-0 overflow-auto p-6 flex items-center justify-center flex-col gap-4 text-primary [&_p]:text-muted-foreground">
           <Swords aria-hidden="true" size={40} />
           <h1>RiftMind</h1>
           <p>{t('common.loading')}</p>
@@ -401,7 +427,7 @@ export function AppShell() {
   return (
     <>
       <a
-        className="skip-link"
+        className="fixed top-2 left-2 z-100 py-2 px-3 bg-card text-foreground border-2 border-ring rounded-md -translate-y-[150%] focus:translate-y-0"
         href="#main-content"
         onClick={(e) => {
           e.preventDefault();
@@ -411,13 +437,17 @@ export function AppShell() {
         {t('common.skipToContent')}
       </a>
       <RuntimeEffects />
-      <div className={`app-shell ${collapsed ? 'is-collapsed' : ''}`}>
+      <div
+        data-collapsed={collapsed}
+        className="grid grid-cols-[176px_minmax(0,_1fr)] grid-rows-[48px_minmax(0,_1fr)] h-full data-[collapsed=true]:grid-cols-[60px_minmax(0,_1fr)] max-[900.01px]:grid-cols-[60px_minmax(0,_1fr)]"
+      >
         <TitleBar
           sidebarToggle={
             <Button
               variant="ghost"
               size="icon"
-              className="sidebar-toggle"
+              data-ui="sidebar-toggle"
+              className="w-10 h-10 shrink-0 pointer-events-auto"
               aria-label={t(collapsed ? 'common.expand' : 'common.collapse')}
               aria-expanded={!collapsed}
               aria-controls="app-sidebar"
@@ -442,24 +472,31 @@ export function AppShell() {
               if (tab) activate(tab);
             }}
           >
-            <TabsList className="tabs" aria-label={t('common.workspace')}>
+            <TabsList
+              className="flex justify-start gap-[3px] h-full p-0 bg-transparent rounded-none overflow-x-auto min-w-0 items-stretch [scrollbar-width:none]"
+              aria-label={t('common.workspace')}
+            >
               {tabs.map((tab, index) => {
                 const player = players.data?.find((p) => p.playerKey === tab.playerKey);
-                const title = ['live', 'champions', 'compare'].includes(tab.kind)
-                  ? t(`scouting.${tab.kind}`)
-                  : tab.kind === 'settings'
-                    ? t('common.settings')
-                    : tab.kind === 'progress'
-                      ? t('review.progress')
-                      : tab.kind === 'review'
-                        ? `${t('review.title')} · ${matchName(t, safeSearch(tab).match || '')}`
-                        : player
-                          ? `${playerName(t, player)} · ${serverName(t, player.serverId)}`
-                          : t('common.defaultTab');
+                const title =
+                  tab.kind === 'notebooks'
+                    ? t('notebooks.titlePage')
+                    : ['live', 'champions', 'compare'].includes(tab.kind)
+                      ? t(`scouting.${tab.kind}`)
+                      : tab.kind === 'settings'
+                        ? t('common.settings')
+                        : tab.kind === 'progress'
+                          ? t('review.progress')
+                          : tab.kind === 'review'
+                            ? `${t('review.title')} · ${matchName(t, safeSearch(tab).match || '')}`
+                            : player
+                              ? `${playerName(t, player)} · ${serverName(t, player.serverId)}`
+                              : t('common.defaultTab');
                 return (
                   <div
                     key={tab.id}
-                    className={`work-tab ${activeId === tab.id ? 'active' : ''}`}
+                    data-active={activeId === tab.id}
+                    className="flex items-center min-w-[125px] max-w-[285px] text-muted-foreground rounded-[6px_6px_0_0] border border-transparent border-b-0 hover:bg-muted data-[active=true]:text-foreground data-[active=true]:bg-background data-[active=true]:border-border [&_>_button[role=tab]]:min-w-0 [&_>_button[role=tab]]:flex [&_>_button[role=tab]]:flex-1 [&_>_button[role=tab]]:gap-[7px] [&_>_button[role=tab]]:border-0 [&_>_button[role=tab]]:bg-transparent [&_>_button[role=tab]]:shadow-none [&_>_button[role=tab]]:text-[12px] [&_>_button[role=tab]]:pt-2 [&_>_button[role=tab]]:pr-1.5 [&_>_button[role=tab]]:pb-2 [&_>_button[role=tab]]:pl-3 [&_>_button[role=tab]_>_span:first-of-type]:overflow-hidden [&_>_button[role=tab]_>_span:first-of-type]:text-ellipsis [&_>_button[role=tab]_>_span:first-of-type]:whitespace-nowrap [&_svg]:shrink-0 forced-colors:data-[active=true]:border forced-colors:data-[active=true]:border-[ButtonText]"
                     draggable
                     onDragStart={() => {
                       drag.current = tab.id;
@@ -483,7 +520,7 @@ export function AppShell() {
                       )}
                       <span>{title}</span>
                       {tab.kind === 'settings' && dirty && (
-                        <span className="dirty-dot" title={t('common.unsaved')}>
+                        <span className="text-(--warning)" title={t('common.unsaved')}>
                           •
                         </span>
                       )}
@@ -492,7 +529,7 @@ export function AppShell() {
                       <DropdownMenuTrigger asChild>
                         <Button
                           variant="ghost"
-                          className="tab-menu"
+                          className="w-[26px] h-7 shrink-0 text-muted-foreground mr-[3px]"
                           size="icon"
                           aria-label={t('common.tabActions')}
                         >
@@ -534,7 +571,7 @@ export function AppShell() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="close-tab"
+                      className="w-[26px] h-7 shrink-0 text-muted-foreground mr-[3px]"
                       title={t('common.close')}
                       aria-label={`${t('common.close')} ${title}`}
                       onClick={() => closeSet([tab.id])}
@@ -547,13 +584,43 @@ export function AppShell() {
             </TabsList>
           </Tabs>
         </TitleBar>
-        <aside className="sidebar" id="app-sidebar">
+        <aside
+          className="row-start-2 bg-(--sidebar) border-r border-r-border flex flex-col py-3 px-2.5 min-w-0 [&_nav]:flex-1 max-[900.01px]:[&_[data-ui~=nav-item]]:p-2 max-[900.01px]:[&_[data-ui~=nav-item]]:justify-center [&_[data-ui~=sidebar-label]]:min-w-0 [&_[data-ui~=sidebar-label]]:overflow-hidden [&_[data-ui~=sidebar-label]]:text-ellipsis [&_[data-ui~=sidebar-label]]:whitespace-nowrap"
+          id="app-sidebar"
+        >
           <nav aria-label={t('common.matches')}>
+            <Button
+              variant="ghost"
+              data-ui="nav-item"
+              data-selected={location.pathname === '/notebooks'}
+              className={sidebarNavigationClassName}
+              aria-label={t('notebooks.titlePage')}
+              aria-current={location.pathname === '/notebooks' ? 'page' : undefined}
+              title={t('notebooks.titlePage')}
+              onClick={() =>
+                activate({
+                  id: 'notebooks:64',
+                  kind: 'notebooks',
+                  playerKey: null,
+                  search: '{"champion":64}',
+                })
+              }
+            >
+              <UsersRound aria-hidden="true" size={19} />
+              <span
+                data-ui="sidebar-label"
+                className="[[data-collapsed=true]_&]:hidden max-[900.01px]:hidden"
+              >
+                {t('notebooks.titlePage')}
+              </span>
+            </Button>
             {(['live', 'champions'] as const).map((kind) => (
               <Button
                 key={kind}
                 variant="ghost"
-                className={`nav-item ${location.pathname === `/${kind}` ? 'selected' : ''}`}
+                data-ui="nav-item"
+                data-selected={location.pathname === `/${kind}`}
+                className={sidebarNavigationClassName}
                 aria-label={t(`scouting.${kind}`)}
                 aria-current={location.pathname === `/${kind}` ? 'page' : undefined}
                 title={t(`scouting.${kind}`)}
@@ -574,12 +641,19 @@ export function AppShell() {
                 ) : (
                   <UsersRound aria-hidden="true" size={19} />
                 )}
-                <span className="sidebar-label">{t(`scouting.${kind}`)}</span>
+                <span
+                  data-ui="sidebar-label"
+                  className="[[data-collapsed=true]_&]:hidden max-[900.01px]:hidden"
+                >
+                  {t(`scouting.${kind}`)}
+                </span>
               </Button>
             ))}
             <Button
               variant="ghost"
-              className={`nav-item ${location.pathname === '/matches' ? 'selected' : ''}`}
+              data-ui="nav-item"
+              data-selected={location.pathname === '/matches'}
+              className={sidebarNavigationClassName}
               aria-label={t('common.matches')}
               aria-current={location.pathname === '/matches' ? 'page' : undefined}
               title={t('common.matches')}
@@ -596,11 +670,18 @@ export function AppShell() {
               }
             >
               <History aria-hidden="true" size={19} />
-              <span className="sidebar-label">{t('common.matches')}</span>
+              <span
+                data-ui="sidebar-label"
+                className="[[data-collapsed=true]_&]:hidden max-[900.01px]:hidden"
+              >
+                {t('common.matches')}
+              </span>
             </Button>
             <Button
               variant="ghost"
-              className={`nav-item ${location.pathname === '/progress' ? 'selected' : ''}`}
+              data-ui="nav-item"
+              data-selected={location.pathname === '/progress'}
+              className={sidebarNavigationClassName}
               aria-label={t('review.progress')}
               aria-current={location.pathname === '/progress' ? 'page' : undefined}
               title={t('review.progress')}
@@ -614,12 +695,17 @@ export function AppShell() {
               }
             >
               <ChartNoAxesCombined aria-hidden="true" size={19} />
-              <span className="sidebar-label">{t('review.progress')}</span>
+              <span
+                data-ui="sidebar-label"
+                className="[[data-collapsed=true]_&]:hidden max-[900.01px]:hidden"
+              >
+                {t('review.progress')}
+              </span>
             </Button>
           </nav>
-          <div className="sidebar-bottom">
+          <div className="flex flex-col gap-[5px]">
             <div
-              className="connection-card"
+              className="flex gap-[9px] items-center py-4 px-2 border-t border-t-border text-muted-foreground [&_>_svg]:shrink-0 [&_strong]:block [&_strong]:text-[12px] [&_strong]:font-medium [&_small]:block [&_small]:text-[10px] [&_small]:max-w-28 [&_small]:overflow-hidden [&_small]:text-ellipsis [[data-collapsed=true]_&]:justify-center [[data-collapsed=true]_&]:py-3.5 [[data-collapsed=true]_&]:px-0 max-[900.01px]:justify-center max-[900.01px]:py-3.5 max-[900.01px]:px-0"
               title={t(`connection.${connection.data?.phase || 'disconnected'}`)}
             >
               {connection.data?.phase === 'connected' ? (
@@ -627,29 +713,42 @@ export function AppShell() {
               ) : (
                 <WifiOff aria-hidden="true" size={17} />
               )}
-              <div className="sidebar-label">
+              <div
+                data-ui="sidebar-label"
+                className="[[data-collapsed=true]_&]:hidden max-[900.01px]:hidden"
+              >
                 <strong>{t(`connection.${connection.data?.phase || 'disconnected'}`)}</strong>
                 <small>{serverName(t, connection.data?.identification?.serverId)}</small>
               </div>
             </div>
-            <div className="sidebar-actions">
+            <div
+              data-ui="sidebar-actions"
+              className="flex items-center gap-1 [&_[data-ui~=nav-item]]:flex-1 [&_[data-ui~=nav-item]]:min-w-0 [[data-collapsed=true]_&]:flex-col [[data-collapsed=true]_&_[data-ui~=nav-item]]:flex-none"
+            >
               <Button
                 variant="ghost"
                 aria-label={t('common.settings')}
                 aria-current={location.pathname === '/settings' ? 'page' : undefined}
                 title={t('common.settings')}
-                className={`nav-item ${location.pathname === '/settings' ? 'selected' : ''}`}
+                data-ui="nav-item"
+                data-selected={location.pathname === '/settings'}
+                className={sidebarNavigationClassName}
                 onClick={() =>
                   activate({ id: 'settings', kind: 'settings', playerKey: null, search: '{}' })
                 }
               >
                 <Settings2 aria-hidden="true" size={19} />
-                <span className="sidebar-label">{t('common.settings')}</span>
+                <span
+                  data-ui="sidebar-label"
+                  className="[[data-collapsed=true]_&]:hidden max-[900.01px]:hidden"
+                >
+                  {t('common.settings')}
+                </span>
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                className="theme-toggle"
+                className="w-9 h-10 shrink-0 text-muted-foreground"
                 aria-label={colorModeLabel}
                 title={colorModeLabel}
                 aria-disabled={save.isPending}
@@ -662,13 +761,13 @@ export function AppShell() {
             </div>
           </div>
         </aside>
-        <div className="workspace">
+        <div className="flex flex-col min-h-0 min-w-0">
           {DevToolbar && transport.mode !== 'desktop' && (
             <Suspense fallback={null}>
               <DevToolbar />
             </Suspense>
           )}
-          <div className="shell-notices">
+          <div className="empty:hidden">
             <ErrorNotice error={save.error} />
             {workspaceChanged && (
               <Alert>
@@ -682,7 +781,8 @@ export function AppShell() {
             )}
           </div>
           <main
-            className="main-content"
+            data-ui="main-content"
+            className="overflow-auto flex-1 min-h-0 scroll-pt-6"
             id="main-content"
             aria-labelledby={`workspace-${activeId}`}
             tabIndex={-1}
@@ -747,7 +847,7 @@ export function AppShell() {
             <DialogTitle>{t('review.previousDrafts')}</DialogTitle>
             <DialogDescription>{t('review.workspaceChanged')}</DialogDescription>
           </DialogHeader>
-          <div className="previous-drafts">
+          <div className="grid gap-4 max-h-[60vh] overflow-auto">
             {Object.entries(previousDrafts)
               .filter(([, d]) => d.epoch !== app.data?.workspaceEpoch)
               .map(([key, d]) => (

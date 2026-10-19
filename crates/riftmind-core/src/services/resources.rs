@@ -365,6 +365,142 @@ impl ResourceClient {
         Ok(value)
     }
 
+    pub async fn item_catalogue(
+        &self,
+        root: &Path,
+        query: ItemCatalogueQuery,
+    ) -> Result<ItemCatalogue> {
+        if !["zh-CN", "en-US"].contains(&query.locale.as_str())
+            || query.version.split('.').count() != 3
+        {
+            return Err(AppError::new(ErrorCode::InvalidInput));
+        }
+        patch(&query.version)?;
+        let language = if query.locale == "zh-CN" {
+            "zh_CN"
+        } else {
+            "en_US"
+        };
+        let key = format!("items-{}-{language}.json", query.version);
+        let flight = {
+            let mut flights = self.flights.lock().await;
+            if let Some(lock) = flights.get(&key).and_then(Weak::upgrade) {
+                lock
+            } else {
+                let lock = Arc::new(Mutex::new(()));
+                flights.insert(key.clone(), Arc::downgrade(&lock));
+                lock
+            }
+        };
+        let _flight = flight.lock().await;
+        let directory = root.join("catalogues");
+        reject_link(root).await?;
+        reject_link(&directory).await?;
+        tokio::fs::create_dir_all(&directory).await?;
+        let file = directory.join(&key);
+        reject_link(&file).await?;
+        let bytes = if let Ok(metadata) = tokio::fs::metadata(&file).await {
+            if metadata.len() > MAX_BYTES as u64 {
+                return Err(AppError::new(ErrorCode::InvalidInput));
+            }
+            tokio::fs::read(&file).await?
+        } else {
+            let _budget = self
+                .gate
+                .acquire()
+                .await
+                .map_err(|_| AppError::new(ErrorCode::Cancelled))?;
+            let url = if self.base.starts_with("http://127.0.0.1:") {
+                format!(
+                    "{}/catalogues/{}/{language}/item.json",
+                    self.base, query.version
+                )
+            } else {
+                format!(
+                    "https://ddragon.leagueoflegends.com/cdn/{}/data/{language}/item.json",
+                    query.version
+                )
+            };
+            let mut response = self
+                .client
+                .get(url)
+                .send()
+                .await
+                .map_err(|_| AppError::new(ErrorCode::NetworkUnavailable))?;
+            if !response.status().is_success() {
+                return Err(AppError::new(if response.status().as_u16() == 404 {
+                    ErrorCode::NotFound
+                } else {
+                    ErrorCode::NetworkUnavailable
+                }));
+            }
+            let mut bytes = Vec::new();
+            while let Some(chunk) = response
+                .chunk()
+                .await
+                .map_err(|_| AppError::new(ErrorCode::NetworkUnavailable))?
+            {
+                if bytes.len() + chunk.len() > MAX_BYTES {
+                    return Err(AppError::new(ErrorCode::InvalidInput));
+                }
+                bytes.extend(chunk);
+            }
+            let catalogue: Value = serde_json::from_slice(&bytes)?;
+            if catalogue["version"] != query.version || catalogue["data"].as_object().is_none() {
+                return Err(AppError::new(ErrorCode::DataIncomplete));
+            }
+            let temporary = directory.join(format!(".{}.part", uuid::Uuid::new_v4()));
+            let saved: Result<()> = async {
+                let mut output = tokio::fs::OpenOptions::new()
+                    .write(true)
+                    .create_new(true)
+                    .open(&temporary)
+                    .await?;
+                output.write_all(&bytes).await?;
+                output.sync_all().await?;
+                drop(output);
+                tokio::fs::rename(&temporary, &file).await?;
+                Ok(())
+            }
+            .await;
+            if saved.is_err() {
+                let _ = tokio::fs::remove_file(&temporary).await;
+            }
+            saved?;
+            bytes
+        };
+        let catalogue: Value = serde_json::from_slice(&bytes)?;
+        if catalogue["version"] != query.version {
+            return Err(AppError::new(ErrorCode::DataIncomplete));
+        }
+        let rows = catalogue["data"]
+            .as_object()
+            .ok_or(AppError::new(ErrorCode::DataIncomplete))?;
+        let items = rows
+            .iter()
+            .filter_map(|(id, row)| {
+                Some(CatalogueItem {
+                    id: id.parse().ok()?,
+                    name: row["name"].as_str()?.into(),
+                    maps: row["maps"]
+                        .as_object()?
+                        .iter()
+                        .filter(|(_, enabled)| enabled.as_bool() == Some(true))
+                        .filter_map(|(map, _)| map.parse().ok())
+                        .collect(),
+                    purchasable: row["gold"]["purchasable"].as_bool() == Some(true)
+                        && row["inStore"].as_bool() != Some(false)
+                        && row["hideFromAll"].as_bool() != Some(true)
+                        && row["requiredChampion"].as_str().is_none_or(str::is_empty),
+                })
+            })
+            .collect();
+        Ok(ItemCatalogue {
+            version: query.version,
+            items,
+        })
+    }
+
     pub async fn resolve(
         &self,
         pool: &SqlitePool,

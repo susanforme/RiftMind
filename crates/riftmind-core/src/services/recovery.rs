@@ -16,7 +16,7 @@ pub async fn validate_bundle(bytes: &[u8], candidate: &Path) -> Result<Settings>
                 .ok_or(AppError::new(ErrorCode::BackupInvalid))?,
         )
         .map_err(|_| AppError::new(ErrorCode::BackupInvalid))?;
-    if ![1, 2, 3].iter().any(|n| value["schemaVersion"] == *n)
+    if ![1, 2, 3, 4, 5].iter().any(|n| value["schemaVersion"] == *n)
         || value["sha256"] != storage::hash(&db)
     {
         return Err(AppError::new(ErrorCode::BackupInvalid));
@@ -37,7 +37,7 @@ pub async fn validate_bundle(bytes: &[u8], candidate: &Path) -> Result<Settings>
         let version: i64 = sqlx::query_scalar("PRAGMA user_version")
             .fetch_one(&pool)
             .await?;
-        if !(1..=3).contains(&version) {
+        if !(1..=5).contains(&version) {
             return Err(AppError::new(ErrorCode::BackupInvalid));
         }
         let check: String = sqlx::query_scalar("PRAGMA quick_check")
@@ -55,6 +55,10 @@ pub async fn validate_bundle(bytes: &[u8], candidate: &Path) -> Result<Settings>
             8
         } else if version == 2 {
             16
+        } else if version == 3 {
+            18
+        } else if version == 4 {
+            22
         } else {
             storage::TABLES.len()
         }]
@@ -71,7 +75,11 @@ pub async fn validate_bundle(bytes: &[u8], candidate: &Path) -> Result<Settings>
     outcome?;
     let upgraded = storage::open(candidate).await?;
     let evidence = storage::review::validate_business_evidence(&upgraded).await;
+    let notebooks = super::notebooks::validate_saved_notebooks(&upgraded).await;
+    let insights = super::review_insights::validate_saved_insights(&upgraded).await;
     upgraded.close().await;
+    insights.map_err(|_| AppError::new(ErrorCode::BackupInvalid))?;
+    notebooks.map_err(|_| AppError::new(ErrorCode::BackupInvalid))?;
     evidence.map_err(|_| AppError::new(ErrorCode::BackupInvalid))?;
     Ok(settings)
 }

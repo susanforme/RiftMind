@@ -13,7 +13,9 @@ export function MetricValue({ metric, ratio = false }: { metric: SampleMetric; r
         .join(', ')}
     >
       {numberText(metric.value, ratio ? 'ratio' : undefined)}{' '}
-      <small className="help">{t('scouting.n', { count: metric.samples })}</small>
+      <small className="text-muted-foreground text-[12px]">
+        {t('scouting.n', { count: metric.samples })}
+      </small>
     </span>
   );
 }

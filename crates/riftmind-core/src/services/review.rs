@@ -3,7 +3,7 @@ use crate::{domain::analysis, storage::review as db};
 use sqlx::Row;
 impl Service {
     pub(super) async fn resume_local_jobs(self: &Arc<Self>) -> Result<()> {
-        let rows:Vec<(String,String)>=sqlx::query_as("SELECT kind,request FROM jobs WHERE state='interrupted' AND cancel_requested=0 AND request IS NOT NULL AND kind IN ('generate_review','evaluate_goal') ORDER BY updated_at,id LIMIT 100").fetch_all(&self.pool).await?;
+        let rows:Vec<(String,String)>=sqlx::query_as("SELECT kind,request FROM jobs WHERE state='interrupted' AND cancel_requested=0 AND preparation_id IS NULL AND request IS NOT NULL AND kind IN ('generate_review','evaluate_goal') ORDER BY updated_at,id LIMIT 100").fetch_all(&self.pool).await?;
         for (kind, request) in rows {
             if kind == "generate_review" {
                 if let Ok(r) = serde_json::from_str(&request) {
@@ -24,7 +24,7 @@ impl Service {
             .as_ref()
             .map(|p| p.player_key.clone());
         if let Some(player) = player {
-            let rows:Vec<String>=sqlx::query_scalar("SELECT request FROM jobs WHERE player_key=? AND state='interrupted' AND cancel_requested=0 AND request IS NOT NULL AND kind='fetch_details' ORDER BY updated_at,id LIMIT 100").bind(player).fetch_all(&self.pool).await?;
+            let rows:Vec<String>=sqlx::query_scalar("SELECT request FROM jobs WHERE player_key=? AND state='interrupted' AND cancel_requested=0 AND preparation_id IS NULL AND request IS NOT NULL AND kind='fetch_details' ORDER BY updated_at,id LIMIT 100").bind(player).fetch_all(&self.pool).await?;
             for request in rows {
                 if let Ok(q) = serde_json::from_str(&request) {
                     let _ = self.start_details(q).await;
@@ -183,6 +183,7 @@ impl Service {
         player: &str,
         request: Value,
         epoch: &str,
+        preparation_id: Option<&str>,
     ) -> Result<Task> {
         if let Some(id) = sqlx::query_scalar::<_, String>(
             "SELECT id FROM jobs WHERE kind=? AND dedupe_key=? AND state IN ('queued','running')",
@@ -196,11 +197,31 @@ impl Service {
         }
         let interrupted:Option<String>=sqlx::query_scalar("SELECT id FROM jobs WHERE kind=? AND dedupe_key=? AND state='interrupted' AND cancel_requested=0 ORDER BY updated_at DESC LIMIT 1").bind(kind).bind(key).fetch_optional(&self.pool).await?;
         let id = interrupted.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
-        sqlx::query("INSERT INTO jobs(id,player_key,state,checkpoint,budget,session_epoch,updated_at,kind,dedupe_key,request,stage) VALUES(?,?,'queued',0,2,?,?,?,?,?,'queued') ON CONFLICT(id) DO UPDATE SET state='queued',session_epoch=excluded.session_epoch,error=NULL,request=excluded.request").bind(&id).bind(player).bind(epoch).bind(storage::now()).bind(kind).bind(key).bind(serde_json::to_string(&request)?).execute(&self.pool).await?;
+        sqlx::query("INSERT INTO jobs(id,player_key,state,checkpoint,budget,session_epoch,updated_at,kind,dedupe_key,request,stage,preparation_id) VALUES(?,?,'queued',0,2,?,?,?,?,?,'queued',?) ON CONFLICT(id) DO UPDATE SET state='queued',session_epoch=excluded.session_epoch,error=NULL,request=excluded.request").bind(&id).bind(player).bind(epoch).bind(storage::now()).bind(kind).bind(key).bind(serde_json::to_string(&request)?).bind(preparation_id).execute(&self.pool).await?;
         storage::task(&self.pool, &id).await
     }
     pub async fn start_details(self: &Arc<Self>, q: MatchRef) -> Result<Task> {
+        self.start_details_in_workspace(q, None, None, None).await
+    }
+    pub(super) async fn start_details_in_workspace(
+        self: &Arc<Self>,
+        q: MatchRef,
+        epoch: Option<&str>,
+        session: Option<&str>,
+        preparation_id: Option<&str>,
+    ) -> Result<Task> {
         let _workspace = self.maintenance.read().await;
+        if let Some(epoch) = epoch {
+            self.check_workspace(epoch).await?;
+        }
+        if session.is_some_and(|expected| {
+            !self
+                .connection
+                .try_read()
+                .is_ok_and(|connection| connection.session_epoch == expected)
+        }) {
+            return Err(AppError::new(ErrorCode::SessionChanged));
+        }
         self.ready().await?;
         let m = db::summary(&self.pool, &q).await?;
         let c = self.connection.read().await.clone();
@@ -260,6 +281,7 @@ impl Service {
                 &q.player_key,
                 serde_json::to_value(&q)?,
                 &c.session_epoch,
+                preparation_id,
             )
             .await?;
         sqlx::query("INSERT INTO detail_attempts VALUES(?,?,'pending','pending',NULL,NULL) ON CONFLICT(match_key,player_key) DO UPDATE SET summary_status='pending',timeline_status='pending',error=NULL").bind(&q.match_key).bind(&q.player_key).execute(&self.pool).await?;
@@ -336,6 +358,7 @@ impl Service {
             sqlx::query("UPDATE detail_attempts SET summary_status=?,timeline_status=?,error=NULL,retry_at=NULL WHERE match_key=? AND player_key=?").bind(ss).bind(ts).bind(&q.match_key).bind(&q.player_key).execute(&mut *tx).await?;
             self.finish_job_tx(&mut tx,&task,&i.id).await?;tx.commit().await?;Ok(i.id)
         }.await;
+        let _workspace = self.maintenance.read().await;
         if self.state.read().await.workspace_epoch != workspace_epoch {
             return;
         }
@@ -346,7 +369,14 @@ impl Service {
                 .and_then(|s| s.parse::<i64>().ok())
                 .unwrap_or(30)
                 .clamp(1, 3600);
-            let retry = (chrono::Utc::now() + chrono::Duration::seconds(seconds)).to_rfc3339();
+            let retry = if matches!(
+                e.code,
+                ErrorCode::Cancelled | ErrorCode::SessionChanged | ErrorCode::AppNotReady
+            ) {
+                None
+            } else {
+                Some((chrono::Utc::now() + chrono::Duration::seconds(seconds)).to_rfc3339())
+            };
             let state = if e.code == ErrorCode::EndpointUnsupported {
                 "unsupported"
             } else {
@@ -358,7 +388,18 @@ impl Service {
         self.emit("review-data-changed", Some(q.match_key), 0).await;
     }
     pub async fn start_review(self: &Arc<Self>, q: GenerateReview) -> Result<Task> {
+        self.start_review_in_workspace(q, None, None).await
+    }
+    pub(super) async fn start_review_in_workspace(
+        self: &Arc<Self>,
+        q: GenerateReview,
+        epoch: Option<&str>,
+        preparation_id: Option<&str>,
+    ) -> Result<Task> {
         let _workspace = self.maintenance.read().await;
+        if let Some(epoch) = epoch {
+            self.check_workspace(epoch).await?;
+        }
         self.ready().await?;
         let key = MatchRef {
             match_key: q.match_key.clone(),
@@ -385,6 +426,7 @@ impl Service {
                 &q.player_key,
                 serde_json::to_value(&q)?,
                 &self.state.read().await.workspace_epoch,
+                preparation_id,
             )
             .await?;
         let s = self.clone();
@@ -404,11 +446,19 @@ impl Service {
                 sqlx::query("INSERT INTO reviews VALUES(?,?,?,?,?,?,?)").bind(&r.id).bind(&r.match_key).bind(&r.player_key).bind(input_id).bind(r.revision).bind(&r.rule_version).bind(serde_json::to_string(&r)?).execute(&mut *tx).await?;
                 s.finish_job_tx(&mut tx,&t,&r.id).await?;tx.commit().await?;Ok(r.id)
             }.await;
+            let _workspace = s.maintenance.read().await;
+            if s.state.read().await.workspace_epoch != t.session_epoch {
+                return;
+            }
             let player = t.player_key.clone();
+            let report_id = result.as_ref().ok().cloned();
             s.finish_job(&t, result).await;
             s.emit("review-changed", player.clone(), 0).await;
-            if let Some(player) = player {
-                let _ = s.evaluate_active(&player).await;
+            drop(_workspace);
+            if let (Some(player), Some(report_id)) = (player, report_id) {
+                let _ = s
+                    .evaluate_active(&player, &report_id, &t.session_epoch)
+                    .await;
             }
         });
         Ok(task)

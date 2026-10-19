@@ -8,7 +8,6 @@ import {
   SelectItem,
 } from '../../components/ui/select';
 import { transport } from '../runtime';
-import './DevToolbar.css';
 import zh from './zh-CN.json';
 import en from './en-US.json';
 
@@ -38,7 +37,10 @@ export default function DevToolbar() {
       });
   }
   return (
-    <div className="dev-banner" data-testid="dev-toolbar">
+    <div
+      className="py-[3px] px-4 text-muted-foreground text-[10px] flex items-center justify-end gap-[15px] shrink-0 border-b border-b-border [&_>_span]:whitespace-nowrap [&_label]:whitespace-nowrap [&_label]:flex [&_label]:gap-2 [&_label]:items-center [&_button[role=combobox]]:h-6 [&_button[role=combobox]]:w-[130px] [&_button[role=combobox]]:text-[10px] [&_button[role=combobox]]:border-0 [&_button[role=combobox]]:py-0 [&_button[role=combobox]]:px-1.5"
+      data-testid="dev-toolbar"
+    >
       <Label htmlFor="dev-scenario">
         {copy.scenario}
         <Select

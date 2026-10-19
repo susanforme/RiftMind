@@ -2,21 +2,41 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { init, use as registerCharts, type ECharts } from 'echarts/core';
 import { LineChart } from 'echarts/charts';
-import { GridComponent, TooltipComponent, LegendComponent } from 'echarts/components';
+import {
+  GridComponent,
+  TooltipComponent,
+  LegendComponent,
+  MarkAreaComponent,
+} from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
 import type { ChartData } from '../../generated/contracts';
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import { matchTime, numberText } from './format';
-registerCharts([LineChart, GridComponent, TooltipComponent, LegendComponent, CanvasRenderer]);
+registerCharts([
+  LineChart,
+  GridComponent,
+  TooltipComponent,
+  LegendComponent,
+  MarkAreaComponent,
+  CanvasRenderer,
+]);
 export default function ReviewChart({
   data,
   metric,
   onSelect,
   comparison,
   maxTime,
+  minTime,
+  highlight,
+  label,
+  failureLabel,
 }: {
   comparison?: ChartData;
   maxTime?: number;
+  minTime?: number;
+  highlight?: [number, number];
+  label?: string;
+  failureLabel?: string;
   data: ChartData;
   metric: 'gold' | 'cs';
   onSelect: (ms: number) => void;
@@ -53,7 +73,7 @@ export default function ReviewChart({
                 type: 'value',
                 axisLabel: { formatter: matchTime, color: color('--muted-foreground') },
                 axisLine: { lineStyle: { color: color('--border') } },
-                min: 0,
+                min: minTime || 0,
                 max: maxTime,
               },
               yAxis: {
@@ -63,6 +83,13 @@ export default function ReviewChart({
               },
               series: [
                 {
+                  markArea: highlight
+                    ? {
+                        silent: true,
+                        itemStyle: { color: color('--accent'), opacity: 0.35 },
+                        data: [[{ xAxis: highlight[0] }, { xAxis: highlight[1] }]],
+                      }
+                    : undefined,
                   name: t(comparison ? 'scouting.left' : 'review.personal'),
                   type: 'line',
                   showSymbol: false,
@@ -117,17 +144,18 @@ export default function ReviewChart({
       instance.current?.dispose();
       instance.current = null;
     };
-  }, [data, metric, i18n.language, t, onSelect, comparison, maxTime]);
+  }, [data, metric, i18n.language, t, onSelect, comparison, maxTime, minTime, highlight]);
   return failed ? (
     <Alert>
-      <AlertDescription>{t('review.chartFailed')}</AlertDescription>
+      <AlertDescription>{failureLabel || t('review.chartFailed')}</AlertDescription>
     </Alert>
   ) : (
     <div
-      className="review-chart"
+      data-ui="review-chart"
+      className="w-full h-[280px] min-w-0 overflow-hidden"
       ref={ref}
       role="img"
-      aria-label={t(comparison ? 'scouting.comparisonChart' : `review.${metric}Chart`)}
+      aria-label={label || t(comparison ? 'scouting.comparisonChart' : `review.${metric}Chart`)}
     />
   );
 }

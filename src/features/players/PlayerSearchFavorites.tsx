@@ -50,10 +50,11 @@ export function PlayerSearchFavorites() {
     },
   });
   return (
-    <Card className="player-tools">
+    <Card className="[&_[data-slot='card-content']]:pt-5 [&_form_input]:flex-1 [&_form_input]:min-w-[120px] [&_form_input]:max-w-[360px]">
       <CardContent>
         <form
-          className="actions"
+          data-ui="actions"
+          className="flex items-center gap-2"
           onSubmit={(e) => {
             e.preventDefault();
             setResult(null);
@@ -77,7 +78,7 @@ export function PlayerSearchFavorites() {
           >
             {t('scouting.search')}
           </Button>
-          <span className="help">
+          <span className="text-muted-foreground text-[12px]">
             {connection.data?.identification?.serverId
               ? serverName(t, connection.data.identification.serverId)
               : t('connection.disconnected')}
@@ -85,18 +86,20 @@ export function PlayerSearchFavorites() {
         </form>
         <ErrorNotice error={search.error || favorites.error} />
         {result && (
-          <div className="actions">
+          <div data-ui="actions" className="flex items-center gap-2">
             <Button variant="link" onClick={() => open(result)}>
               {playerName(t, result)} · {serverName(t, result.serverId)}
             </Button>
             <FavoriteButton playerKey={result.playerKey} />
           </div>
         )}
-        <div className="actions favorites">
+        <div data-ui="actions favorites" className="flex items-center gap-2 mt-4">
           <strong>{t('scouting.favorites')}</strong>
-          {!favorites.data?.length && <span className="help">{t('scouting.empty')}</span>}
+          {!favorites.data?.length && (
+            <span className="text-muted-foreground text-[12px]">{t('scouting.empty')}</span>
+          )}
           {favorites.data?.map((p) => (
-            <div className="actions" key={p.playerKey}>
+            <div data-ui="actions" className="flex items-center gap-2" key={p.playerKey}>
               <Button variant="outline" size="sm" onClick={() => open(p)}>
                 {playerName(t, p)} · {serverName(t, p.serverId)}
               </Button>

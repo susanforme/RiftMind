@@ -12,9 +12,11 @@ import { ProgressPage } from '../features/progress/ProgressPage';
 import { LivePage } from '../features/live/LivePage';
 import { ChampionsPage } from '../features/champions/ChampionsPage';
 import { ComparisonPage } from '../features/comparison/ComparisonPage';
+import { ChampionNotebookPage } from '../features/champion-notes/ChampionNotebookPage';
 import { SettingsPage } from '../features/settings/SettingsPage';
 export interface Search {
   tab?: string;
+  entry?: string;
   player?: string;
   queue?: number;
   champion?: number;
@@ -40,6 +42,7 @@ export function validateSearch(value: Record<string, unknown>): Search {
   const result: Search = {};
   for (const field of [
     'tab',
+    'entry',
     'player',
     'report',
     'evidence',
@@ -128,6 +131,12 @@ export const compareRoute = createRoute({
   validateSearch,
   component: ComparisonPage,
 });
+export const notebookRoute = createRoute({
+  getParentRoute: () => root,
+  path: '/notebooks',
+  validateSearch,
+  component: ChampionNotebookPage,
+});
 const settings = createRoute({
   getParentRoute: () => root,
   path: '/settings',
@@ -143,6 +152,7 @@ export const router = createRouter({
     liveRoute,
     championsRoute,
     compareRoute,
+    notebookRoute,
   ]),
   history: createHashHistory(),
   defaultPreload: 'intent',

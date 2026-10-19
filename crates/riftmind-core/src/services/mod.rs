@@ -1,9 +1,13 @@
+pub mod builds;
 pub mod insights;
 pub mod live;
+pub mod notebooks;
 pub mod players;
+pub mod preparation;
 pub mod recovery;
 pub mod resources;
 pub mod review;
+pub mod review_insights;
 pub mod training;
 use crate::{
     clients::{self, Remote},
@@ -41,6 +45,8 @@ pub struct Service {
     sync_lock: Mutex<()>,
     submit_lock: Mutex<()>,
     review_lock: Mutex<()>,
+    build_lock: Mutex<()>,
+    preparation_lock: Mutex<()>,
     detail_lock: tokio::sync::Semaphore,
 }
 impl Service {
@@ -69,6 +75,7 @@ impl Service {
         sqlx::query("UPDATE jobs SET state='interrupted' WHERE state IN ('running','queued')")
             .execute(&pool)
             .await?;
+        sqlx::query("UPDATE preparation_batches SET state='interrupted',payload=json_set(payload,'$.state','interrupted') WHERE state IN ('running','queued')").execute(&pool).await?;
         let (events, _) = broadcast::channel(256);
         let service = Arc::new(Self {
             pool,
@@ -85,7 +92,7 @@ impl Service {
                 runtime_id: uuid::Uuid::new_v4().to_string(),
                 workspace_epoch: uuid::Uuid::new_v4().to_string(),
                 app_version: env!("CARGO_PKG_VERSION").into(),
-                database_version: 3,
+                database_version: 5,
                 settings_version: 1,
                 update_status: UpdateStatus {
                     state: "unavailable".into(),
@@ -108,6 +115,8 @@ impl Service {
             sync_lock: Mutex::new(()),
             submit_lock: Mutex::new(()),
             review_lock: Mutex::new(()),
+            build_lock: Mutex::new(()),
+            preparation_lock: Mutex::new(()),
             detail_lock: tokio::sync::Semaphore::new(1),
         });
         service.resume_local_jobs().await?;
@@ -433,7 +442,7 @@ impl Service {
         storage::vacuum_backup(&self.pool, &db).await?;
         let bytes = tokio::fs::read(&db).await?;
         let settings = self.settings.lock().await.clone();
-        let data = json!({"schemaVersion":3,"database":STANDARD.encode(&bytes),"sha256":storage::hash(&bytes),"settings":settings});
+        let data = json!({"schemaVersion":5,"database":STANDARD.encode(&bytes),"sha256":storage::hash(&bytes),"settings":settings});
         let file = self.root.join("backups").join(format!("{id}.riftmind"));
         tokio::fs::write(&file, serde_json::to_vec(&data)?).await?;
         tokio::fs::remove_file(db).await?;
@@ -481,6 +490,8 @@ impl Service {
    for table in storage::TABLES.iter().rev(){sqlx::query(&format!("DELETE FROM {table}")).execute(&mut *tx).await?;}
    for table in storage::TABLES{sqlx::query(&format!("INSERT INTO {table} SELECT * FROM restore_source.{table}")).execute(&mut *tx).await?;}
    sqlx::query("UPDATE jobs SET state='interrupted',cancel_requested=1 WHERE state IN ('running','queued')").execute(&mut *tx).await?;
+   sqlx::query("UPDATE build_applications SET state='unverified'").execute(&mut *tx).await?;
+   sqlx::query("UPDATE preparation_batches SET state='interrupted',payload=json_set(payload,'$.state','interrupted') WHERE state IN ('running','queued')").execute(&mut *tx).await?;
    sqlx::query("INSERT OR REPLACE INTO jobs SELECT * FROM temp.restore_active_jobs").execute(&mut *tx).await?;
    let old=self.settings.lock().await.clone();self.store.save(&settings).await?;
    if let Err(e)=tx.commit().await {self.store.save(&old).await?;return Err(e.into())}
@@ -537,6 +548,32 @@ impl Service {
             };
         }
         match command {
+            Command::list_notebook_entries(r) => out!(self.notebook_entries(r).await?),
+            Command::save_notebook_entry(r) => out!(self.save_notebook(r).await?),
+            Command::change_notebook_entry(r) => out!(self.change_notebook(r).await?),
+            Command::get_notebook_history(r) => out!(self.notebook_history(&r.id).await?),
+            Command::list_practice_entries(r) => out!(self.practice_entries(r).await?),
+            Command::save_practice_entry(r) => out!(self.save_practice(r).await?),
+            Command::export_champion_notebook(r) => out!(self.export_notebook(r).await?),
+            Command::import_champion_notebook(r) => out!(self.import_notebook(r).await?),
+            Command::get_item_catalogue(r) => out!(
+                self.resources
+                    .read()
+                    .await
+                    .item_catalogue(&self.asset_root, r)
+                    .await?
+            ),
+            Command::save_item_build_file(_) | Command::save_champion_notebook_file(_) => {
+                Err(AppError::new(ErrorCode::EndpointUnsupported))
+            }
+            Command::export_item_build(r) => out!(self.export_build(r).await?),
+            Command::apply_item_build(r) => out!(self.apply_build(r).await?),
+            Command::get_review_event_context(r) => out!(self.event_context(r).await?),
+            Command::get_personal_baseline(r) => out!(self.personal_baseline(r).await?),
+            Command::preview_match_preparation(r) => out!(self.preview_preparation(r).await?),
+            Command::start_match_preparation(r) => out!(self.start_preparation(r).await?),
+            Command::change_match_preparation(r) => out!(self.change_preparation(r).await?),
+            Command::list_match_preparations(_) => out!(self.list_preparations().await?),
             Command::get_live_snapshot(_) => out!(self.live_snapshot().await?),
             Command::search_player(r) => out!(self.search_player(r).await?),
             Command::get_player_profile(r) => out!(self.player_profile(r).await?),

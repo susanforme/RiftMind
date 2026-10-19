@@ -13,7 +13,8 @@ playwright-report/
 .DS_Store
 
 # Personal agent state and editor settings (shared skills are committed).
-/.codex/
+/.codex/*
+!/.codex/hooks.json
 /.idea/
 /.vscode/*
 !/.vscode/extensions.json

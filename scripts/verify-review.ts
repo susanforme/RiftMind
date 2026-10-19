@@ -1,4 +1,6 @@
-const performanceFile = `/tmp/riftmind-stage2-perf-${crypto.randomUUID()}.json`;
+import { mkdir } from 'node:fs/promises';
+await mkdir('.tmp/verification', { recursive: true });
+const performanceFile = `.tmp/verification/review-perf-${crypto.randomUUID()}.json`;
 const commands = [
   ['bun', 'run', 'check'],
   ['bun', 'run', 'test:unit'],
@@ -33,7 +35,7 @@ for (const command of commands) {
 }
 const revision = Bun.spawn(['git', 'rev-parse', 'HEAD'], { stdout: 'pipe', stderr: 'ignore' });
 await Bun.write(
-  '.stage2-report.json',
+  '.tmp/verification/review-report.json',
   JSON.stringify(
     {
       timestamp: new Date().toISOString(),

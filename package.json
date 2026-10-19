@@ -4,6 +4,10 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "prepare": "bun run hooks:install",
+    "hooks:install": "bun scripts/install-code-quality-hooks.ts",
+    "check:staged": "bun scripts/check-staged-code.ts",
+    "test:hooks": "bun test ./tests/hooks",
     "dev": "vite --mode development",
     "build": "tsc && vite build --mode production && bun scripts/check-production.ts",
     "preview": "vite preview",
@@ -19,7 +23,8 @@
     "verify:stage1": "bun scripts/verify.ts",
     "check:production": "bun scripts/check-production.ts",
     "verify:stage2": "bun scripts/verify-review.ts",
-    "verify:stage3": "bun scripts/verify-scouting.ts"
+    "verify:stage3": "bun scripts/verify-scouting.ts",
+    "verify:stage4": "bun scripts/verify-review-training.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

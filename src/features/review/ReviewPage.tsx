@@ -1,3 +1,8 @@
+import { matchOutcomeClasses } from '../../lib/match-outcome';
+import { ChampionSelect } from '../../components/ChampionSelect';
+import { ReviewEventContext } from './ReviewEventContext';
+import { PersonalBaselinePanel } from '../analysis/PersonalBaselinePanel';
+import { blankNotebook, useNotebookDrafts } from '../champion-notes/notebook-drafts';
 import { GameEntityIcon, skillResourceId } from '../../components/GameEntityIcon';
 import {
   queueName,
@@ -79,6 +84,7 @@ export function ReviewPage() {
   const [noteEvidence, setNoteEvidence] = useState<string | null>(null);
   const [noteReportId, setNoteReportId] = useState<string | null>(null);
   const [goalOpen, setGoalOpen] = useState(false);
+  const [goalChampion, setGoalChampion] = useState<number | null>();
   const [goalMetric, setGoalMetric] = useState('cs_10');
   const [target, setTarget] = useState('70');
   const [draftText, setDraftText] = useState('');
@@ -143,7 +149,7 @@ export function ReviewPage() {
   const participantLabel = (id: number | null) => {
     const p = input?.context.participants.find((p) => p.id === id);
     return p ? (
-      <span className="inline-entity">
+      <span className="inline-flex items-center gap-1.5 me-2.5 align-middle [&_[data-slot='avatar']]:w-6 [&_[data-slot='avatar']]:h-6">
         <GameEntityIcon
           kind="champion"
           id={p.championId}
@@ -388,6 +394,7 @@ export function ReviewPage() {
       const p = input!.context.participants.find((p) => p.id === input!.context.targetId)!;
       const scope: GoalScope = {
         playerKey,
+        championId: goalChampion === null ? undefined : goalChampion || p.championId || undefined,
         queueId: input!.context.queueId!,
         position: p.position || '',
         patch: input!.context.version.split('.').slice(0, 2).join('.'),
@@ -442,14 +449,42 @@ export function ReviewPage() {
     }
     void navigate({ to: '/matches', search: { ...saved, player: playerKey, tab: tab?.id } });
   }
+  function createNotebook(
+    text: string,
+    sourceReport: string | null,
+    sourceEvidence: string | null,
+    build = false,
+  ) {
+    if (!summary?.championId || !epoch) return;
+    const content = blankNotebook(summary.championId, build ? 'build' : 'note');
+    content.title = build ? t('notebooks.actualBuild') : t('notebooks.reviewNote');
+    content.text = text;
+    content.sources = [{ matchKey, playerKey, reportId: sourceReport, evidenceId: sourceEvidence }];
+    if (build) {
+      content.resourceVersion = summary.version;
+      content.mapId = input?.context.mapId || 11;
+      content.groups = [
+        { name: t('notebooks.actualItems'), items: summary.items.map((id) => ({ id, count: 1 })) },
+      ];
+    }
+    const key = `${epoch}:${summary.championId}:review:${crypto.randomUUID()}`;
+    useNotebookDrafts.getState().setDraft(key, { epoch, entry: null, content });
+    void navigate({ to: '/notebooks', search: { champion: summary.championId } });
+  }
   const supported =
     !!input &&
     [420, 440].includes(input.context.queueId || 0) &&
     input.context.mapId === 11 &&
     input.context.mode === 'CLASSIC';
   return (
-    <div className="page review-page">
-      <div className="page-heading">
+    <div
+      data-ui="page"
+      className="max-w-[1400px] pt-[30px] px-9 pb-[26px] m-auto max-[1150.01px]:p-[26px] max-[900.01px]:p-[22px] max-[650.01px]:py-[18px] max-[650.01px]:px-4 grid grid-cols-1 gap-6 min-w-0 [&_[data-ui~=page-heading]]:mb-0 [&_[data-ui~=page-heading]_p]:text-muted-foreground [&_[data-ui~=page-heading]_p]:text-[12px] [&_[data-ui~=page-heading]_p]:mt-1 [&_[data-ui~=page-heading]_p]:wrap-anywhere [&_[data-ui~=actions]]:flex-wrap [&_label]:grid [&_label]:gap-1.5 [&_label]:text-[12px] [&_label_input]:max-w-40"
+    >
+      <div
+        data-ui="page-heading"
+        className="flex items-center justify-between gap-6 mb-7 max-[650.01px]:mb-[22px] max-[650.01px]:gap-2.5"
+      >
         <div>
           <h1>{t('review.title')}</h1>
           <p>{matchName(t, matchKey)}</p>
@@ -464,7 +499,41 @@ export function ReviewPage() {
           data.error || fetchDetails.error || generate.error || task.data?.error || cancel.error
         }
       />
-      {data.isLoading && <Skeleton className="review-loading" />}
+      {summary?.championId && (
+        <div data-ui="actions" className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() =>
+              void navigate({ to: '/notebooks', search: { champion: summary.championId! } })
+            }
+          >
+            {t('notebooks.titlePage')}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => createNotebook('', report?.id || null, null, true)}
+          >
+            {t('notebooks.saveActualBuild')}
+          </Button>
+        </div>
+      )}
+      {report && epoch && (
+        <>
+          <ReviewEventContext
+            key={`${report.id}:${search.evidence || ''}`}
+            reportId={report.id}
+            epoch={epoch}
+            at={search.at}
+            evidenceId={search.evidence}
+            onSelect={(at, evidence) => {
+              if (evidence) selectEvidence(evidence);
+              else selectTime(at);
+            }}
+          />
+          <PersonalBaselinePanel reportId={report.id} epoch={epoch} player={playerKey} />
+        </>
+      )}
+      {data.isLoading && <Skeleton className="min-h-40" />}
       {!playerKey && (
         <Alert>
           <AlertDescription>{t('review.invalidLink')}</AlertDescription>
@@ -472,22 +541,25 @@ export function ReviewPage() {
       )}
       {data.data && (
         <>
-          <Card className="review-match-overview">
-            <CardHeader className="review-match-header">
-              <div className="review-match-identity">
-                <div className="review-match-portrait">
+          <Card>
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div className="w-[52px] h-[52px] rounded-[10px] [flex:0_0_52px] overflow-hidden grid place-items-center bg-muted text-muted-foreground [&_img]:w-full [&_img]:h-full [&_img]:object-cover">
                   {champion?.reference ? (
                     <img src={champion.reference} alt="" />
                   ) : (
                     <Swords aria-hidden="true" size={24} />
                   )}
                 </div>
-                <div className="review-match-copy">
+                <div className="min-w-0 [&_[data-slot='card-title']]:text-[18px] [&_[data-slot='card-title']]:mb-[5px]">
                   <CardTitle>
                     {champion?.name || championName(t, data.data.summary.championId)}
                   </CardTitle>
-                  <CardDescription className="review-match-meta">
-                    <span className={`match-result outcome-${data.data.summary.outcome}`}>
+                  <CardDescription className="flex items-center flex-wrap gap-y-1.5 gap-x-3 text-[12px] leading-[1.6] [&_[data-ui~=match-result]]:text-(--outcome) [&_[data-ui~=match-result]]:font-semibold [&_>_span]:min-w-0 [&_>_span]:wrap-anywhere">
+                    <span
+                      data-ui="match-result"
+                      className={`${matchOutcomeClasses[data.data.summary.outcome]}`}
+                    >
                       {t(`matches.${data.data.summary.outcome}`)}
                     </span>
                     <span>{mode}</span>
@@ -498,7 +570,7 @@ export function ReviewPage() {
                     </span>
                     <span>CS {data.data.summary.cs ?? '—'}</span>
                   </CardDescription>
-                  <CardDescription className="review-match-meta">
+                  <CardDescription className="flex items-center flex-wrap gap-y-1.5 gap-x-3 text-[12px] leading-[1.6] [&_[data-ui~=match-result]]:text-(--outcome) [&_[data-ui~=match-result]]:font-semibold [&_>_span]:min-w-0 [&_>_span]:wrap-anywhere">
                     <span>
                       {playerName(
                         t,
@@ -514,9 +586,9 @@ export function ReviewPage() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="review-match-body">
-              <div className="review-status-actions">
-                <div className="actions">
+            <CardContent className="grid gap-3.5">
+              <div className="flex items-center justify-between gap-y-3 gap-x-5 flex-wrap [&_[data-ui~=actions]:first-child]:gap-1.5 max-[700.01px]:items-start max-[700.01px]:flex-col">
+                <div data-ui="actions" className="flex items-center gap-2">
                   <Badge>
                     {t('review.summary')} · {t(`review.status_${data.data.summaryStatus}`)}
                   </Badge>
@@ -527,7 +599,7 @@ export function ReviewPage() {
                     <Badge variant="outline">{t('review.revision', { n: report.revision })}</Badge>
                   )}
                 </div>
-                <div className="actions">
+                <div data-ui="actions" className="flex items-center gap-2">
                   <Button
                     variant="outline"
                     disabled={
@@ -555,7 +627,9 @@ export function ReviewPage() {
                   )}
                 </div>
               </div>
-              {!current && <p className="help">{t('review.switchAccount')}</p>}
+              {!current && (
+                <p className="text-muted-foreground text-[12px]">{t('review.switchAccount')}</p>
+              )}
               {input && !supported && (
                 <Alert>
                   <AlertDescription>{t('review.unsupported')}</AlertDescription>
@@ -567,13 +641,13 @@ export function ReviewPage() {
                 </Alert>
               )}
               {data.data.retryAt && (
-                <p className="help">
+                <p className="text-muted-foreground text-[12px]">
                   {t('review.retryAt', { at: new Date(data.data.retryAt).toLocaleString() })}
                 </p>
               )}
               <ErrorNotice error={data.data.lastError} />
               {task.data && (
-                <div className="task-progress">
+                <div className="flex items-center gap-2.5 pt-0 px-0 pb-4 text-[12px] text-muted-foreground [&_[role=progressbar]]:max-w-[140px] [&_[role=progressbar]]:h-1 [&_button]:ml-auto">
                   <span>
                     {t(`common.${task.data.state}`)} ·{' '}
                     {t(`review.stage_${task.data.stage || 'queued'}`)} · {task.data.checkpoint}/
@@ -594,7 +668,7 @@ export function ReviewPage() {
                   <CardTitle>{t('review.overview')}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="review-metrics">
+                  <div className="grid grid-cols-5 gap-y-5 gap-x-0 [&_>_div]:grid [&_>_div]:gap-1 [&_>_div]:content-start [&_>_div]:py-0 [&_>_div]:px-[18px] [&_>_div]:border-l [&_>_div]:border-l-border [&_>_div]:min-w-0 min-[1100.01px]:[&>div:nth-child(5n+1)]:border-l-0 min-[1100.01px]:[&>div:nth-child(5n+1)]:pl-0 min-[700.01px]:max-[1100.01px]:[&>div:nth-child(4n+1)]:border-l-0 min-[700.01px]:max-[1100.01px]:[&>div:nth-child(4n+1)]:pl-0 max-[700.01px]:[&>div:nth-child(2n+1)]:border-l-0 max-[700.01px]:[&>div:nth-child(2n+1)]:pl-0 [&_strong]:text-[24px] [&_strong]:leading-[1.4] [&_strong]:font-semibold [&_strong]:tabular-nums [&_strong]:tracking-[-.5px] [&_span]:text-muted-foreground [&_span]:text-[12px] [&_span]:leading-[1.6] [&_small]:text-muted-foreground [&_small]:text-[12px] [&_small]:leading-[1.6] max-[1100.01px]:grid-cols-4 max-[700.01px]:grid-cols-2 ">
                     {report.metrics
                       .filter((m) =>
                         [
@@ -633,10 +707,13 @@ export function ReviewPage() {
                   </div>
                 </CardContent>
               </Card>
-              <div className="review-findings">
+              <div className="grid grid-cols-2 gap-y-6 gap-x-8 max-[1000.01px]:grid-cols-1 max-[1000.01px]:gap-5">
                 {report.findings.map((f) => (
-                  <Card className="finding-card" key={f.id}>
-                    <CardHeader className="finding-heading">
+                  <Card
+                    className="border-0 border-l-2 border-l-border rounded-none bg-transparent pl-[18px]"
+                    key={f.id}
+                  >
+                    <CardHeader className="pt-0 px-0 pb-3 gap-2 [&_[data-slot='card-title']]:flex [&_[data-slot='card-title']]:items-center [&_[data-slot='card-title']]:gap-2 [&_[data-slot='card-title']]:text-[14px] [&_[data-slot='card-title']]:leading-[1.6] [&_[data-slot='card-description']]:text-[13px] [&_[data-slot='card-description']]:leading-[1.8] [&_[data-slot='card-description']]:max-w-[65ch]">
                       <CardTitle>
                         {f.priority > 0 && <Badge variant="secondary">{f.priority}</Badge>}{' '}
                         {t(`review.${f.messageKey}`, {
@@ -648,8 +725,14 @@ export function ReviewPage() {
                         {f.actionKey && t(`review.${f.actionKey}`, { defaultValue: '' })}
                       </CardDescription>
                     </CardHeader>
-                    <CardContent className="review-stack finding-content">
-                      <div className="actions finding-evidence">
+                    <CardContent
+                      data-ui="review-stack"
+                      className="grid grid-cols-1 min-w-0 p-0 gap-2.5"
+                    >
+                      <div
+                        data-ui="actions"
+                        className="flex items-center gap-2 gap-y-1 gap-x-3 [&_[data-slot=button]]:p-0 [&_[data-slot=button]]:h-7 [&_[data-slot=button]]:text-primary [&_[data-slot=button]]:text-[12px]"
+                      >
                         {f.evidenceIds.map((id) => (
                           <Button
                             key={id}
@@ -663,7 +746,10 @@ export function ReviewPage() {
                           </Button>
                         ))}
                       </div>
-                      <div className="actions finding-feedback">
+                      <div
+                        data-ui="actions"
+                        className="flex items-center gap-2 [&_[data-slot=button]]:text-muted-foreground [&_[data-slot=button]]:h-7 [&_[data-slot=button]]:text-[12px]"
+                      >
                         {['helpful', 'inaccurate'].map((value) => (
                           <Button
                             key={value}
@@ -695,7 +781,7 @@ export function ReviewPage() {
                         ))}
                       </div>
                       {f.limitations.map((l) => (
-                        <p className="help" key={l}>
+                        <p className="text-muted-foreground text-[12px]" key={l}>
                           {t(`review.reason_${l}`, { defaultValue: t('labels.unknownReason') })}
                         </p>
                       ))}
@@ -731,8 +817,8 @@ export function ReviewPage() {
                   {participantLabel(input.context.targetId)}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="review-stack">
-                <div className="actions">
+              <CardContent data-ui="review-stack" className="grid grid-cols-1 gap-4 min-w-0">
+                <div data-ui="actions" className="flex items-center gap-2">
                   <Button
                     aria-pressed={metric === 'gold'}
                     variant={metric === 'gold' ? 'default' : 'outline'}
@@ -789,12 +875,24 @@ export function ReviewPage() {
                 <ErrorNotice error={chart.error} />
                 {chart.data && (
                   <ChartBoundary key={input.revision} fallback={t('review.chartFailed')}>
-                    <Suspense fallback={<Skeleton className="review-loading" />}>
-                      <Chart data={chart.data} metric={metric} onSelect={selectTime} />
+                    <Suspense fallback={<Skeleton className="min-h-40" />}>
+                      <Chart
+                        data={chart.data}
+                        metric={metric}
+                        onSelect={selectTime}
+                        highlight={
+                          search.at == null
+                            ? undefined
+                            : [
+                                Math.max(0, search.at - 60000),
+                                Math.min(input.context.durationMs, search.at + 60000),
+                              ]
+                        }
+                      />
                     </Suspense>
                   </ChartBoundary>
                 )}
-                <div className="numeric-table">
+                <div className="max-h-[250px] overflow-auto border-t border-t-border [&_thead]:sticky [&_thead]:top-0 [&_thead]:bg-card [&_thead]:z-1 [&_th]:text-[12px] [&_th]:tabular-nums [&_td]:text-[12px] [&_td]:tabular-nums [&_td_[data-slot=button]]:py-0 [&_td_[data-slot=button]]:px-1 [&_td_[data-slot=button]]:h-7 [&_td_[data-slot=button]]:text-[12px]">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -850,9 +948,12 @@ export function ReviewPage() {
                   </SelectContent>
                 </Select>
                 <ErrorNotice error={timeline.error} />
-                <div className="event-list">
+                <div className="grid max-h-80 overflow-auto">
                   {timeline.data?.events.map((e) => (
-                    <div className="timeline-event" key={e.id}>
+                    <div
+                      className="flex flex-wrap gap-y-2 gap-x-4 items-center text-[12px] py-2 px-0 border-b border-b-border last:border-b-0 [&_[data-slot=button]]:justify-start [&_[data-slot=button]]:text-primary [&_[data-slot=button]]:py-0 [&_[data-slot=button]]:px-1 [&_[data-slot=button]]:text-[12px] [&_>_span]:text-muted-foreground data-[selected=true]:bg-accent data-[selected=true]:rounded-[var(--radius)]"
+                      key={e.id}
+                    >
                       <Button
                         variant="ghost"
                         disabled={!report}
@@ -900,7 +1001,7 @@ export function ReviewPage() {
                     </div>
                   ))}
                 </div>
-                <div className="actions">
+                <div data-ui="actions" className="flex items-center gap-2">
                   {cursor != null && (
                     <Button variant="outline" onClick={() => setCursor(null)}>
                       {t('matches.first')}
@@ -915,7 +1016,7 @@ export function ReviewPage() {
                   </Button>
                 </div>
                 {search.evidence && (
-                  <Card className="evidence-panel">
+                  <Card className="bg-background border-0 [&_pre]:max-h-[260px] [&_pre]:overflow-auto [&_pre]:p-3 [&_pre]:bg-muted [&_pre]:rounded-md [&_pre]:text-[12px] [&_p]:wrap-anywhere">
                     <CardHeader>
                       <CardTitle>{t('review.evidence')}</CardTitle>
                     </CardHeader>
@@ -923,7 +1024,7 @@ export function ReviewPage() {
                       <ErrorNotice error={evidence.error} />
                       {evidence.data && (
                         <>
-                          <p className="help">
+                          <p className="text-muted-foreground text-[12px]">
                             {evidence.data.reference.path} · {evidence.data.reference.snapshotId}
                           </p>
                           <pre>{JSON.stringify(evidence.data.raw, null, 2)}</pre>
@@ -953,7 +1054,7 @@ export function ReviewPage() {
                 )}
               </CardDescription>
             </CardHeader>
-            <CardContent className="review-stack">
+            <CardContent data-ui="review-stack" className="grid grid-cols-1 gap-4 min-w-0">
               <ErrorNotice error={annotations.error || saveNote.error || remove.error} />
               {(saveNote.error as AppError | null)?.code === 'REVISION_CONFLICT' && (
                 <Button variant="outline" onClick={() => void refreshNoteRevision()}>
@@ -968,7 +1069,7 @@ export function ReviewPage() {
                 value={text}
                 onChange={(e) => setText(e.target.value)}
               />
-              <div className="actions">
+              <div data-ui="actions" className="flex items-center gap-2">
                 <Button
                   disabled={!text.trim() || saveNote.isPending}
                   onClick={() => saveNote.mutate()}
@@ -991,14 +1092,28 @@ export function ReviewPage() {
                 )}
               </div>
               {annotations.data?.notes.map((n) => (
-                <Card className="note-card" key={n.id}>
+                <Card
+                  className="bg-background border-0 [&_[data-slot='card-content']]:p-4"
+                  key={n.id}
+                >
                   <CardContent>
-                    <p className="note-text">{n.text}</p>
+                    <p
+                      data-ui="note-text"
+                      className="whitespace-pre-wrap wrap-anywhere leading-[1.8]"
+                    >
+                      {n.text}
+                    </p>
+                    <Button
+                      variant="outline"
+                      onClick={() => createNotebook(n.text, n.reportId, n.evidenceId)}
+                    >
+                      {t('notebooks.saveReviewNote')}
+                    </Button>
                     <small>
                       {t(n.evidenceId ? 'labels.evidenceNote' : 'review.matchNote')} ·{' '}
                       {t('review.revision', { n: n.revision })}
                     </small>
-                    <div className="actions">
+                    <div data-ui="actions" className="flex items-center gap-2">
                       <Button
                         variant="ghost"
                         size="sm"
@@ -1104,6 +1219,15 @@ export function ReviewPage() {
             />
           </Label>
           <ErrorNotice error={goal.error} />
+          <Label>
+            {t('matches.champion')}
+            <ChampionSelect
+              value={
+                goalChampion === null ? undefined : goalChampion || summary?.championId || undefined
+              }
+              onValueChange={(champion) => setGoalChampion(champion || null)}
+            />
+          </Label>
           <DialogFooter>
             <Button variant="outline" onClick={() => setGoalOpen(false)}>
               {t('common.cancel')}

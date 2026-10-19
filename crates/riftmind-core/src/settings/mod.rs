@@ -56,6 +56,7 @@ pub fn validate(s: &Settings) -> Result<()> {
                 "live",
                 "champions",
                 "compare",
+                "notebooks",
             ]
             .contains(&tab.kind.as_str())
             || tab.search.len() > 2048
