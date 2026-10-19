@@ -170,10 +170,11 @@ Windows 安装包统一使用 NSIS `currentUser`，无需管理员权限。新�
 正式发布还需要 updater 制品生成配置、更新托管、生产私钥与 Windows 代码签名证书。
 测试公钥与合成签名包仅供 `#[cfg(test)]` 的宿主测试，不安装或打包进正式应用。
 
-`.github/workflows/windows.yml` 统一执行代码检查、前端与 Rust 单测、宿主编译及 Store/签名测试，
-使用仓库 `rust-toolchain.toml`、Bun 1.3.14 和锁文件，在 Windows runner 上构建 x64 NSIS 安装版。
+`.github/workflows/windows.yml` 仅安装依赖、编译和打包，不运行测试或独立代码检查任务。
+使用仓库 `rust-toolchain.toml`、Bun 1.3.14 和锁文件，在 Windows runner 上构建 x64 NSIS 安装版；
+构建命令保留 TypeScript 编译和生产包隔离检查。
 
-- 自动构建：推送到 `master` 时执行；目标为 `master` 的 PR 执行 Windows 检查与构建，不上传分发产物。
+- 自动构建：推送到 `master` 时执行；目标为 `master` 的 PR 执行 Windows 构建，不上传分发产物。
 - 手动构建：Actions → **Windows x64 build** → **Run workflow** → 在 **Branch** 下拉框选择分支。
   workflow 文件须先存在于默认分支，选中的分支也须包含此 workflow。
 - 构建成功后，在该次运行的 **Artifacts** 下载以下三个文件，保留 14 天；不创建 GitHub Release。
@@ -189,8 +190,6 @@ CI 和本地默认均只生成 NSIS；上传时直接保留文件格式，不额
 SHA256 输出到构建日志。构建产物尚未代码签名，Windows 可能显示 SmartScreen 提示。
 本地 `bun run tauri build` 默认同样生成 NSIS，并应用目录检查钩子。
 
-手动运行时默认不执行交互式原生验收。需要验收时勾选 `native_acceptance`，
-并准备自托管 `interactive-riftmind` runner 和 `RIFTMIND_NATIVE_SMOKE_COMMAND`；缺少条件会失败，不伪报通过。
 工作流配置验证不能替代 Windows 原生或真实 LoL 客户端验收。
 
 配置依据：[GitHub 手动选择分支](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow)、

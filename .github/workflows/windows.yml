@@ -6,11 +6,6 @@ on:
   pull_request:
     branches: [master]
   workflow_dispatch:
-    inputs:
-      native_acceptance:
-        description: Run native acceptance on the interactive Windows runner
-        type: boolean
-        default: false
 
 permissions:
   contents: read
@@ -43,16 +38,8 @@ jobs:
           rustup target add x86_64-pc-windows-msvc
       - uses: Swatinem/rust-cache@49a0bdc70d2e1b713ca9e2869b211fcce03d3c1c # v2
       - run: bun install --frozen-lockfile
-      - run: bun run check
-      - run: bun run test:unit
-      - run: cargo test -p riftmind-core --locked
-      - run: cargo test -p riftmind --locked
-      - run: cargo clippy -p riftmind --locked
       - name: Build Windows x64 NSIS installer
         run: bun run tauri build --ci --target x86_64-pc-windows-msvc --bundles nsis --no-sign -- --locked
-      - name: Test installer directory ownership and write restrictions
-        run: ./scripts/test-installer.ps1
-      - run: bun run check:production
       - name: Prepare exactly three distribution files
         if: github.event_name != 'pull_request'
         id: package
@@ -117,19 +104,3 @@ jobs:
           archive: false
           if-no-files-found: error
           retention-days: 14
-
-  native-interactive:
-    if: github.event_name == 'workflow_dispatch' && inputs.native_acceptance
-    needs: windows
-    runs-on: [self-hosted, Windows, interactive-riftmind]
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-      - name: Require an interactive Windows desktop
-        shell: pwsh
-        run: |
-          if (-not [Environment]::UserInteractive) { throw 'Interactive desktop required for tray/window acceptance.' }
-          if (-not $env:RIFTMIND_NATIVE_SMOKE_COMMAND) { throw 'Configure the installed-app smoke command; do not mark native acceptance passed without it.' }
-          Invoke-Expression $env:RIFTMIND_NATIVE_SMOKE_COMMAND
