@@ -1,0 +1,21 @@
+{
+  "app_not_ready": "The workspace is not ready. Try again shortly.",
+  "client_not_found": "No client found. Local history remains available.",
+  "waiting_auth": "Authorization is not ready. Finish signing in.",
+  "region_unknown": "The server could not be identified. Remote requests are paused.",
+  "region_conflict": "Server evidence conflicts. Discover clients again.",
+  "endpoint_unsupported": "This server or endpoint is unsupported.",
+  "rate_limited": "Rate limited. Wait before retrying.",
+  "settings_conflict": "Settings changed elsewhere. Reload and merge your draft.",
+  "storage_unavailable": "Local storage is unavailable. Check disk space and permissions.",
+  "update_not_configured": "Update service is not configured.",
+  "invalid_input": "Invalid input. Check filters and parameters.",
+  "session_changed": "The account changed. Previous sync stopped.",
+  "forbidden": "This operation is not authorized.",
+  "network_unavailable": "Connection unavailable. Saved data is unaffected.",
+  "backup_invalid": "The backup or database is invalid, corrupt or incompatible.",
+  "cancelled": "Cancelled. Committed data remains available.",
+  "not_found": "Record not found.",
+  "settings_invalid": "Settings are invalid or incompatible.",
+  "update_failed": "Update failed. The installed version remains usable."
+}

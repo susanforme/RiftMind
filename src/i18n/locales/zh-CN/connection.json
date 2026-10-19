@@ -1,0 +1,12 @@
+{
+  "disconnected": "未发现客户端",
+  "discovering": "正在发现客户端",
+  "selecting": "请选择客户端实例",
+  "waiting_auth": "等待客户端授权",
+  "resolving": "正在识别区服",
+  "connected": "客户端已连接",
+  "conflict": "区服识别证据冲突",
+  "unsupported": "区服或环境尚不支持",
+  "cooling_down": "请求受限，等待冷却",
+  "referenceOnly": "区服映射来自参考源码，尚未实机验证"
+}

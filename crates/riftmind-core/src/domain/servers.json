@@ -1,0 +1,210 @@
+[
+  {
+    "id": "TENCENT_HN1",
+    "matchHistory": "https://hn1-k8s-sgp.lol.qq.com:21019",
+    "regionPath": "TENCENT_HN1",
+    "tencent": true,
+    "environment": "live",
+    "verification": "reference_only"
+  },
+  {
+    "id": "TENCENT_HN10",
+    "matchHistory": "https://hn10-k8s-sgp.lol.qq.com:21019",
+    "regionPath": "TENCENT_HN10",
+    "tencent": true,
+    "environment": "live",
+    "verification": "reference_only"
+  },
+  {
+    "id": "TENCENT_TJ100",
+    "matchHistory": "https://tj100-sgp.lol.qq.com:21019",
+    "regionPath": "TENCENT_TJ100",
+    "tencent": true,
+    "environment": "live",
+    "verification": "reference_only"
+  },
+  {
+    "id": "TENCENT_TJ101",
+    "matchHistory": "https://tj101-sgp.lol.qq.com:21019",
+    "regionPath": "TENCENT_TJ101",
+    "tencent": true,
+    "environment": "live",
+    "verification": "reference_only"
+  },
+  {
+    "id": "TENCENT_NJ100",
+    "matchHistory": "https://nj100-sgp.lol.qq.com:21019",
+    "regionPath": "TENCENT_NJ100",
+    "tencent": true,
+    "environment": "live",
+    "verification": "reference_only"
+  },
+  {
+    "id": "TENCENT_GZ100",
+    "matchHistory": "https://gz100-sgp.lol.qq.com:21019",
+    "regionPath": "TENCENT_GZ100",
+    "tencent": true,
+    "environment": "live",
+    "verification": "reference_only"
+  },
+  {
+    "id": "TENCENT_CQ100",
+    "matchHistory": "https://cq100-sgp.lol.qq.com:21019",
+    "regionPath": "TENCENT_CQ100",
+    "tencent": true,
+    "environment": "live",
+    "verification": "reference_only"
+  },
+  {
+    "id": "TENCENT_BGP2",
+    "matchHistory": "https://bgp2-k8s-sgp.lol.qq.com:21019",
+    "regionPath": "TENCENT_BGP2",
+    "tencent": true,
+    "environment": "live",
+    "verification": "reference_only"
+  },
+  {
+    "id": "TENCENT_PBE",
+    "matchHistory": "https://pbe-sgp.lol.qq.com:21019",
+    "regionPath": "TENCENT_PBE",
+    "tencent": true,
+    "environment": "pbe",
+    "verification": "reference_only"
+  },
+  {
+    "id": "TENCENT_PREPBE",
+    "matchHistory": "https://prepbe-sgp.lol.qq.com:21019",
+    "regionPath": "TENCENT_PREPBE",
+    "tencent": true,
+    "environment": "pbe",
+    "verification": "reference_only"
+  },
+  {
+    "id": "TW2",
+    "matchHistory": "https://apse1-red.pp.sgp.pvp.net",
+    "regionPath": "TW2",
+    "tencent": false,
+    "environment": "live",
+    "verification": "reference_only"
+  },
+  {
+    "id": "SG2",
+    "matchHistory": "https://apse1-red.pp.sgp.pvp.net",
+    "regionPath": "SG2",
+    "tencent": false,
+    "environment": "live",
+    "verification": "reference_only"
+  },
+  {
+    "id": "PH2",
+    "matchHistory": "https://apse1-red.pp.sgp.pvp.net",
+    "regionPath": "PH2",
+    "tencent": false,
+    "environment": "live",
+    "verification": "reference_only"
+  },
+  {
+    "id": "VN2",
+    "matchHistory": "https://apse1-red.pp.sgp.pvp.net",
+    "regionPath": "VN2",
+    "tencent": false,
+    "environment": "live",
+    "verification": "reference_only"
+  },
+  {
+    "id": "PBE",
+    "matchHistory": "https://usw2-red.pp.sgp.pvp.net",
+    "regionPath": "PBE1",
+    "tencent": false,
+    "environment": "pbe",
+    "verification": "reference_only"
+  },
+  {
+    "id": "EUW",
+    "matchHistory": "https://euc1-red.pp.sgp.pvp.net",
+    "regionPath": "EUW1",
+    "tencent": false,
+    "environment": "live",
+    "verification": "reference_only"
+  },
+  {
+    "id": "JP",
+    "matchHistory": "https://apne1-red.pp.sgp.pvp.net",
+    "regionPath": "JP1",
+    "tencent": false,
+    "environment": "live",
+    "verification": "reference_only"
+  },
+  {
+    "id": "RU",
+    "matchHistory": "https://euc1-red.pp.sgp.pvp.net",
+    "regionPath": "RU",
+    "tencent": false,
+    "environment": "live",
+    "verification": "reference_only"
+  },
+  {
+    "id": "BR1",
+    "matchHistory": "https://usw2-red.pp.sgp.pvp.net",
+    "regionPath": "BR1",
+    "tencent": false,
+    "environment": "live",
+    "verification": "reference_only"
+  },
+  {
+    "id": "OC1",
+    "matchHistory": "https://apse1-red.pp.sgp.pvp.net",
+    "regionPath": "OC1",
+    "tencent": false,
+    "environment": "live",
+    "verification": "reference_only"
+  },
+  {
+    "id": "TR1",
+    "matchHistory": "https://euc1-red.pp.sgp.pvp.net",
+    "regionPath": "TR1",
+    "tencent": false,
+    "environment": "live",
+    "verification": "reference_only"
+  },
+  {
+    "id": "LA1",
+    "matchHistory": "https://usw2-red.pp.sgp.pvp.net",
+    "regionPath": "LA1",
+    "tencent": false,
+    "environment": "live",
+    "verification": "reference_only"
+  },
+  {
+    "id": "LA2",
+    "matchHistory": "https://usw2-red.pp.sgp.pvp.net",
+    "regionPath": "LA2",
+    "tencent": false,
+    "environment": "live",
+    "verification": "reference_only"
+  },
+  {
+    "id": "NA1",
+    "matchHistory": "https://usw2-red.pp.sgp.pvp.net",
+    "regionPath": "NA1",
+    "tencent": false,
+    "environment": "live",
+    "verification": "reference_only"
+  },
+  {
+    "id": "TH2",
+    "matchHistory": "https://apse1-red.pp.sgp.pvp.net",
+    "regionPath": "TH2",
+    "tencent": false,
+    "environment": "live",
+    "verification": "reference_only"
+  },
+  {
+    "id": "KR",
+    "matchHistory": "https://apne1-red.pp.sgp.pvp.net",
+    "regionPath": "KR",
+    "tencent": false,
+    "environment": "live",
+    "verification": "reference_only"
+  }
+]

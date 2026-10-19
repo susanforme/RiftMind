@@ -1,0 +1,21 @@
+{
+  "app_not_ready": "应用尚未就绪，请稍后重试",
+  "client_not_found": "未发现客户端，本地对局仍可读取",
+  "waiting_auth": "授权尚未就绪，请等待客户端登录完成",
+  "region_unknown": "无法确认区服，已停止远端请求",
+  "region_conflict": "区服证据冲突，请重新发现客户端",
+  "endpoint_unsupported": "该区服或端点暂不支持",
+  "rate_limited": "服务限流，请等待冷却后重试",
+  "settings_conflict": "设置已被其他操作更新。请重新读取后合并草稿",
+  "storage_unavailable": "本地存储不可用，请检查磁盘和权限",
+  "update_not_configured": "更新服务未配置",
+  "invalid_input": "输入无效，请检查筛选与参数",
+  "session_changed": "账号已切换，旧同步已停止",
+  "forbidden": "此操作未获授权",
+  "network_unavailable": "连接暂时不可用，已保存数据不受影响",
+  "backup_invalid": "备份或数据库无效、损坏或版本不兼容",
+  "cancelled": "操作已取消，已提交的数据仍可读取",
+  "not_found": "未找到该记录",
+  "settings_invalid": "设置不合法或版本不兼容",
+  "update_failed": "更新失败，当前版本仍可使用"
+}

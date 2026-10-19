@@ -1,0 +1,12 @@
+{
+  "disconnected": "No client found",
+  "discovering": "Discovering clients",
+  "selecting": "Select a client instance",
+  "waiting_auth": "Waiting for client authorization",
+  "resolving": "Identifying server",
+  "connected": "Client connected",
+  "conflict": "Conflicting server evidence",
+  "unsupported": "Server or environment unsupported",
+  "cooling_down": "Rate limited; cooling down",
+  "referenceOnly": "Server mapping is source-referenced; live connectivity is unverified"
+}

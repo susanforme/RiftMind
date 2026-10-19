@@ -1,0 +1,11 @@
+node_modules/
+dist/
+target/
+src-tauri/target/
+.playwright/
+test-results/
+playwright-report/
+.riftmind-dev/
+.stage1-report.json
+*.log
+.DS_Store
