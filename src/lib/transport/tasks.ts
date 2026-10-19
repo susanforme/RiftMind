@@ -3,7 +3,7 @@ import { transport } from '../../app/runtime';
 export async function awaitMaintenance(task: Task): Promise<MaintenanceResult> {
   let current = task;
   while (current.state === 'queued' || current.state === 'running') {
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
     current = await transport.call('get_task_status', { id: task.id });
   }
   if (current.error) throw current.error;

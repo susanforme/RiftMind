@@ -11,9 +11,28 @@ import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Label } from '../../components/ui/label';
 import { Input } from '../../components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '../../components/ui/dialog';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../components/ui/table';
 import { ErrorNotice } from '../../components/ErrorNotice';
 import { AnalysisFilters } from '../analysis/AnalysisFilters';
 import { toAnalysisFilter } from '../analysis/analysis-filter';
@@ -21,8 +40,225 @@ import type { IssueGroup, GoalScope } from '../../generated/contracts';
 import type { Search } from '../../app/router';
 import { numberText } from '../review/format';
 export function RecurringIssuesPanel({ player, epoch }: { player: string; epoch: string }) {
- const { t } = useTranslation(); const navigate = useNavigate(); const [search,setSearch] = useState<Search>({}); const [cursor,setCursor] = useState<number | null>(null); const [selected,setSelected] = useState<IssueGroup | null>(null); const [target,setTarget] = useState('0.2'); const [direction,setDirection] = useState('decrease');
- const filter = toAnalysisFilter(player,search); const issues = useQuery({ queryKey: ['issues',epoch,player,search,cursor], queryFn: () => transport.call('get_issue_summary', { filter, cursor, limit: 50 }) });
- const draft = useMutation({ mutationFn: async () => { if (!selected?.metricId) throw { code: 'INVALID_INPUT' }; const [queue,position,patch] = selected.group.split(':'); const scope: GoalScope = { playerKey: player, queueId: Number(queue), position, patch, metricId: selected.metricId, metricVersion: selected.ruleVersion, direction, target: Number(target), origin: { filter: { ...filter, queueId: Number(queue), position, patch }, ruleId: selected.ruleId, ruleVersion: selected.ruleVersion, reports: selected.reports } }; return transport.call('save_training_goal', { workspaceEpoch: epoch, id: null, expectedRevision: 0, scope, state: 'draft' }); }, onSuccess: () => { setSelected(null); void queryClient.invalidateQueries({ queryKey: ['goals'] }); } });
- return <Card className="issues-panel"><CardHeader><CardTitle>{t('scouting.issues')}</CardTitle></CardHeader><CardContent className="review-stack"><AnalysisFilters search={search} onChange={s => { setSearch(s); setCursor(null); }} /><ErrorNotice error={issues.error} /><span className="help">{t('scouting.savedReports', { count: issues.data?.reports || 0 })}{issues.data?.truncated && ` · ${t('scouting.limited')}`}</span>{issues.isPending ? <span>{t('common.loading')}</span> : !issues.data?.items.length ? <span>{t('scouting.empty')}</span> : <Table><TableHeader><TableRow>{['issue','scope','rate','samples','evidence','goal'].map(k => <TableHead key={k}>{t(`scouting.${k}`)}</TableHead>)}</TableRow></TableHeader><TableBody>{issues.data.items.map(g => <TableRow key={`${g.ruleId}:${g.ruleVersion}:${groupName(t, g.group)}`}><TableCell>{t(`scouting.${g.ruleId}`)} <small>v{g.ruleVersion}</small></TableCell><TableCell>{groupName(t, g.group)}</TableCell><TableCell>{numberText(g.rate,'ratio')} ({g.hits}/{g.eligible}){g.insufficient && <Badge variant="outline">{t('scouting.insufficient')}</Badge>}</TableCell><TableCell>{Object.entries(g.excluded).map(([reason,n]) => <div key={reason}>{t(`review.reason_${reason}`, { defaultValue: t('scouting.missing') })}: {n}</div>)}</TableCell><TableCell>{g.reports.map(r => <Button key={r.reportId} variant="link" size="sm" onClick={() => void navigate({ to: '/matches/$matchKey/review', params: { matchKey: r.matchKey }, search: { player, report: r.reportId, evidence: r.evidenceIds[0] } })}>{matchName(t, r.matchKey)}</Button>)}</TableCell><TableCell>{g.metricId && g.reports.length > 0 && <Button variant="outline" size="sm" onClick={() => { draft.reset(); setSelected(g); }}>{t('scouting.createDraft')}</Button>}</TableCell></TableRow>)}</TableBody></Table>}<div className="actions"><Button variant="outline" disabled={!cursor} onClick={() => setCursor(null)}>{t('matches.first')}</Button><Button variant="outline" disabled={!issues.data?.nextCursor} onClick={() => setCursor(issues.data!.nextCursor)}>{t('matches.next')}</Button></div></CardContent><Dialog open={!!selected} onOpenChange={v => { if (!v) setSelected(null); }}><DialogContent closeLabel={t('common.dismiss')}><DialogHeader><DialogTitle>{t('scouting.createDraft')}</DialogTitle></DialogHeader><ErrorNotice error={draft.error} />{selected && <><p>{t(`scouting.${selected.ruleId}`)} · {groupName(t, selected.group)}{search.champion ? <span className="inline-entity"><GameEntityIcon kind="champion" id={search.champion} label={championName(t,search.champion)} />{championName(t,search.champion)}</span> : null}</p><p className="help">{search.from || '—'} – {search.to || '—'}</p><Label>{t('scouting.direction')}<Select value={direction} onValueChange={setDirection}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="decrease">≤</SelectItem><SelectItem value="increase">≥</SelectItem></SelectContent></Select></Label><Label>{t('scouting.targetRatio')}<Input type="number" min={0} max={1} step="0.05" value={target} onChange={e => setTarget(e.target.value)} /></Label></>}<DialogFooter><Button variant="outline" onClick={() => setSelected(null)}>{t('common.cancel')}</Button><Button disabled={draft.isPending || !target || !Number.isFinite(Number(target)) || Number(target)<0 || Number(target)>1} onClick={() => draft.mutate()}>{t('scouting.createDraft')}</Button></DialogFooter></DialogContent></Dialog></Card>;
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const [search, setSearch] = useState<Search>({});
+  const [cursor, setCursor] = useState<number | null>(null);
+  const [selected, setSelected] = useState<IssueGroup | null>(null);
+  const [target, setTarget] = useState('0.2');
+  const [direction, setDirection] = useState('decrease');
+  const filter = toAnalysisFilter(player, search);
+  const issues = useQuery({
+    queryKey: ['issues', epoch, player, search, cursor],
+    queryFn: () => transport.call('get_issue_summary', { filter, cursor, limit: 50 }),
+  });
+  const draft = useMutation({
+    mutationFn: async () => {
+      if (!selected?.metricId) throw { code: 'INVALID_INPUT' };
+      const [queue, position, patch] = selected.group.split(':');
+      const scope: GoalScope = {
+        playerKey: player,
+        queueId: Number(queue),
+        position,
+        patch,
+        metricId: selected.metricId,
+        metricVersion: selected.ruleVersion,
+        direction,
+        target: Number(target),
+        origin: {
+          filter: { ...filter, queueId: Number(queue), position, patch },
+          ruleId: selected.ruleId,
+          ruleVersion: selected.ruleVersion,
+          reports: selected.reports,
+        },
+      };
+      return transport.call('save_training_goal', {
+        workspaceEpoch: epoch,
+        id: null,
+        expectedRevision: 0,
+        scope,
+        state: 'draft',
+      });
+    },
+    onSuccess: () => {
+      setSelected(null);
+      void queryClient.invalidateQueries({ queryKey: ['goals'] });
+    },
+  });
+  return (
+    <Card className="issues-panel">
+      <CardHeader>
+        <CardTitle>{t('scouting.issues')}</CardTitle>
+      </CardHeader>
+      <CardContent className="review-stack">
+        <AnalysisFilters
+          search={search}
+          onChange={(s) => {
+            setSearch(s);
+            setCursor(null);
+          }}
+        />
+        <ErrorNotice error={issues.error} />
+        <span className="help">
+          {t('scouting.savedReports', { count: issues.data?.reports || 0 })}
+          {issues.data?.truncated && ` · ${t('scouting.limited')}`}
+        </span>
+        {issues.isPending ? (
+          <span>{t('common.loading')}</span>
+        ) : !issues.data?.items.length ? (
+          <span>{t('scouting.empty')}</span>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                {['issue', 'scope', 'rate', 'samples', 'evidence', 'goal'].map((k) => (
+                  <TableHead key={k}>{t(`scouting.${k}`)}</TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {issues.data.items.map((g) => (
+                <TableRow key={`${g.ruleId}:${g.ruleVersion}:${groupName(t, g.group)}`}>
+                  <TableCell>
+                    {t(`scouting.${g.ruleId}`)} <small>v{g.ruleVersion}</small>
+                  </TableCell>
+                  <TableCell>{groupName(t, g.group)}</TableCell>
+                  <TableCell>
+                    {numberText(g.rate, 'ratio')} ({g.hits}/{g.eligible})
+                    {g.insufficient && (
+                      <Badge variant="outline">{t('scouting.insufficient')}</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {Object.entries(g.excluded).map(([reason, n]) => (
+                      <div key={reason}>
+                        {t(`review.reason_${reason}`, { defaultValue: t('scouting.missing') })}: {n}
+                      </div>
+                    ))}
+                  </TableCell>
+                  <TableCell>
+                    {g.reports.map((r) => (
+                      <Button
+                        key={r.reportId}
+                        variant="link"
+                        size="sm"
+                        onClick={() =>
+                          void navigate({
+                            to: '/matches/$matchKey/review',
+                            params: { matchKey: r.matchKey },
+                            search: { player, report: r.reportId, evidence: r.evidenceIds[0] },
+                          })
+                        }
+                      >
+                        {matchName(t, r.matchKey)}
+                      </Button>
+                    ))}
+                  </TableCell>
+                  <TableCell>
+                    {g.metricId && g.reports.length > 0 && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          draft.reset();
+                          setSelected(g);
+                        }}
+                      >
+                        {t('scouting.createDraft')}
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+        <div className="actions">
+          <Button variant="outline" disabled={!cursor} onClick={() => setCursor(null)}>
+            {t('matches.first')}
+          </Button>
+          <Button
+            variant="outline"
+            disabled={!issues.data?.nextCursor}
+            onClick={() => setCursor(issues.data!.nextCursor)}
+          >
+            {t('matches.next')}
+          </Button>
+        </div>
+      </CardContent>
+      <Dialog
+        open={!!selected}
+        onOpenChange={(v) => {
+          if (!v) setSelected(null);
+        }}
+      >
+        <DialogContent closeLabel={t('common.dismiss')}>
+          <DialogHeader>
+            <DialogTitle>{t('scouting.createDraft')}</DialogTitle>
+          </DialogHeader>
+          <ErrorNotice error={draft.error} />
+          {selected && (
+            <>
+              <p>
+                {t(`scouting.${selected.ruleId}`)} · {groupName(t, selected.group)}
+                {search.champion ? (
+                  <span className="inline-entity">
+                    <GameEntityIcon
+                      kind="champion"
+                      id={search.champion}
+                      label={championName(t, search.champion)}
+                    />
+                    {championName(t, search.champion)}
+                  </span>
+                ) : null}
+              </p>
+              <p className="help">
+                {search.from || '—'} – {search.to || '—'}
+              </p>
+              <Label>
+                {t('scouting.direction')}
+                <Select value={direction} onValueChange={setDirection}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="decrease">≤</SelectItem>
+                    <SelectItem value="increase">≥</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Label>
+              <Label>
+                {t('scouting.targetRatio')}
+                <Input
+                  type="number"
+                  min={0}
+                  max={1}
+                  step="0.05"
+                  value={target}
+                  onChange={(e) => setTarget(e.target.value)}
+                />
+              </Label>
+            </>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSelected(null)}>
+              {t('common.cancel')}
+            </Button>
+            <Button
+              disabled={
+                draft.isPending ||
+                !target ||
+                !Number.isFinite(Number(target)) ||
+                Number(target) < 0 ||
+                Number(target) > 1
+              }
+              onClick={() => draft.mutate()}
+            >
+              {t('scouting.createDraft')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
 }

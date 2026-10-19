@@ -6,5 +6,16 @@ export function ErrorNotice({ error }: { error: unknown }) {
   const { t } = useTranslation();
   if (!error) return null;
   const e = error as Partial<AppError>;
-  return <Alert variant="destructive" className="notice error"><AlertDescription>{errorName(t, e.code)}{e.requestId && <small>{t('common.requestId')}: {e.requestId}</small>}</AlertDescription></Alert>;
+  return (
+    <Alert variant="destructive" className="notice error">
+      <AlertDescription>
+        {errorName(t, e.code)}
+        {e.requestId && (
+          <small>
+            {t('common.requestId')}: {e.requestId}
+          </small>
+        )}
+      </AlertDescription>
+    </Alert>
+  );
 }

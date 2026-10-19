@@ -12,7 +12,7 @@
     },
     {
       "path": "src/lib/transport/fixture.ts",
-      "sha256": "54842c535692a7f562bdffea9a7d67d74b8f1a6f897bdc4b83d4ba67a6b45ac0"
+      "sha256": "1c363fe77f1305ee8cd3634697cbed60868d2dfd16f7e4cc1622332768707f7d"
     },
     {
       "path": "tests/fixtures/icon.png",

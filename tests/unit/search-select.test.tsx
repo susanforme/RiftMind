@@ -13,15 +13,36 @@ const options = [
 ];
 function Subject({ disabled = false }: { disabled?: boolean }) {
   const [value, setValue] = useState('all');
-  return <SearchSelect label="Champion" options={options} value={value} disabled={disabled} onValueChange={next => { setValue(next); change(next); }} />;
+  return (
+    <SearchSelect
+      label="Champion"
+      options={options}
+      value={value}
+      disabled={disabled}
+      onValueChange={(next) => {
+        setValue(next);
+        change(next);
+      }}
+    />
+  );
 }
 beforeEach(async () => {
   change.mockClear();
   await i18n.changeLanguage('en-US');
-  vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    },
+  );
   Element.prototype.scrollIntoView = vi.fn();
 });
-afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
 it('filters names and aliases, committing only an existing dropdown option', async () => {
   render(<Subject />);
@@ -78,5 +99,7 @@ it('keeps disabled selects and options unselectable', async () => {
   expect(option).toHaveAttribute('aria-disabled', 'true');
   fireEvent.click(option);
   expect(change).not.toHaveBeenCalled();
-  await act(async () => { fireEvent.keyDown(input, { key: 'Escape' }); });
+  await act(async () => {
+    fireEvent.keyDown(input, { key: 'Escape' });
+  });
 });

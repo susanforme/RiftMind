@@ -11,12 +11,14 @@
     "dev:mock": "bun scripts/dev-mock.ts",
     "dev:integration": "bun scripts/dev-integration.ts",
     "generate:contracts": "bun scripts/contracts.ts",
-    "check": "tsc --noEmit && eslint src scripts tests && bun scripts/check.ts && bun scripts/fixture-manifest.ts --check && bun scripts/contracts.ts --check",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "check": "bun run format:check && tsc --noEmit && eslint src scripts tests && bun scripts/check.ts && bun scripts/fixture-manifest.ts --check && bun scripts/contracts.ts --check",
     "test:unit": "vitest run",
     "test:e2e": "playwright test",
     "verify:stage1": "bun scripts/verify.ts",
     "check:production": "bun scripts/check-production.ts",
-    "verify:stage2": "bun scripts/verify-stage2.ts",
+    "verify:stage2": "bun scripts/verify-review.ts",
     "verify:stage3": "bun scripts/verify-scouting.ts"
   },
   "dependencies": {
@@ -48,6 +50,7 @@
     "zustand": "5.0.15"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.5.15",
     "@eslint/js": "10.0.1",
     "@playwright/test": "1.64.1",
     "@tailwindcss/vite": "4.3.3",

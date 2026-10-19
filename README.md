@@ -75,6 +75,18 @@ HTTP/WebSocket 测试桥接均通过编译期条件和动态导入排除。
 
 ## 检查
 
+Biome 负责 JS、JSX、TS、TSX 及其模块扩展名的格式化，ESLint 保留现有代码检查。
+格式规则为 2 空格缩进、100 字符行宽、JS 单引号和分号；遵循 `.gitignore`，
+排除 `.agents/` 技能脚本和 Rust 自动生成的 `src/generated/` 契约。
+
+```sh
+bun run format
+bun run format:check
+```
+
+`bun run check` 包含格式检查。格式化 fixture 源码后，运行
+`bun scripts/fixture-manifest.ts` 并审阅哈希变更。
+
 ```sh
 bun run check
 bun run test:unit
